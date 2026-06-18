@@ -1,0 +1,45 @@
+---
+title: Overview
+description: The end-to-end proof → verify → settle loop, from policy to receipt.
+---
+
+Here is the whole loop, from defining a policy to a settled payment with a receipt.
+
+```text
+ define policy            ┌────────────── on-chain (ZentraVerifier) ───────────────┐
+ ─────────────            │  authorize_action(agent, proof, recipient, amount, …)  │
+ commit() ─► register     │   1  require_auth(agent)                               │
+   commitment + root ────►│   2  load policy · compute effective prior state       │
+                          │   3  assert proof's prev_* == effective state          │
+ build action             │   4  nullifier unused?                                 │
+ ────────────             │   5  verify Groth16 proof (BN254)                       │
+ SDK reads AuthorityState │   6  write state · mark nullifier                       │
+   ─► effective prior     │   7  token.transfer(agent ─► recipient)                │
+   ─► prove (snarkjs) ───►│   8  Poseidon action_id · emit ActionReceipt           │
+       proof + 14 signals └────────────────────────────────────────────────────────┘
+                                          │
+                                          ▼  settled tx + receipt
+```
+
+## In words
+
+1. **Define & commit.** You author a private policy; `commitPolicy` registers its
+   commitment and recipient root on-chain.
+2. **Read state.** The SDK reads the agent's `AuthorityState` and derives the
+   *effective prior* state for the current epoch.
+3. **Prove.** snarkjs builds a Groth16/BN254 proof binding the action to the
+   policy, recipient, amount, prior state, and a fresh nullifier.
+4. **Verify.** The contract verifies the proof, checks the state binding, and
+   confirms the nullifier is unused.
+5. **Settle.** It writes the new state, marks the nullifier, and transfers funds
+   from the agent to the recipient.
+6. **Receipt.** It computes the Poseidon `action_id` and emits an `ActionReceipt`.
+
+Each stage has its own page in this section.
+
+<Cards>
+  <Card title="The circuit" href="/docs/how-it-works/the-circuit" description="14 public inputs and six constraint families." />
+  <Card title="On-chain verification" href="/docs/how-it-works/on-chain-verification" description="Groth16/BN254 and what it costs." />
+  <Card title="State binding" href="/docs/how-it-works/state-binding" description="Why over-spend is rejected." />
+  <Card title="Why now" href="/docs/how-it-works/why-now" description="The protocol upgrades that made this possible." />
+</Cards>
