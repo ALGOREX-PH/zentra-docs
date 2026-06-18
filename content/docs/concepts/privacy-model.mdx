@@ -1,0 +1,38 @@
+---
+title: Privacy model
+description: Exactly what Zentra keeps private and what it makes public.
+---
+
+Zentra's value is that verification is **public** while the policy is **private**.
+Here is the precise split.
+
+| Stays private | Becomes public |
+| --- | --- |
+| The full approved-recipient list | The recipient Merkle `recipientRoot` |
+| Policy thresholds (`maxAmount`, `dailyLimit`) | The policy **commitment** |
+| The secret policy `salt` | — |
+| Daily-spend history / running totals | The post-action counters in the receipt |
+| Invoice contents (the preimage) | The invoice **hash** |
+| The agent's instruction context | That the action was **valid** |
+
+## What a verifier learns
+
+A verifier — the contract, or anyone reading the chain — learns only that:
+
+- a valid proof exists for a registered policy commitment,
+- the action matched the agent's authoritative on-chain state,
+- the nullifier was unused, and
+- the payment was therefore eligible to settle.
+
+It learns **nothing** about the thresholds, the vendor list, or the agent's
+reasoning.
+
+<Callout>
+The settled payment itself (amount, recipient) is visible on Stellar's public
+ledger, as any payment is. What stays hidden is the *policy* that authorized it.
+</Callout>
+
+<Cards>
+  <Card title="What Zentra is not" href="/docs/start-here/what-zentra-is-not" description="The boundary of the claims." />
+  <Card title="Proof of compliance" href="/docs/concepts/proof-of-compliance" description="The core idea, end to end." />
+</Cards>
