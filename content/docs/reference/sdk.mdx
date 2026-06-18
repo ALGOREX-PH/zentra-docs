@@ -1,0 +1,105 @@
+---
+title: SDK — @zentra/sdk
+description: The Zentra client, GuardedAgent, proveAction, StatusEvent, and supporting types.
+---
+
+`@zentra/sdk` is the product surface: construct a client, define a policy, guard an
+agent, and pay through a proof.
+
+## `new Zentra(config)`
+
+```ts
+new Zentra(cfg: ZentraConfig)
+
+interface ZentraConfig {
+  contractId: string;
+  asset: string;
+  circuit: { wasmPath: string; zkeyPath: string };
+  rpcUrl?: string; // defaults to testnet
+  networkPassphrase?: string; // defaults to testnet
+  onStatus?: (e: StatusEvent) => void;
+}
+```
+
+## Methods
+
+```ts
+createPolicy(config: PolicyConfig): Policy
+commitPolicy(agent, policy: Policy): Promise<ConfirmedTx>
+readState(agentPub: string, policy: Policy): Promise<AuthorityState>
+pay(agent, policy: Policy, req: PayRequest): Promise<PayResult>
+guard(agent, policy: Policy): GuardedAgent
+```
+
+- **`createPolicy`** builds a policy locally: the Poseidon-Merkle `recipientRoot` and the policy commitment.
+- **`commitPolicy`** registers the commitment + root on-chain (`register_policy`).
+- **`readState`** simulates `authority_state` to read the current `AuthorityState`.
+- **`pay`** runs the full read-state → prove → submit loop for one action.
+- **`guard`** returns a `GuardedAgent` that can only pay through `pay`.
+
+## `GuardedAgent`
+
+```ts
+interface GuardedAgent {
+  pay(req: PayRequest): Promise<PayResult>;
+}
+
+interface PayRequest {
+  recipient: string;
+  amount: bigint;
+  invoicePreimage: bigint;
+  nonce?: bigint;
+  nowSeconds?: number;
+}
+
+interface PayResult {
+  txHash: string;
+  nullifier: string;
+}
+```
+
+## `proveAction`
+
+```ts
+proveAction(policy: Policy, ctx: ActionContext, artifacts: CircuitArtifacts): Promise<ProveResult>
+```
+
+Validates the recipient is in the approved set and **throws before proving** if it
+isn't (Panel B). Returns the proof and the 14 public inputs.
+
+## `StatusEvent`
+
+```ts
+type StatusEvent =
+  | { phase: 'proving'; recipient: string; amount: bigint }
+  | { phase: 'proof-ready'; nullifier: string }
+  | { phase: 'submitting' }
+  | { phase: 'released'; txHash: string }
+  | { phase: 'blocked'; reason: string };
+```
+
+## Derivations
+
+```text
+policyCommitment = Poseidon(maxAmount, dailyLimit, recipientRoot, assetField, salt)
+recipientRoot    = Poseidon-Merkle (depth 4 / 16 leaves), leaf = Poseidon(recipientField), pad 0
+nullifier        = Poseidon(agentField, policyCommitment, contractField, nonce)
+invoiceHash      = Poseidon(invoicePreimage)
+```
+
+## Constants & dependencies
+
+```ts
+TESTNET = {
+  rpcUrl: 'https://soroban-testnet.stellar.org',
+  networkPassphrase: 'Test SDF Network ; September 2015',
+};
+```
+
+Proof bytes: 256 (`a 64 ‖ b 128 ‖ c 64`). Built on `@stellar/stellar-sdk` 15.1.0,
+`snarkjs` 0.7.6, and `circomlibjs` 0.1.7.
+
+<Cards>
+  <Card title="Serialization" href="/docs/reference/serialization" description="The public-input codec." />
+  <Card title="Errors" href="/docs/reference/errors" description="What each failure means." />
+</Cards>

@@ -1,0 +1,12 @@
+{
+  "title": "Reference",
+  "pages": [
+    "sdk",
+    "cli",
+    "contract",
+    "circuit",
+    "serialization",
+    "errors",
+    "receipt-schema"
+  ]
+}

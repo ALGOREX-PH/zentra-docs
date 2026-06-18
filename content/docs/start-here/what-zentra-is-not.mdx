@@ -1,0 +1,39 @@
+---
+title: What Zentra is not
+description: The boundary of what the protocol claims — stated plainly.
+---
+
+Trust comes as much from what a system refuses to claim as from what it promises.
+Zentra has a deliberately narrow job.
+
+<Callout title="The boundary statement">
+Zentra is a **proof-of-compliance and settlement layer**. It is **not** an
+identity system, an oracle, a policy author, a key manager, or a full compliance
+engine.
+</Callout>
+
+## What that means in practice
+
+- **Not an identity system.** Zentra verifies that an action obeyed a policy; it
+  does not establish *who* the agent is. Bring your own identity — the agent's
+  Stellar account authorizes the call via `require_auth`.
+- **Not an oracle.** It proves statements about values you supply (amount,
+  recipient, invoice); it does not fetch or attest to off-chain facts.
+- **Not a policy author.** You define the policy and its thresholds. Zentra makes
+  the policy *enforceable in zero knowledge*; it does not decide what is sensible.
+- **Not a key manager.** Signing keys and their custody are yours. Zentra never
+  sees or holds them.
+- **Not a full compliance engine.** It enforces the specific, provable rules a
+  policy encodes — not open-ended regulatory judgment.
+
+## What it *is*
+
+A precise primitive: given a private policy and an agent's authoritative on-chain
+state, Zentra lets the agent prove — and the chain verify — that a proposed
+payment is compliant, then settles it and emits a receipt. Narrow on purpose, so
+it can be trusted completely within that scope.
+
+<Cards>
+  <Card title="Privacy model" href="/docs/concepts/privacy-model" description="Exactly what stays private vs. public." />
+  <Card title="Quickstart" href="/docs/quickstart" description="Put the primitive to work." />
+</Cards>

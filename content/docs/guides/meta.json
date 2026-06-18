@@ -1,0 +1,12 @@
+{
+  "title": "Guides",
+  "pages": [
+    "define-a-policy",
+    "integrate-the-sdk",
+    "guard-an-agent",
+    "three-failure-modes",
+    "cli-workflow",
+    "deploy-your-own-verifier",
+    "read-receipts"
+  ]
+}

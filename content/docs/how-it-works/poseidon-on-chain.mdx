@@ -1,0 +1,32 @@
+---
+title: Poseidon on-chain
+description: CAP-0075 host Poseidon computes the receipt's action id inside the contract.
+---
+
+Beyond verifying the proof, the contract uses the **CAP-0075 host Poseidon** to
+compute the receipt's canonical `action_id` on-chain.
+
+```text
+action_id = Poseidon(agent, recipient, amount, nullifier, new_spent)   // arity 6
+```
+
+Each input is reduced modulo the BN254 scalar field `r` before hashing, matching
+the field arithmetic the circuit uses.
+
+## Why compute it on-chain
+
+If the agent supplied the receipt id, it could lie about it. By recomputing the
+hash inside the contract from values it already trusts — the verified amount, the
+recipient it's about to pay, the nullifier it just checked — the `action_id`
+becomes a fact the chain attests to, not a claim.
+
+<Callout>
+This is the same Poseidon family used inside the circuit, so on-chain and
+in-circuit hashing agree. CAP-0075 ships the permutation as a native host
+primitive, which is what makes computing it per-transaction cheap.
+</Callout>
+
+<Cards>
+  <Card title="Verifiable Action Receipt" href="/docs/concepts/verifiable-action-receipt" description="What the action id identifies." />
+  <Card title="Why now" href="/docs/how-it-works/why-now" description="The CAPs behind the primitives." />
+</Cards>

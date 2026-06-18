@@ -1,0 +1,47 @@
+---
+title: Deploy your own verifier
+description: Build, deploy, and register policies on your own ZentraVerifier instance.
+---
+
+You don't have to use the shared testnet verifier — you can run your own.
+
+## Build the contract
+
+The verifier targets `wasm32v1-none` and depends on `soroban-sdk` 26.1.0 (with the
+`hazmat-address` and `hazmat-crypto` features) plus `soroban-poseidon`.
+
+```bash
+cd contracts/zentra-verifier
+stellar contract build
+```
+
+## Deploy to testnet
+
+```bash
+stellar contract deploy \
+  --wasm target/wasm32v1-none/release/zentra_verifier.wasm \
+  --network testnet \
+  --source-account deployer
+# → prints your new contract id
+```
+
+Point your SDK or CLI at the printed id (set `ZENTRA_CONTRACT`).
+
+## Register policies
+
+Registering a policy stores its commitment, recipient root, and epoch length:
+
+```ts
+await zentra.commitPolicy(agent, policy); // calls register_policy under the hood
+```
+
+<Callout>
+Resource profiling: run `stellar contract invoke --sim` against `authorize_action`
+to confirm the full verify + settle stays within the per-transaction budget — it
+measures around <CpuBudget /> on testnet.
+</Callout>
+
+<Cards>
+  <Card title="Contract reference" href="/docs/reference/contract" description="Methods, errors, storage." />
+  <Card title="On-chain verification" href="/docs/how-it-works/on-chain-verification" description="What the contract checks." />
+</Cards>

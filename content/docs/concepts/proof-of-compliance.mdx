@@ -1,0 +1,41 @@
+---
+title: Proof of compliance
+description: A zero-knowledge proof that a proposed action obeyed the private policy and the current on-chain state.
+---
+
+A **proof of compliance** is a zero-knowledge proof that a *proposed* payment
+satisfies two things at once:
+
+1. the agent's **private policy** — approved recipients, per-invoice cap, daily
+   limit, and an invoice match; and
+2. the agent's **current Authority State** on-chain — how much it has already
+   spent this epoch, and how many actions it has taken.
+
+The proof reveals neither of them. A verifier learns only that the action is valid.
+
+## Proposed, proven, settled
+
+Traditional automation acts and then logs. Zentra inserts a proof between intent
+and settlement:
+
+- **Proposed** — the agent assembles an action: recipient, amount, invoice.
+- **Proven** — it generates a Groth16 proof that the action obeys the policy and
+  matches the on-chain state.
+- **Settled** — the contract verifies the proof, checks the state binding, and
+  only then moves the money and emits a receipt.
+
+<Callout>
+Because the proof is bound to on-chain state, "I'm under my daily limit" is
+checked against the real ledger — not a number the agent supplied.
+</Callout>
+
+## Why zero-knowledge
+
+A policy is a sensitive asset: your vendor list, your limits, your invoice
+details. Zentra proves the action obeyed those rules without publishing any of
+them. Verification is public; the policy stays private.
+
+<Cards>
+  <Card title="Policy & commitment" href="/docs/concepts/policy-and-commitment" description="How a private policy becomes an on-chain commitment." />
+  <Card title="Authority State" href="/docs/concepts/authority-state" description="The on-chain record the proof is bound to." />
+</Cards>

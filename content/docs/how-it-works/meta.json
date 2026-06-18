@@ -1,0 +1,11 @@
+{
+  "title": "How it works",
+  "pages": [
+    "overview",
+    "the-circuit",
+    "on-chain-verification",
+    "poseidon-on-chain",
+    "state-binding",
+    "why-now"
+  ]
+}

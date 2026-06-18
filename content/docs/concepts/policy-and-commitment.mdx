@@ -1,0 +1,43 @@
+---
+title: Policy & commitment
+description: A private policy, reduced to a single on-chain Poseidon commitment.
+---
+
+A **policy** is the rulebook for an agent's payments. It is authored privately and
+never published in full.
+
+## What a policy contains
+
+- `name` — a human label.
+- `asset` — what may be spent (the demo uses native XLM).
+- `maxAmount` — the cap per invoice.
+- `dailyLimit` — the cap per epoch.
+- `approvedRecipients` — the allowlist, up to 16 addresses.
+- `epochSeconds` — how long an epoch lasts (default one day).
+- `salt` — a **secret**, high-entropy value that hides the policy.
+
+## The commitment
+
+Registering a policy publishes only a **commitment** — one field element —
+together with the recipient Merkle root:
+
+```text
+policyCommitment = Poseidon(maxAmount, dailyLimit, recipientRoot, assetField, salt)
+```
+
+The thresholds and the salt stay private. Because the salt is secret, the
+commitment is *hiding* — nobody can reconstruct the policy from it — and *binding*
+— the agent can't later prove against a different policy.
+
+<Callout title="Why a salt">
+Without it, anyone could brute-force small limit values and recover your policy
+from its commitment. The salt makes the commitment reveal nothing.
+</Callout>
+
+Every proof **opens** this commitment in zero knowledge: it shows the agent knows
+a policy whose commitment was registered, without revealing the policy itself.
+
+<Cards>
+  <Card title="Recipient allowlist" href="/docs/concepts/recipient-allowlist" description="The approved set as a Merkle root." />
+  <Card title="Privacy model" href="/docs/concepts/privacy-model" description="What stays private vs. public." />
+</Cards>

@@ -1,0 +1,54 @@
+---
+title: Define a policy
+description: Author a private policy and register its commitment — with the SDK or the CLI.
+---
+
+A policy sets the rules an agent must prove it followed. Define one in code or
+from the terminal.
+
+<Tabs items={['SDK', 'CLI']}>
+
+<Tab value="SDK">
+
+```ts
+const policy = zentra.createPolicy({
+  name: 'vendor-payouts',
+  maxAmount: 200_000_000n, //  20 XLM per invoice
+  dailyLimit: 1_000_000_000n, // 100 XLM per epoch
+  approvedRecipients: [vendorA, vendorB],
+});
+
+// register the commitment + recipient root on-chain
+await zentra.commitPolicy(agent, policy);
+```
+
+</Tab>
+
+<Tab value="CLI">
+
+```bash
+zentra policy create vendor-payouts \
+  --max-amount 20 \
+  --daily-limit 100 \
+  --allowlist ./vendors.json \
+  --asset native
+
+zentra policy commit ./policies/vendor-payouts.json
+```
+
+</Tab>
+
+</Tabs>
+
+Either path produces the same on-chain result: a Poseidon commitment and a
+recipient Merkle root. The thresholds and the vendor list stay private.
+
+<Callout>
+Keep the policy file and its secret salt safe — they're needed to prove against
+the commitment later, and the salt is what keeps the policy hidden.
+</Callout>
+
+<Cards>
+  <Card title="Policy & commitment" href="/docs/concepts/policy-and-commitment" description="What a commitment hides." />
+  <Card title="Integrate the SDK" href="/docs/guides/integrate-the-sdk" description="Wire Zentra into your agent." />
+</Cards>

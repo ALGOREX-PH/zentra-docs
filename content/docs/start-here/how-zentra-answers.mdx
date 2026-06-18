@@ -1,0 +1,42 @@
+---
+title: How Zentra answers
+description: Proof replaces surveillance — the agent proves compliance before the money moves.
+---
+
+Zentra reframes trust around a single move: the agent must **prove** the action
+is compliant *before* the chain will settle it.
+
+## The three questions of agentic finance
+
+|   | Question | Answered by |
+| - | -------- | ----------- |
+| Who | Who is this agent? | Identity (keys, credentials) |
+| What | What is it allowed to do? | Permissions (scopes, allowances) |
+| **Did it** | **Did this action, right now, obey the rules — privately?** | **Zentra** |
+
+The first two are necessary but not sufficient. Zentra owns the third.
+
+## Proof instead of surveillance
+
+Instead of watching an agent and reconstructing what it did, Zentra has the agent
+hand over a zero-knowledge proof that the proposed action satisfies the policy.
+The proof reveals **nothing** about the private policy — not the vendor list, not
+the limits, not the spend history — only that the rules were followed.
+
+<Callout title="Proposed, proven, settled">
+A normal agent does, then you log. A Zentra agent **proposes** an action,
+**proves** it complies with the private policy *and* the current on-chain state,
+and only then does the chain **settle** it. No valid proof, no payment.
+</Callout>
+
+## Why the state binding matters
+
+A proof that an action is "within the daily limit" is worthless if the agent can
+lie about how much it has already spent. Zentra binds every proof to the agent's
+authoritative **Authority State** on-chain, so the limit is checked against real
+history — not a number the agent made up.
+
+<Cards>
+  <Card title="Authority State" href="/docs/concepts/authority-state" description="The on-chain record a proof is bound to." />
+  <Card title="State binding" href="/docs/how-it-works/state-binding" description="How prev-state makes over-spend impossible." />
+</Cards>

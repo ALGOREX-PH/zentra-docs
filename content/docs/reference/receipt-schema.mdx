@@ -1,0 +1,48 @@
+---
+title: Receipt schema
+description: The ActionReceipt event fields and the off-chain receipt JSON.
+---
+
+A settled action emits an `ActionReceipt` event. Reconstruct a portable receipt
+from its fields off-chain.
+
+## Event fields
+
+`ActionReceipt` (topics `["receipt"]`):
+
+| Field | Type | Meaning |
+| --- | --- | --- |
+| `agent` | Address | The paying agent |
+| `policy` | BytesN&lt;32&gt; | The policy commitment |
+| `recipient` | Address | The payee |
+| `amount` | i128 | Amount settled |
+| `asset` | Address | The asset (SAC) |
+| `nullifier` | BytesN&lt;32&gt; | Single-use marker |
+| `epoch_id` | u64 | Epoch after the action |
+| `new_action_count` | u64 | Action count after the action |
+| `action_id` | BytesN&lt;32&gt; | Canonical receipt id (Poseidon) |
+
+## Off-chain receipt JSON
+
+```json
+{
+  "agent": "G…",
+  "policy": "0x…",
+  "recipient": "G…",
+  "amount": "50000000",
+  "asset": "native",
+  "nullifier": "0x…",
+  "epochId": 20231,
+  "newActionCount": 7,
+  "actionId": "0x…",
+  "txHash": "…"
+}
+```
+
+`action_id` is computed on-chain with Poseidon, so the receipt id is verifiable
+rather than asserted.
+
+<Cards>
+  <Card title="Read receipts" href="/docs/guides/read-receipts" description="How to capture the event." />
+  <Card title="Verifiable Action Receipt" href="/docs/concepts/verifiable-action-receipt" description="What the receipt represents." />
+</Cards>

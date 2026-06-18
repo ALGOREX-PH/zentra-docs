@@ -1,0 +1,45 @@
+---
+title: State binding
+description: How a proof is tied to the agent's real on-chain state, making over-spend impossible.
+---
+
+State binding is what separates Zentra from a naive "does this payment fit the
+limit?" check. The proof carries the agent's claimed prior state, and the
+contract refuses to trust it unless it matches reality.
+
+## The three bound signals
+
+Every proof includes:
+
+- `prevEpochId` — the epoch the prior counters belong to
+- `prevSpent` — spend before this action
+- `prevActionCount` — action count before this action
+
+Inside `authorize_action`, the contract computes the **effective prior state**
+from its own stored `AuthorityState` (applying epoch rollover), then asserts:
+
+```text
+prevEpochId      == effective.epoch_id
+prevSpent        == effective.spent_in_epoch
+prevActionCount  == effective.action_count
+```
+
+Any mismatch returns `StateMismatch`, and the payment is rejected.
+
+## Why this stops over-spend
+
+A compromised agent might try to slip a payment under the daily limit by claiming
+it has spent nothing yet. But `prevSpent` in the proof must equal the contract's
+real figure. Claim `prevSpent = 0` when the chain says `400`, and the assertion
+fails — no money moves.
+
+<Callout type="warn" title="This is Panel C">
+Spend 400 of a 500 limit, then try to pay 150 while claiming `prevSpent = 0`. The
+proof is internally valid, but the state binding rejects it on-chain. Lying about
+history is not possible.
+</Callout>
+
+<Cards>
+  <Card title="Epochs & limits" href="/docs/concepts/epochs-and-limits" description="How effective prior state is derived." />
+  <Card title="Three failure modes" href="/docs/guides/three-failure-modes" description="See Panel C run end to end." />
+</Cards>

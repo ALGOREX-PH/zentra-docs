@@ -1,0 +1,35 @@
+---
+title: Authority State
+description: The authoritative on-chain record a proof is bound to.
+---
+
+**Authority State** is the contract's authoritative memory of an agent's activity
+under one policy. It is the anchor that makes proofs trustworthy.
+
+```rust
+struct AuthorityState {
+    epoch_id: u64,        // which epoch the counters belong to
+    spent_in_epoch: i128, // total spent so far this epoch
+    action_count: u64,    // lifetime number of authorized actions
+}
+```
+
+There is one record per **(agent, policy)** pair, stored on-chain by the verifier.
+
+## Why it lives on-chain
+
+A proof that says "this payment keeps me under my daily limit" only means
+something if the prior-spend figure is real. By keeping `spent_in_epoch` and
+`action_count` on-chain, the contract — not the agent — owns the source of truth.
+Every proof must match this record exactly (the **state binding**), so an agent
+cannot under-report what it has already spent.
+
+<Callout>
+Identity comes from `require_auth`, the policy from its commitment, and the spend
+history from Authority State. A proof ties one action to all three.
+</Callout>
+
+<Cards>
+  <Card title="Epochs & limits" href="/docs/concepts/epochs-and-limits" description="How the daily counter resets." />
+  <Card title="State binding" href="/docs/how-it-works/state-binding" description="Why over-spend is impossible." />
+</Cards>

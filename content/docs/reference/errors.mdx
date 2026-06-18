@@ -1,0 +1,30 @@
+---
+title: Errors
+description: The contract Error enum (codes 1–8), with the symptom and likely cause of each.
+---
+
+`authorize_action` and the other contract methods return a typed `Error`. Each
+code maps to a specific check in the [state machine](/docs/reference/contract).
+
+| Code | Variant | What it means | Likely cause |
+| --- | --- | --- | --- |
+| 1 | `MalformedVerifyingKey` | The embedded verifying key didn't decode | Build/transcode mismatch in `vk.rs` |
+| 2 | `PolicyNotFound` | No policy registered for (agent, commitment) | Policy never committed, or wrong commitment |
+| 3 | `PolicyRevoked` | The policy was revoked | `revoke_policy` was called for it |
+| 4 | `InvalidProof` | The Groth16 pairing check failed | Tampered proof/public inputs, or wrong circuit artifacts |
+| 5 | `StateMismatch` | Proof's `prev_*` ≠ effective on-chain state | Stale state read, epoch drift, or a forged prior spend (Panel C) |
+| 6 | `NullifierUsed` | The nullifier was already recorded | Replay, or a reused `nonce` |
+| 7 | `InvalidAmount` | `amount` was not greater than zero | A zero or negative amount |
+| 8 | `Overflow` | A counter or sum overflowed | `prev_spent + amount` or `action_count + 1` out of range |
+
+## Mapping to the SDK
+
+The SDK surfaces these as thrown errors during `pay()` / `submit`, and as a
+`blocked` `StatusEvent` when an action can't be proven at all — for example, a
+recipient outside the allowlist, which fails locally before any of the codes above
+can be returned.
+
+<Cards>
+  <Card title="Contract reference" href="/docs/reference/contract" description="Where each error is raised." />
+  <Card title="State binding" href="/docs/how-it-works/state-binding" description="The check behind StateMismatch." />
+</Cards>

@@ -1,0 +1,56 @@
+---
+title: Integrate the SDK
+description: Construct the Zentra client and wire the proof-lifecycle status events into your app.
+---
+
+Bring Zentra into an existing agent in a few lines.
+
+## Install
+
+```bash
+bun add @zentra/sdk @stellar/stellar-sdk
+```
+
+## Construct the client
+
+```ts
+import { Zentra } from '@zentra/sdk';
+
+const zentra = new Zentra({
+  contractId: process.env.ZENTRA_CONTRACT!, // the live verifier
+  asset: 'native',
+  circuit: { wasmPath: './payment_policy.wasm', zkeyPath: './payment_policy.zkey' },
+  rpcUrl: 'https://soroban-testnet.stellar.org',
+  networkPassphrase: 'Test SDF Network ; September 2015',
+  onStatus: (e) => console.log(e),
+});
+```
+
+`rpcUrl` and `networkPassphrase` default to testnet, so you can usually omit them.
+
+## Wire the status events
+
+`onStatus` receives a `StatusEvent` at each step of the proof lifecycle. It's the
+single source your UI and logs should render from:
+
+```ts
+onStatus: (e) => {
+  switch (e.phase) {
+    case 'proving':     show('Generating proof…'); break;
+    case 'proof-ready': show('Proof ready'); break;
+    case 'submitting':  show('Submitting to testnet…'); break;
+    case 'released':    show(`Settled: ${e.txHash}`); break;
+    case 'blocked':     show(`Blocked: ${e.reason}`); break;
+  }
+}
+```
+
+<Callout>
+The `blocked` event fires when an action can't be proven — for example, a
+recipient that isn't on the allowlist — before any transaction is attempted.
+</Callout>
+
+<Cards>
+  <Card title="Guard an agent" href="/docs/guides/guard-an-agent" description="The adapter that enforces proof-gating." />
+  <Card title="SDK reference" href="/docs/reference/sdk" description="Every type and method." />
+</Cards>

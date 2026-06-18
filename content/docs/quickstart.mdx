@@ -1,0 +1,118 @@
+---
+title: Quickstart
+description: Go from zero to a verified, proof-gated payment on Stellar testnet in one sitting.
+---
+
+By the end of this page you'll have an agent that **cannot** pay anyone unless it
+first proves the payment obeys your private policy — verified on Stellar testnet.
+
+<Callout title="What you'll point at">
+The live `ZentraVerifier` on testnet is <ContractId />. RPC <RpcUrl /> · network
+passphrase <NetworkPassphrase />. These come from one config, so they're always
+current — never copy a contract id out of a blog post.
+</Callout>
+
+<Steps>
+
+### Prerequisites
+
+- [Bun](https://bun.sh) or Node 20+
+- A funded testnet keypair (fund any account with [friendbot](https://friendbot.stellar.org))
+- The circuit artifacts `payment_policy.wasm` and `payment_policy.zkey` (shipped with the SDK examples)
+
+Export your agent's secret so it never lands in source:
+
+```bash
+export ZENTRA_AGENT_SECRET="S...your testnet seed..."
+```
+
+### Install the SDK
+
+```bash
+bun add @zentra/sdk @stellar/stellar-sdk
+```
+
+### Create the client
+
+Point the client at the live verifier and the circuit artifacts. Wire `onStatus`
+to watch the proof lifecycle.
+
+```ts title="agent.ts"
+import { Zentra } from '@zentra/sdk';
+import { Keypair } from '@stellar/stellar-sdk';
+
+const agent = Keypair.fromSecret(process.env.ZENTRA_AGENT_SECRET!);
+
+const zentra = new Zentra({
+  contractId: process.env.ZENTRA_CONTRACT!, // the live verifier (see callout above)
+  asset: 'native', // settle in XLM via its Stellar Asset Contract
+  circuit: { wasmPath: './payment_policy.wasm', zkeyPath: './payment_policy.zkey' },
+  rpcUrl: 'https://soroban-testnet.stellar.org',
+  onStatus: (e) => console.log(`[zentra] ${e.phase}`),
+});
+```
+
+### Define and commit a policy
+
+A policy stays private. Committing it registers only a Poseidon **commitment** and
+the recipient Merkle root on-chain — never the thresholds or the vendor list.
+
+```ts title="agent.ts"
+const policy = zentra.createPolicy({
+  name: 'vendor-payouts',
+  maxAmount: 200_000_000n, //  20 XLM per invoice (7 decimals)
+  dailyLimit: 1_000_000_000n, // 100 XLM per day
+  approvedRecipients: [vendorA, vendorB], // up to 16 recipients
+});
+
+await zentra.commitPolicy(agent, policy);
+```
+
+### Guard the agent and pay
+
+`guard()` returns an agent that can **only** pay through Zentra. A direct payment
+attempt throws; an allowed payment proves, submits, and settles.
+
+```ts title="agent.ts"
+const guarded = zentra.guard(agent, policy);
+
+const result = await guarded.pay({
+  recipient: vendorA,
+  amount: 50_000_000n, // 5 XLM
+  invoicePreimage: 0xc0ffeen, // hashed to bind the proof to this invoice
+});
+
+console.log('settled:', result.txHash);
+console.log('nullifier:', result.nullifier);
+```
+
+### Watch the proof lifecycle
+
+Your `onStatus` handler will print the sequence as the action flows through the
+rail:
+
+```text
+[zentra] proving
+[zentra] proof-ready
+[zentra] submitting
+[zentra] released
+```
+
+If the recipient isn't on the allowlist, you'll instead see `blocked` — and **no
+proof is ever produced**. That's the prompt-injection defense, for free.
+
+### Read the receipt
+
+`result.txHash` is a real settled transaction. Open it on
+[Stellar Expert](https://stellar.expert/explorer/testnet) to see the
+`ActionReceipt` event — the portable, proof-backed attestation of what happened.
+
+</Steps>
+
+## Next steps
+
+<Cards>
+  <Card title="Guard an agent" href="/docs/guides/guard-an-agent" description="Why a guarded agent can't pay directly." />
+  <Card title="The three failure modes" href="/docs/guides/three-failure-modes" description="Legit, prompt-injection, and over-spend — end to end." />
+  <Card title="How it works" href="/docs/how-it-works/overview" description="The full proof → verify → settle loop." />
+</Cards>

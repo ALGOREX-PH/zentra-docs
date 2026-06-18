@@ -1,0 +1,51 @@
+---
+title: Serialization — @zentra/serialization
+description: The byte-exact public-input codec shared by the circuit, contract, and SDK.
+---
+
+`@zentra/serialization` is the single place the public-input encoding is defined,
+so the circuit, contract, and SDK can never disagree.
+
+## Field modulus
+
+```ts
+FR_MODULUS = 21888242871839275222246405745257275088548364400416034343698204186575808495617n;
+```
+
+## Public input order
+
+`PUBLIC_INPUT_ORDER` is the 14 names, in the order shown in the
+[circuit reference](/docs/reference/circuit).
+
+## Functions
+
+```ts
+modFr(x: bigint): bigint
+fieldToBytes32(x: bigint): Uint8Array
+bytes32ToField(b: Uint8Array): bigint
+amountToField(x: bigint): bigint
+addressToField(addr: string): bigint
+toHex(b: Uint8Array): string
+encodePublicInputs(values): Uint8Array[]
+publicInputsToDecimal(values): string[]
+```
+
+## Byte layouts
+
+| Value | Layout |
+| --- | --- |
+| `Fr` | 32 bytes, big-endian, reduced mod `r` |
+| address | 32-byte payload reduced mod `r` |
+| `i128` | right-aligned: 16 zero bytes ‖ 16 value bytes (BE) |
+| `u64` | right-aligned: 24 zero bytes ‖ 8 value bytes (BE) |
+
+<Callout type="warn" title="One source, three consumers">
+A serialization mismatch is the highest-risk bug in a system like this. Defining
+the codec once — and asserting cross-language golden vectors against it — is what
+keeps snarkjs and the Soroban verifier byte-for-byte aligned.
+</Callout>
+
+<Cards>
+  <Card title="Circuit reference" href="/docs/reference/circuit" description="The signals being encoded." />
+  <Card title="On-chain verification" href="/docs/how-it-works/on-chain-verification" description="Where the bytes are consumed." />
+</Cards>

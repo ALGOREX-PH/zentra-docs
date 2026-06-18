@@ -1,0 +1,42 @@
+---
+title: Epochs & limits
+description: How the daily spend limit resets, and why the SDK must compute it exactly like the contract.
+---
+
+The daily limit is enforced per **epoch** — a window of `epoch_seconds` (one day
+by default).
+
+## Which epoch is it?
+
+```text
+current_epoch = ledger.timestamp() / epoch_seconds   // integer division
+```
+
+When a payment's `current_epoch` is newer than the stored `epoch_id`, the epoch
+has **rolled over**:
+
+- `spent_in_epoch` resets to `0` — a fresh daily budget, and
+- `action_count` is **preserved** — it's a lifetime counter.
+
+This *effective prior state* — not the raw stored record — is what the proof must
+match.
+
+<Callout type="warn" title="Compute it identically">
+The SDK derives the same effective prior state before building a proof. If the
+SDK and contract disagree by even one epoch, a legitimate payment is rejected as a
+state mismatch — so the two implementations are kept byte-for-byte aligned.
+</Callout>
+
+## Two limits, two checks
+
+- `amount <= maxAmount` — the per-invoice cap.
+- `prevSpent + amount <= dailyLimit` — the per-epoch cap, against the *effective*
+  prior spend.
+
+Both are enforced inside the circuit, so neither can be bypassed by a misbehaving
+agent.
+
+<Cards>
+  <Card title="Authority State" href="/docs/concepts/authority-state" description="The record epochs apply to." />
+  <Card title="State binding" href="/docs/how-it-works/state-binding" description="Matching prev-state exactly." />
+</Cards>

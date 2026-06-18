@@ -1,0 +1,46 @@
+---
+title: Read receipts
+description: Subscribe to and parse ActionReceipt events into a portable receipt.
+---
+
+Every settled action emits an `ActionReceipt` event (topic `"receipt"`). Reading
+it back gives you a portable, proof-backed record.
+
+## From a pay result
+
+`pay()` already returns the essentials:
+
+```ts
+const result = await guarded.pay({ recipient: vendorA, amount: 50_000_000n, invoicePreimage });
+// result.txHash    — the settled transaction
+// result.nullifier — this action's single-use marker
+```
+
+## From chain events
+
+To reconstruct the full receipt, read the contract's events for the transaction
+and decode the `ActionReceipt` fields:
+
+```ts
+import { rpc } from '@stellar/stellar-sdk';
+
+const server = new rpc.Server('https://soroban-testnet.stellar.org');
+const tx = await server.getTransaction(result.txHash);
+
+// decode the "receipt" event → ActionReceipt:
+//   agent, policy, recipient, asset, amount,
+//   nullifier, epoch_id, new_action_count, action_id
+```
+
+The `action_id` is the canonical receipt id, computed on-chain with Poseidon.
+
+<Callout>
+Receipts are events, not contract storage — reconstruct the receipt JSON
+off-chain from the emitted fields. That keeps settlement cheap while leaving a
+verifiable trail.
+</Callout>
+
+<Cards>
+  <Card title="Verifiable Action Receipt" href="/docs/concepts/verifiable-action-receipt" description="What the receipt means." />
+  <Card title="Receipt schema" href="/docs/reference/receipt-schema" description="The exact field set." />
+</Cards>
