@@ -1,0 +1,35 @@
+---
+title: Nullifiers
+description: Single-use markers that make every authorized action un-replayable.
+---
+
+A **nullifier** is a one-time marker that prevents the same authorization from
+being used twice.
+
+```text
+nullifier = Poseidon(agentAddress, policyCommitment, contractAddress, nonce)
+```
+
+The agent picks a fresh `nonce` per action, so each action yields a unique
+nullifier. The contract records every nullifier it has seen.
+
+## Replay protection
+
+When `authorize_action` runs, it rejects any proof whose nullifier is already on
+record (`NullifierUsed`). A captured, valid transaction therefore can't be
+resubmitted to pay twice.
+
+<Callout type="warn" title="Nullifiers are stored permanently">
+If a nullifier could expire, an old authorization would become replayable again
+the moment it did. So nullifiers live in **persistent** storage, never temporary
+storage — the protocol deliberately trades storage cost for safety.
+</Callout>
+
+Binding the nullifier to the agent, the policy commitment, and the contract
+address also stops a proof from being reused against a different policy or a
+different deployment.
+
+<Cards>
+  <Card title="Authority State" href="/docs/concepts/authority-state" description="Where used nullifiers are recorded." />
+  <Card title="On-chain verification" href="/docs/how-it-works/on-chain-verification" description="Where the replay check fires." />
+</Cards>
