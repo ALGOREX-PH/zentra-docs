@@ -1,0 +1,47 @@
+---
+title: Guard an agent
+description: Wrap an agent so it can only pay through a proof — direct payment becomes impossible.
+---
+
+`guard()` returns a wrapped agent whose only way to move money is through Zentra.
+Any attempt to pay directly throws.
+
+## The pattern
+
+```ts
+const guarded = zentra.guard(agent, policy);
+
+// allowed: proves, submits, settles
+await guarded.pay({
+  recipient: vendorA,
+  amount: 50_000_000n, // 5 XLM
+  invoicePreimage: 0xc0ffeen,
+});
+```
+
+`GuardedAgent` exposes `pay()` and nothing that bypasses it. Your agent calls
+`pay()`; the adapter handles read-state → prove → submit and emits status events.
+
+## Why direct payment is impossible
+
+`pay()` runs `proveAction` first. That step validates the recipient against the
+approved set and **throws before proving** if it isn't a member — so a
+prompt-injected instruction to pay an attacker can't even produce a proof:
+
+```ts
+try {
+  await guarded.pay({ recipient: attacker, amount: 50_000_000n, invoicePreimage });
+} catch (err) {
+  // blocked at proof generation — recipient not in the Merkle root
+}
+```
+
+<Callout type="warn" title="This is Panel B">
+No allowlisted recipient, no Merkle path, no proof, no payment. The block happens
+locally, at proof time — nothing is ever submitted to the network.
+</Callout>
+
+<Cards>
+  <Card title="Recipient allowlist" href="/docs/concepts/recipient-allowlist" description="Why membership can't be faked." />
+  <Card title="Three failure modes" href="/docs/guides/three-failure-modes" description="Watch the block happen." />
+</Cards>
