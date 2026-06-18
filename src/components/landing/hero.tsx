@@ -1,54 +1,64 @@
 import Link from 'next/link';
-import { ZentraMark } from '@/components/brand/zentra-mark';
-import { protocol, stellarExpertContractUrl } from '@/config/protocol';
+import { ProofEngine } from './proof-engine';
 
 export function Hero() {
   return (
-    <section className="zen-grid relative overflow-hidden border-b border-fd-border">
-      <div className="mx-auto flex max-w-5xl flex-col items-center px-6 py-28 text-center sm:py-36">
-        <div className="mb-8 flex items-center gap-2.5">
-          <ZentraMark size={40} title="Zentra Protocol" />
-          <span className="font-display text-lg font-bold tracking-[0.04em]">ZENTRA</span>
-          <span className="font-mono text-[10px] tracking-[0.22em] text-cyan">// PROTOCOL</span>
+    <header className="zen-grid relative overflow-hidden border-b border-violet/20 px-7 py-16">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0"
+        style={{ background: 'radial-gradient(ellipse 70% 60% at 70% 30%, rgba(124,58,237,0.16), transparent 70%)' }}
+      />
+      <div className="relative mx-auto grid max-w-6xl items-center gap-11 lg:grid-cols-2">
+        <div>
+          <div
+            className="mb-6 inline-flex items-center gap-2.5 border border-violet/40 px-3 py-1.5"
+            style={{ background: 'rgba(124,58,237,0.07)' }}
+          >
+            <span className="size-1.5 bg-violet" />
+            <span className="font-mono text-[11px] tracking-[0.1em] text-[#c4b5fd]">
+              ZK POLICY LAYER · AUTONOMOUS AGENTS
+            </span>
+          </div>
+
+          <h1 className="font-display text-[42px] font-bold leading-[1.06] tracking-[-0.03em] sm:text-5xl">
+            Let agents act.
+            <br />
+            <span className="bg-gradient-to-r from-violet-soft to-cyan bg-clip-text text-transparent">
+              Make them prove it.
+            </span>
+          </h1>
+
+          <p className="mt-5 max-w-[520px] text-lg leading-relaxed text-[#cbd5e1]">
+            Zentra lets AI agents trigger Stellar payments only after proving, in
+            zero knowledge, that they followed your private rules.
+          </p>
+          <p className="mt-4 font-mono text-xs tracking-[0.04em] text-muted">
+            PRIVATE POLICY → PUBLIC ENFORCEMENT → VERIFIED RECEIPTS
+          </p>
+
+          <div className="mt-8 flex flex-wrap">
+            <Link
+              href="/docs/quickstart"
+              className="inline-flex items-center gap-2.5 bg-violet px-6 py-3.5 text-sm font-semibold text-white transition-shadow hover:shadow-[0_0_28px_rgba(124,58,237,0.5)]"
+            >
+              Start Building <span className="font-mono text-[13px]">→</span>
+            </Link>
+            <Link
+              href="/playground"
+              className="inline-flex items-center border border-l-0 border-fd-border px-6 py-3.5 text-sm font-semibold text-[#e2e8f0] transition-colors hover:border-cyan/60 hover:text-cyan"
+            >
+              Playground
+            </Link>
+          </div>
+
+          <p className="mt-9 font-display text-xl font-bold uppercase tracking-[0.02em]">
+            No proof, no payment.
+          </p>
         </div>
 
-        <h1 className="max-w-3xl font-display text-4xl font-bold leading-[1.05] tracking-tight sm:text-6xl">
-          Let agents act.
-          <br />
-          Make them prove it.
-        </h1>
-
-        <p className="mt-6 max-w-xl text-balance text-fd-muted-foreground sm:text-lg">
-          AI agents trigger Stellar payments only after proving, in zero knowledge,
-          they followed your private rules.{' '}
-          <span className="text-fd-foreground">No proof, no payment.</span>
-        </p>
-
-        <div className="mt-9 flex flex-wrap items-center justify-center gap-3">
-          <Link
-            href="/docs/quickstart"
-            className="bg-violet px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-violet-bright"
-          >
-            Start building
-          </Link>
-          <Link
-            href="/playground"
-            className="border border-fd-border px-6 py-3 text-sm font-medium transition-colors hover:bg-fd-accent"
-          >
-            Try the playground
-          </Link>
-        </div>
-
-        <a
-          href={stellarExpertContractUrl}
-          target="_blank"
-          rel="noreferrer"
-          className="mt-10 inline-flex items-center gap-2 font-mono text-xs tracking-[0.1em] text-fd-muted-foreground transition-colors hover:text-fd-foreground"
-        >
-          <span className="size-1.5 rounded-full bg-cyan [animation:zen-dot_2.4s_ease-in-out_infinite]" />
-          Live on Stellar testnet · Groth16 verified in {protocol.cpuBudget} CPU
-        </a>
+        <ProofEngine />
       </div>
-    </section>
+    </header>
   );
 }
