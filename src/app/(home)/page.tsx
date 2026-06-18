@@ -1,21 +1,23 @@
+import { HudFrame } from '@/components/landing/hud-frame';
+import { SystemBar } from '@/components/landing/system-bar';
 import { Hero } from '@/components/landing/hero';
 import { TheGap } from '@/components/landing/the-gap';
 import { ScenarioPanels } from '@/components/landing/scenario-panels';
-import { HowItWorks } from '@/components/landing/how-it-works';
-import { CodeSample } from '@/components/landing/code-sample';
-import { WhyNow } from '@/components/landing/why-now';
+import { VerifierMonolith } from '@/components/landing/verifier-monolith';
+import { ForDevelopers } from '@/components/landing/for-developers';
 import { Closing } from '@/components/landing/closing';
 import { Footer } from '@/components/landing/footer';
 
 export default function HomePage() {
   return (
     <>
+      <HudFrame />
+      <SystemBar />
       <Hero />
       <TheGap />
       <ScenarioPanels />
-      <HowItWorks />
-      <CodeSample />
-      <WhyNow />
+      <VerifierMonolith />
+      <ForDevelopers />
       <Closing />
       <Footer />
     </>
