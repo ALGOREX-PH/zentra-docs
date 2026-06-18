@@ -1,44 +1,43 @@
 import Link from 'next/link';
-import { HudPanel, Eyebrow } from './primitives';
 
 export function Closing() {
   return (
-    <section className="border-b border-fd-border">
-      <div className="mx-auto max-w-5xl px-6 py-20">
-        <Eyebrow>ZENTRA // THE BOUNDARY</Eyebrow>
-        <HudPanel accent="cyan" className="p-8">
-          <p className="font-display text-xl leading-relaxed sm:text-2xl">
-            Zentra is a{' '}
-            <span className="text-cyan">proof-of-compliance and settlement layer</span>.
-            It is <span className="text-fd-muted-foreground">not</span> an identity
-            system, an oracle, a policy author, a key manager, or a full compliance
-            engine.
+    <>
+      <section className="px-7 py-16">
+        <div className="relative mx-auto max-w-[880px] border border-violet/40 bg-[#0a0c12] px-10 py-9">
+          <span className="absolute -left-px -top-px h-3.5 w-3.5 border-l-2 border-t-2 border-violet" />
+          <span className="absolute -right-px -top-px h-3.5 w-3.5 border-r-2 border-t-2 border-violet" />
+          <span className="absolute -bottom-px -left-px h-3.5 w-3.5 border-b-2 border-l-2 border-violet" />
+          <span className="absolute -bottom-px -right-px h-3.5 w-3.5 border-b-2 border-r-2 border-violet" />
+          <div className="mb-[18px] font-mono text-[11px] tracking-[0.14em] text-faint">// BOUNDARY</div>
+          <p className="mb-4 font-display text-[22px] font-semibold leading-[1.45] tracking-[-0.01em]">
+            Zentra is a proof-of-compliance and settlement layer.
           </p>
-        </HudPanel>
+          <p className="text-base leading-relaxed text-muted">
+            It is not an identity system, an oracle, a policy author, a key manager,
+            or a full compliance engine. That boundary stays explicit — it makes the
+            protocol more credible, not less.
+          </p>
+        </div>
+      </section>
 
-        <div className="mt-16 flex flex-col items-center text-center">
-          <h2 className="max-w-2xl font-display text-3xl font-bold tracking-tight sm:text-4xl">
+      <section className="px-7 pb-24 pt-5">
+        <div className="mx-auto max-w-[760px] text-center">
+          <h2 className="text-balance font-display text-4xl font-bold tracking-[-0.03em] sm:text-[46px]">
             Build a guarded agent in 15 minutes.
           </h2>
-          <p className="mt-4 max-w-md text-fd-muted-foreground">
-            No proof, no payment — on Stellar testnet today.
+          <p className="mt-3.5 text-lg text-muted">
+            Identity tells you who an agent is. Zentra proves what it did. Stellar
+            settles only after proof.
           </p>
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-            <Link
-              href="/docs/quickstart"
-              className="bg-violet px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-violet-bright"
-            >
-              Start the Quickstart
-            </Link>
-            <Link
-              href="/playground"
-              className="border border-fd-border px-6 py-3 text-sm font-medium transition-colors hover:bg-fd-accent"
-            >
-              Open the playground
-            </Link>
-          </div>
+          <Link
+            href="/docs/quickstart"
+            className="mt-8 inline-flex items-center gap-2.5 bg-violet px-8 py-4 text-[15px] font-semibold text-white transition-shadow hover:shadow-[0_0_36px_rgba(124,58,237,0.55)]"
+          >
+            Start Quickstart <span className="font-mono">→</span>
+          </Link>
         </div>
-      </div>
-    </section>
+      </section>
+    </>
   );
 }
