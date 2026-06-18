@@ -24,10 +24,11 @@
   --color-cyan: #00e5ff;
   --color-cyan-dim: #0891a8;
 
-  /* semantic state — every action is proving, verified, or denied */
+  /* semantic state — proving (violet), verified (cyan), live/settled (green), denied (red) */
   --color-proving: #a78bfa;
   --color-verified: #00e5ff;
-  --color-denied: #ff4d6d;
+  --color-live: #22c55e;
+  --color-denied: #ef4444;
 
   /* ink */
   --color-text: #f8fafc;
