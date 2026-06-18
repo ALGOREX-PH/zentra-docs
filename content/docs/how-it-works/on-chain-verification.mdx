@@ -1,0 +1,48 @@
+---
+title: On-chain verification
+description: Groth16 over BN254 inside a Soroban contract — the pairing check, and what it costs.
+---
+
+The verifier runs a full Groth16 check **inside the Soroban contract** using
+Protocol 25/26 BN254 host functions. No trusted relayer, no off-chain verifier.
+
+## The proof
+
+```rust
+struct Proof { a: G1Affine, b: G2Affine, c: G1Affine }
+```
+
+On the wire it's a **256-byte** blob — `a (64) ‖ b (128) ‖ c (64)` — with every
+coordinate a 32-byte big-endian field element.
+
+## Aggregating the public inputs
+
+The verifying key carries **15 IC points** (one constant, plus one per public
+input). The contract folds the 14 public signals into a single point with a
+multi-scalar multiplication:
+
+```text
+vk_x = IC[0] + Σ pub[i] · IC[i + 1]
+```
+
+## The pairing check
+
+Verification is one multi-pairing equation over BN254:
+
+```text
+e(-A, B) · e(α, β) · e(vk_x, γ) · e(C, δ) == 1
+```
+
+If it holds, the proof is valid and the contract proceeds to settle. If not, it
+returns `InvalidProof` and nothing moves.
+
+<Callout title="The cost">
+The whole verification — the MSM plus the multi-pairing — measures at about
+<CpuBudget /> of the per-transaction CPU budget on testnet. On-chain ZK
+verification isn't just possible on Soroban; it's comfortably affordable.
+</Callout>
+
+<Cards>
+  <Card title="Why now" href="/docs/how-it-works/why-now" description="The host functions that made this feasible." />
+  <Card title="Contract reference" href="/docs/reference/contract" description="The full verifier interface." />
+</Cards>
