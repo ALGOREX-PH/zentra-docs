@@ -32,5 +32,6 @@ export function baseOptions(): BaseLayoutProps {
       },
     ],
     githubUrl: repoUrl,
+    themeSwitch: { enabled: false },
   };
 }
