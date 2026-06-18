@@ -1,0 +1,48 @@
+---
+title: Circuit — payment_policy.circom
+description: Signals, constraints, tooling, and the build pipeline for the proof-of-compliance circuit.
+---
+
+`payment_policy.circom` — Circom 2.2.3, curve **bn128 / BN254**, depth-4 recipient
+Merkle tree.
+
+## Public inputs (14, in order)
+
+<PublicInputsTable />
+
+## Private inputs
+
+```text
+privateMaxAmount, privateDailyLimit, policySalt,
+pathElements[4], pathIndices[4],
+invoicePreimage, nonce
+```
+
+## Constraints
+
+- **Commitment** — `Poseidon(privateMaxAmount, privateDailyLimit, recipientRoot, assetId, policySalt) === policyCommitment`
+- **Merkle membership** — `Poseidon(recipient)` under `recipientRoot` (depth 4, boolean path indices)
+- **Range** — `amount <= privateMaxAmount` and `prevSpent + amount <= privateDailyLimit` (`Num2Bits(64)`)
+- **State transition** — `newSpent === prevSpent + amount`, `newActionCount === prevActionCount + 1`
+- **Invoice** — `Poseidon(invoicePreimage) === invoiceHash`
+- **Nullifier** — `Poseidon(agentAddress, policyCommitment, contractAddress, nonce) === nullifier`
+
+## Tooling & build
+
+- circom 2.2.3, snarkjs 0.7.6, Powers-of-Tau `pot14`
+- circomlib: `poseidon`, `comparators` (`LessEqThan`), `bitify` (`Num2Bits`)
+
+```bash
+# compile → trusted setup → export verifying key
+circom payment_policy.circom --r1cs --wasm --sym -p bn128
+snarkjs groth16 setup payment_policy.r1cs pot14.ptau circuit_0000.zkey
+snarkjs zkey contribute circuit_0000.zkey payment_policy.zkey
+snarkjs zkey export verificationkey payment_policy.zkey vk.json
+```
+
+The exported verifying key is transcoded into the contract's `vk.rs`.
+
+<Cards>
+  <Card title="The circuit (explainer)" href="/docs/how-it-works/the-circuit" description="What each constraint enforces." />
+  <Card title="Serialization" href="/docs/reference/serialization" description="How signals are encoded." />
+</Cards>
