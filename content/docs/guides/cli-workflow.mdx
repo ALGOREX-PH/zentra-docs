@@ -1,0 +1,50 @@
+---
+title: CLI workflow
+description: Drive the full proof → submit loop from the terminal with the zentra CLI.
+---
+
+The `zentra` CLI is a thin wrapper over the SDK for terminal-first workflows.
+
+## Set up
+
+```bash
+export ZENTRA_AGENT_SECRET="S...your testnet seed..."
+
+zentra init --contract $ZENTRA_CONTRACT --asset native
+```
+
+`init` scaffolds a `zentra.config.json` and the working directories:
+
+```text
+zentra.config.json     # network, rpcUrl, contractId, asset, circuit paths
+policies/              # your policy files
+actions/               # action descriptions to prove
+proofs/                # generated proofs
+```
+
+## The loop
+
+```bash
+# 1. define + register a policy
+zentra policy create vendor-payouts --max-amount 20 --daily-limit 100 --allowlist ./vendors.json
+zentra policy commit ./policies/vendor-payouts.json
+
+# 2. prove an action against it
+zentra prove ./actions/pay-vendor-a.json --policy ./policies/vendor-payouts.json
+
+# 3. submit the proof — verify + settle on testnet
+zentra submit ./proofs/payment-proof.json
+```
+
+`submit` prints the verifier's verdict, the settled transaction hash, and the
+receipt.
+
+<Callout type="warn">
+`prove` on an action whose recipient isn't allowlisted fails right there with a
+clear message — the CLI surface of Panel B.
+</Callout>
+
+<Cards>
+  <Card title="CLI reference" href="/docs/reference/cli" description="Every command and flag." />
+  <Card title="Deploy your own verifier" href="/docs/guides/deploy-your-own-verifier" description="Run the contract yourself." />
+</Cards>
