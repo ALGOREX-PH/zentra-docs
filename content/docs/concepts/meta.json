@@ -1,0 +1,13 @@
+{
+  "title": "Concepts",
+  "pages": [
+    "proof-of-compliance",
+    "policy-and-commitment",
+    "recipient-allowlist",
+    "authority-state",
+    "epochs-and-limits",
+    "nullifiers",
+    "verifiable-action-receipt",
+    "privacy-model"
+  ]
+}
