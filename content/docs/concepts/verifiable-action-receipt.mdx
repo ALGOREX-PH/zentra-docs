@@ -1,0 +1,34 @@
+---
+title: Verifiable Action Receipt
+description: The portable, proof-backed attestation emitted when a payment settles.
+---
+
+When `authorize_action` succeeds, the contract emits an **ActionReceipt** event: a
+portable, proof-backed record that this specific action happened and was
+compliant.
+
+## Fields
+
+The receipt (event topic `"receipt"`) carries:
+
+- `agent`, `policy`, `recipient`, `asset`, `amount`
+- `nullifier` — the single-use marker for this action
+- `epoch_id`, `new_action_count` — the post-action counters
+- `action_id` — the canonical receipt id
+
+## The action id
+
+`action_id` is computed on-chain with the **CAP-0075 host Poseidon** (arity 6)
+over the action's agent, recipient, amount, nullifier, and new spend. Computing it
+inside the contract means the receipt id is verifiable — not asserted by the agent.
+
+<Callout title="Reputation that's earned">
+Because each receipt is backed by a verified proof, a history of receipts is
+reputation an agent **earned cryptographically** — not a self-reported claim.
+Turning receipts into portable reputation is on the roadmap.
+</Callout>
+
+<Cards>
+  <Card title="Read receipts" href="/docs/guides/read-receipts" description="Consume and parse the events." />
+  <Card title="Poseidon on-chain" href="/docs/how-it-works/poseidon-on-chain" description="How the action id is hashed." />
+</Cards>
