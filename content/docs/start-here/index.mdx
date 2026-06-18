@@ -1,0 +1,44 @@
+---
+title: Start Here
+description: Let agents act. Make them prove it — the thesis behind Zentra in two minutes.
+---
+
+Autonomous agents are starting to move real money. The moment they do, one
+question matters more than any other:
+
+> Did this specific action, right now, actually obey the rules — without exposing
+> the private details?
+
+**Zentra** answers it with a proof. Before an agent can trigger a Stellar
+payment, it must generate a zero-knowledge proof that the action satisfies a
+**private**, user-defined policy — approved recipients, a per-invoice cap, a
+daily spend limit, an invoice match, and a single-use nullifier — and that proof
+is **bound to the agent's authoritative on-chain state**, so it cannot lie about
+what it has already spent. A Soroban contract verifies the proof, checks the
+state binding, enforces nullifier uniqueness, settles the payment, and emits a
+verifiable receipt.
+
+<Callout title="The promise">
+Let agents act. Make them prove it. — **No proof, no payment.**
+</Callout>
+
+## Every action a proof
+
+Identity tells you *who* an agent is. Permissions tell you *what* it may do.
+Neither tells you whether a specific payment, happening right now, actually
+followed the rules — or whether a prompt-injected agent is about to drain a
+treasury while looking perfectly authorized.
+
+Zentra closes that gap by making compliance something an agent must **prove**,
+not something you reconstruct from logs afterward:
+
+> Every action a proof. Every proof a receipt. Every receipt reputation.
+
+## Pick your path
+
+<Cards>
+  <Card title="The problem" href="/docs/start-here/problem" description="The agentic-payments trust gap, made concrete." />
+  <Card title="How Zentra answers" href="/docs/start-here/how-zentra-answers" description="Proof instead of surveillance — the mental model." />
+  <Card title="What Zentra is not" href="/docs/start-here/what-zentra-is-not" description="The boundary of what the protocol claims." />
+  <Card title="Quickstart" href="/docs/quickstart" description="Zero to a verified proof on testnet, in one sitting." />
+</Cards>
