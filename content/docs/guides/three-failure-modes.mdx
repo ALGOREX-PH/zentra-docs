@@ -1,0 +1,59 @@
+---
+title: The three failure modes
+description: Legitimate payment, prompt injection, and over-spend — run end to end.
+---
+
+Zentra's thesis is easiest to see in three scenarios. The interactive
+[playground](/playground) runs them live; here's what each does and which check
+fires.
+
+## Panel A — legitimate payment settles
+
+The agent pays an approved vendor within its limits.
+
+```ts
+await guarded.pay({ recipient: vendorA, amount: 50_000_000n, invoicePreimage });
+// proving → proof-ready → submitting → released
+```
+
+The proof is valid, the state binding matches, the nullifier is fresh — the
+contract verifies, settles, and emits a receipt. ✓
+
+## Panel B — prompt injection blocked at proof time
+
+A poisoned instruction tells the agent to pay an attacker not on the allowlist.
+
+```ts
+await guarded.pay({ recipient: attacker, amount: 50_000_000n, invoicePreimage });
+// throws: recipient not in the Merkle root — no proof produced
+```
+
+There's no Merkle path for a non-member, so **no proof can be generated**. The
+payment is blocked locally, before anything reaches the network. ✗
+
+## Panel C — over-spend blocked on-chain
+
+The agent has already spent 400 of a 500 daily limit, then tries to pay 150 while
+**claiming** it has spent 0.
+
+```ts
+// prior spend on-chain: 400 ; limit: 500
+await guarded.pay({ recipient: vendorA, amount: 150_000_000n, invoicePreimage });
+// proof is internally valid, but the contract returns StateMismatch
+```
+
+The circuit's range check passes against the *claimed* prior spend, but the
+contract's state binding compares against the real `AuthorityState` — the
+mismatch is rejected on-chain. No money moves. ✗
+
+<Callout>
+Panel B is stopped by the **circuit** — you can't prove a lie about the recipient.
+Panel C is stopped by the **contract** — you can't lie about your history. Two
+defenses, one guarantee: no proof, or no matching state, means no payment.
+</Callout>
+
+<Cards>
+  <Card title="Guard an agent" href="/docs/guides/guard-an-agent" description="The adapter behind Panel B." />
+  <Card title="State binding" href="/docs/how-it-works/state-binding" description="The mechanism behind Panel C." />
+  <Card title="Open the playground" href="/playground" description="Run all three yourself." />
+</Cards>
