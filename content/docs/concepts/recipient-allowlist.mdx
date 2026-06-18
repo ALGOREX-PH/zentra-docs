@@ -1,0 +1,36 @@
+---
+title: Recipient allowlist
+description: The approved-recipient set as a Poseidon-Merkle tree — prove membership without revealing the list.
+---
+
+A policy's approved recipients are committed as a **Poseidon-Merkle tree** of
+fixed **depth 4** — exactly **16 leaf slots**.
+
+## How it's built
+
+- Each approved address becomes a leaf: `leaf = Poseidon(recipientField)`.
+- Unused slots are padded with `0` sentinels.
+- Leaves are hashed pairwise up the tree to a single `recipientRoot`.
+
+Only the `recipientRoot` is registered on-chain. The list itself never leaves
+your side.
+
+## Proving membership
+
+When the agent pays an approved recipient, the proof includes a **Merkle path**
+showing that `Poseidon(recipient)` sits under the registered `recipientRoot` —
+without revealing any of the other entries.
+
+<Callout type="warn" title="This is the prompt-injection defense">
+If a recipient is **not** in the tree, there is no valid Merkle path, so **no
+proof can be produced**. A prompt-injected agent told to pay an attacker fails at
+proof-generation time — long before any transaction is submitted.
+</Callout>
+
+Sixteen recipients is plenty for a focused agent and keeps the circuit small and
+cheap to verify. Larger and composable allowlists are on the roadmap.
+
+<Cards>
+  <Card title="Guard an agent" href="/docs/guides/guard-an-agent" description="Why direct payment is impossible." />
+  <Card title="The circuit" href="/docs/how-it-works/the-circuit" description="Where membership is enforced." />
+</Cards>
