@@ -2,6 +2,7 @@ import defaultMdxComponents from 'fumadocs-ui/mdx';
 import type { MDXComponents } from 'mdx/types';
 import { Step, Steps } from 'fumadocs-ui/components/steps';
 import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
+import { PublicInputsTable } from '@/components/public-inputs-table';
 import * as ProtocolFacts from '@/components/protocol-facts';
 
 export function getMDXComponents(components?: MDXComponents) {
@@ -11,6 +12,7 @@ export function getMDXComponents(components?: MDXComponents) {
     Steps,
     Tab,
     Tabs,
+    PublicInputsTable,
     ...ProtocolFacts,
     ...components,
   } satisfies MDXComponents;
