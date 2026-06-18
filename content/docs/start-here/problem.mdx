@@ -1,0 +1,45 @@
+---
+title: The problem
+description: Identity and permissions don't answer whether a specific agent action actually obeyed the rules.
+---
+
+An autonomous agent with a private key and a budget is a new kind of actor: it
+decides *and* it pays, often faster than any human can review. The tools we have
+for trusting it were built for a different world.
+
+## Identity and permissions aren't enough
+
+- **Identity** answers *who is this agent?* — a key, a credential, an attestation.
+- **Permissions** answer *what is it allowed to do?* — scopes, roles, allowances.
+
+Neither answers the question that actually protects funds:
+
+> Did *this* action, right now, obey the rules — and can the agent prove it before
+> the money moves?
+
+A perfectly authenticated agent with valid permissions can still pay the wrong
+party, or pay too much, the instant something steers it off course.
+
+## What goes wrong
+
+<Callout type="warn" title="Threats Zentra is built to stop">
+- **Prompt injection** — a poisoned input convinces the agent to pay an attacker.
+- **Over-spend / drain** — many individually-small payments breach a daily limit.
+- **Replay** — a valid authorization is submitted twice to pay twice.
+- **Fabricated spend history** — the agent under-reports what it has already spent
+  to slip a payment under a cap.
+- **Silent policy tampering** — the rules themselves are quietly altered.
+</Callout>
+
+## Logs are forensics, not security
+
+The common answer is to log everything and audit later. But a log tells you what
+happened *after* the money is gone. It is forensics, not prevention.
+
+Zentra moves the check to *before* settlement: the agent must produce a proof
+that the action obeyed the policy, and the chain refuses to settle without it.
+That is the difference between explaining a loss and preventing one.
+
+<Cards>
+  <Card title="How Zentra answers" href="/docs/start-here/how-zentra-answers" description="Proof before settlement, not logs after." />
+</Cards>
