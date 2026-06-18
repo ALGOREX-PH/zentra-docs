@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import type { Metadata, Viewport } from 'next';
 import { RootProvider } from 'fumadocs-ui/provider/next';
 import { Space_Grotesk, Inter, JetBrains_Mono } from 'next/font/google';
+import { siteUrl } from '@/lib/site';
 
 const display = Space_Grotesk({
   subsets: ['latin'],
@@ -22,13 +23,16 @@ const mono = JetBrains_Mono({
   display: 'swap',
 });
 
+const title = 'Zentra Protocol — Let agents act. Make them prove it.';
+const description =
+  'Zentra lets developers build AI agents that can trigger Stellar payments only after proving, in zero knowledge, that they followed private, user-defined policies. No proof, no payment.';
+
 export const metadata: Metadata = {
-  title: {
-    default: 'Zentra Protocol — Let agents act. Make them prove it.',
-    template: '%s — Zentra Protocol',
-  },
-  description:
-    'Zentra lets developers build AI agents that can trigger Stellar payments only after proving, in zero knowledge, that they followed private, user-defined policies. No proof, no payment.',
+  metadataBase: new URL(siteUrl),
+  title: { default: title, template: '%s — Zentra Protocol' },
+  description,
+  openGraph: { title, description, type: 'website', url: siteUrl, siteName: 'Zentra Protocol' },
+  twitter: { card: 'summary_large_image', title, description },
 };
 
 export const viewport: Viewport = {
