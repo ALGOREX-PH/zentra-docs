@@ -1,0 +1,50 @@
+---
+title: CLI — zentra
+description: Commands, flags, the config file, and environment for the zentra CLI.
+---
+
+The `zentra` binary (built on commander) wraps the SDK for terminal workflows.
+
+## Commands
+
+```bash
+zentra init [--contract <id>] [--asset <asset>]
+
+zentra policy create <name>
+  --max-amount <n>
+  --daily-limit <n>
+  --allowlist <file>
+  [--asset <asset>]
+  [--epoch-seconds <n>]
+
+zentra policy commit <file>
+
+zentra prove <actionFile> --policy <file>
+
+zentra submit <proofFile>
+```
+
+## `zentra.config.json`
+
+```json
+{
+  "network": "testnet",
+  "rpcUrl": "https://soroban-testnet.stellar.org",
+  "networkPassphrase": "Test SDF Network ; September 2015",
+  "contractId": "C…",
+  "asset": "native",
+  "circuit": { "wasmPath": "./payment_policy.wasm", "zkeyPath": "./payment_policy.zkey" }
+}
+```
+
+## Scaffold & environment
+
+`init` creates `policies/`, `actions/`, and `proofs/` alongside the config.
+
+The agent's signing seed is read from the `ZENTRA_AGENT_SECRET` environment
+variable (an `S…` testnet seed) and is never written to disk or logged.
+
+<Cards>
+  <Card title="CLI workflow" href="/docs/guides/cli-workflow" description="The commands in sequence." />
+  <Card title="SDK reference" href="/docs/reference/sdk" description="The library the CLI wraps." />
+</Cards>
