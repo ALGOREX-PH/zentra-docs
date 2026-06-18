@@ -127,3 +127,39 @@ pre {
     linear-gradient(90deg, color-mix(in srgb, var(--color-violet) 6%, transparent) 1px, transparent 1px);
   background-size: 60px 60px;
 }
+
+/* ----------------------------------------------------------------------------
+   Motion — the proof rail performs the thesis: intent burns in, the check
+   resolves, a denied action gets stamped. All disabled under reduced-motion.
+---------------------------------------------------------------------------- */
+@keyframes zen-burn {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+@keyframes zen-check {
+  from { opacity: 0; transform: translateX(-6px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@keyframes zen-stamp {
+  0% { opacity: 0; transform: rotate(-9deg) scale(1.6); }
+  60% { opacity: 1; }
+  100% { opacity: 1; transform: rotate(-9deg) scale(1); }
+}
+@keyframes zen-scan {
+  from { transform: translateY(-100%); }
+  to { transform: translateY(400%); }
+}
+@keyframes zen-dot {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-cyan) 50%, transparent); }
+  50% { box-shadow: 0 0 0 5px transparent; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
