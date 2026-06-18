@@ -69,23 +69,24 @@
   --color-fd-ring: #7c3aed;
 }
 
+/* Dark-only: :root carries the obsidian palette too, so there is no light variant. */
 :root {
-  --color-fd-background: #f4f2ec;
-  --color-fd-foreground: #1a1330;
-  --color-fd-muted: #ece9e0;
-  --color-fd-muted-foreground: #5b5470;
-  --color-fd-popover: #fbfaf6;
-  --color-fd-popover-foreground: #1a1330;
-  --color-fd-card: #fbfaf6;
-  --color-fd-card-foreground: #1a1330;
-  --color-fd-border: #ddd7c8;
-  --color-fd-primary: #6d28d9;
-  --color-fd-primary-foreground: #f4f2ec;
-  --color-fd-secondary: #ece9e0;
-  --color-fd-secondary-foreground: #1a1330;
-  --color-fd-accent: #e7e3d8;
-  --color-fd-accent-foreground: #1a1330;
-  --color-fd-ring: #6d28d9;
+  --color-fd-background: #06070d;
+  --color-fd-foreground: #f8fafc;
+  --color-fd-muted: #0d111a;
+  --color-fd-muted-foreground: #94a3b8;
+  --color-fd-popover: #0b0e16;
+  --color-fd-popover-foreground: #f8fafc;
+  --color-fd-card: #0d111a;
+  --color-fd-card-foreground: #f8fafc;
+  --color-fd-border: #1a2130;
+  --color-fd-primary: #8b5cf6;
+  --color-fd-primary-foreground: #06070d;
+  --color-fd-secondary: #0f1420;
+  --color-fd-secondary-foreground: #f8fafc;
+  --color-fd-accent: #151b28;
+  --color-fd-accent-foreground: #f8fafc;
+  --color-fd-ring: #7c3aed;
 }
 
 /* ----------------------------------------------------------------------------
