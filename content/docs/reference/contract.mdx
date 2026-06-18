@@ -1,0 +1,72 @@
+---
+title: Contract — ZentraVerifier
+description: The Soroban verifier — methods, the authorize_action state machine, structs, events, and storage.
+---
+
+`ZentraVerifier` (Soroban) verifies proofs, enforces the state binding and
+nullifier uniqueness, settles payments, and emits receipts.
+
+## Methods
+
+```rust
+register_policy(agent, policy_commitment: BytesN<32>, recipient_root: BytesN<32>, epoch_seconds: u64)
+authority_state(agent, policy: BytesN<32>) -> AuthorityState
+revoke_policy(agent, policy: BytesN<32>) -> Result<(), Error>
+verify_proof(proof: Proof, pub_signals: Vec<Fr>) -> Result<bool, Error>
+authorize_action(
+  agent, policy_commitment, proof_bytes: Bytes, recipient, amount: i128, asset,
+  invoice_hash: BytesN<32>, nullifier: BytesN<32>,
+  prev_epoch_id: u64, prev_spent: i128, prev_action_count: u64,
+) -> Result<(), Error>
+```
+
+## `authorize_action` — ordered state machine
+
+Nothing past a failing step runs:
+
+1. `agent.require_auth()`
+2. assert `amount > 0` — else `InvalidAmount`
+3. load `PolicyRecord` — `PolicyNotFound`; `PolicyRevoked` if revoked
+4. compute `effective_prior` (epoch rollover)
+5. assert `prev_*` == effective — else `StateMismatch`
+6. nullifier unused — else `NullifierUsed`
+7. `new_spent = prev_spent + amount`, `new_action_count = prev_action_count + 1` — else `Overflow`
+8. build 14 public inputs + Groth16 `verify` — else `InvalidProof`
+9. atomic writes: mark nullifier, write `AuthorityState`, extend TTLs
+10. `token.transfer(agent → recipient, amount)`
+11. compute Poseidon `action_id`, emit `ActionReceipt`
+12. `Ok(())`
+
+## Structs
+
+```rust
+struct AuthorityState { epoch_id: u64, spent_in_epoch: i128, action_count: u64 }
+struct PolicyRecord   { recipient_root: BytesN<32>, epoch_seconds: u64, revoked: bool }
+
+enum DataKey {
+  Policy(Address, BytesN<32>),
+  Authority(Address, BytesN<32>),
+  Nullifier(BytesN<32>),
+}
+```
+
+## Events
+
+`ActionReceipt` (topics `["receipt"]`):
+
+```text
+agent, policy, recipient, amount, asset, nullifier, epoch_id, new_action_count, action_id
+```
+
+## Storage
+
+All persistent. `DAY_TTL = 17280` (~1 day at 5s ledgers), `RETENTION_TTL = 518400`
+(~30 days). Nullifiers are persistent — expiry would re-enable replay.
+
+Built with `soroban-sdk` 26.1.0 (features `hazmat-address`, `hazmat-crypto`) and
+`soroban-poseidon`; target `wasm32v1-none`.
+
+<Cards>
+  <Card title="Errors" href="/docs/reference/errors" description="Codes 1–8 and their causes." />
+  <Card title="On-chain verification" href="/docs/how-it-works/on-chain-verification" description="The verify step in detail." />
+</Cards>
