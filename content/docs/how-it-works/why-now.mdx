@@ -1,0 +1,37 @@
+---
+title: Why now
+description: The Stellar protocol upgrades that made on-chain ZK verification newly feasible.
+---
+
+On-chain Groth16 verification on Soroban wasn't practical until recently. Two
+protocol upgrades changed that.
+
+## Protocol 25 — "X-Ray"
+
+- **CAP-0074** — BN254 host functions: point addition, scalar multiplication, and
+  the multi-pairing check. These are the primitives a Groth16 verifier needs.
+- **CAP-0075** — Poseidon / Poseidon2 permutation primitives, so the same hash the
+  circuit uses can be computed natively on-chain.
+
+## Protocol 26 — "Yardstick"
+
+- **CAP-80** — BN254 multi-scalar multiplication (MSM) and scalar-field arithmetic,
+  used to aggregate the public inputs into `vk_x` efficiently.
+
+## Why this stack
+
+With these in place, the natural, no-compromise stack is **Circom (BN254) +
+circomlib Poseidon + snarkjs Groth16**, verified by a Soroban contract calling the
+BN254 host functions directly. No BLS12-381 workaround, no mocked verifier, no
+trusted off-chain step.
+
+<Callout title="The headline result">
+A real proof verifies inside the contract for about <CpuBudget /> of the
+per-transaction budget. That number is why Zentra is a product, not just a paper
+design.
+</Callout>
+
+<Cards>
+  <Card title="On-chain verification" href="/docs/how-it-works/on-chain-verification" description="The pairing check in detail." />
+  <Card title="Roadmap" href="/roadmap" description="Where the protocol goes next." />
+</Cards>
