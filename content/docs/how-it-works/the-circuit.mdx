@@ -1,0 +1,44 @@
+---
+title: The circuit
+description: payment_policy.circom — 14 public inputs, 7 private inputs, and six constraint families.
+---
+
+The proof is produced by `payment_policy.circom` — a Circom 2.2.3 circuit on the
+**bn128 / BN254** curve, with a depth-4 recipient Merkle tree.
+
+## Public inputs
+
+Fourteen signals are public, in this exact order. The same ordering is shared by
+the circuit, the contract, and the serialization codec.
+
+<PublicInputsTable />
+
+## Private inputs
+
+These never leave the prover:
+
+- `privateMaxAmount`, `privateDailyLimit` — the policy thresholds
+- `policySalt` — the secret that hides the commitment
+- `pathElements[4]`, `pathIndices[4]` — the Merkle proof for the recipient
+- `invoicePreimage` — hashed to `invoiceHash`
+- `nonce` — entropy for the nullifier
+
+## The six constraint families
+
+1. **Commitment opening** — `Poseidon(privateMaxAmount, privateDailyLimit, recipientRoot, assetId, policySalt) === policyCommitment`.
+2. **Merkle membership** — `Poseidon(recipient)` is a leaf under `recipientRoot` (depth 4, boolean path indices).
+3. **Range checks** — `amount <= privateMaxAmount` and `prevSpent + amount <= privateDailyLimit`, each bit-bounded with `Num2Bits(64)`.
+4. **State transition** — `newSpent === prevSpent + amount` and `newActionCount === prevActionCount + 1`.
+5. **Invoice binding** — `Poseidon(invoicePreimage) === invoiceHash`.
+6. **Nullifier derivation** — `Poseidon(agentAddress, policyCommitment, contractAddress, nonce) === nullifier`.
+
+<Callout title="Why bit-width bounds matter">
+Without the `Num2Bits(64)` guards, a malicious prover could exploit field
+wraparound to make `amount <= max` appear true. Bounding every comparand closes
+that hole.
+</Callout>
+
+<Cards>
+  <Card title="On-chain verification" href="/docs/how-it-works/on-chain-verification" description="How the proof is checked on Soroban." />
+  <Card title="Circuit reference" href="/docs/reference/circuit" description="Signals, tooling, and the build pipeline." />
+</Cards>
