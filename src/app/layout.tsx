@@ -47,9 +47,7 @@ export default function Layout({ children }: { children: ReactNode }) {
       suppressHydrationWarning
     >
       <body className="flex min-h-screen flex-col font-sans antialiased">
-        <RootProvider
-          theme={{ attribute: 'class', defaultTheme: 'dark', enableSystem: false }}
-        >
+        <RootProvider theme={{ attribute: 'class', forcedTheme: 'dark' }}>
           {children}
         </RootProvider>
       </body>

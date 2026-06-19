@@ -18,7 +18,7 @@ The receipt (event topic `"receipt"`) carries:
 
 ## The action id
 
-`action_id` is computed on-chain with the **CAP-0075 host Poseidon** (arity 6)
+`action_id` is computed on-chain with the **CAP-0075 host Poseidon** (5 inputs)
 over the action's agent, recipient, amount, nullifier, and new spend. Computing it
 inside the contract means the receipt id is verifiable — not asserted by the agent.
 

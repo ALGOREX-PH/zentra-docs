@@ -7,7 +7,7 @@ Beyond verifying the proof, the contract uses the **CAP-0075 host Poseidon** to
 compute the receipt's canonical `action_id` on-chain.
 
 ```text
-action_id = Poseidon(agent, recipient, amount, nullifier, new_spent)   // arity 6
+action_id = Poseidon(agent, recipient, amount, nullifier, new_spent)   // 5 inputs
 ```
 
 Each input is reduced modulo the BN254 scalar field `r` before hashing, matching
