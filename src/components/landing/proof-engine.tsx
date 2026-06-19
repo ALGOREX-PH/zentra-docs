@@ -153,9 +153,9 @@ export function ProofEngine() {
       </div>
 
       <div className="flex border-y border-fd-border">
-        <button type="button" onClick={() => play.current('valid')} className="flex-1 border-r border-fd-border py-3 font-mono text-[11px] font-semibold tracking-[0.06em] text-live transition-colors hover:bg-live/15" style={{ background: 'rgba(34,197,94,0.06)' }}>VALID PAYMENT</button>
-        <button type="button" onClick={() => play.current('injection')} className="flex-1 border-r border-fd-border py-3 font-mono text-[11px] font-semibold tracking-[0.06em] text-denied transition-colors hover:bg-denied/15" style={{ background: 'rgba(239,68,68,0.05)' }}>PROMPT INJECTION</button>
-        <button type="button" onClick={() => play.current('overspend')} className="flex-1 py-3 font-mono text-[11px] font-semibold tracking-[0.06em] text-denied transition-colors hover:bg-denied/15" style={{ background: 'rgba(239,68,68,0.05)' }}>OVER-SPEND</button>
+        <button type="button" onClick={() => play.current('valid')} className="flex-1 border-r border-fd-border py-2.5 font-mono text-[10px] font-semibold tracking-[0.04em] sm:py-3 sm:text-[11px] sm:tracking-[0.06em] text-live transition-colors hover:bg-live/15" style={{ background: 'rgba(34,197,94,0.06)' }}>VALID PAYMENT</button>
+        <button type="button" onClick={() => play.current('injection')} className="flex-1 border-r border-fd-border py-2.5 font-mono text-[10px] font-semibold tracking-[0.04em] sm:py-3 sm:text-[11px] sm:tracking-[0.06em] text-denied transition-colors hover:bg-denied/15" style={{ background: 'rgba(239,68,68,0.05)' }}>PROMPT INJECTION</button>
+        <button type="button" onClick={() => play.current('overspend')} className="flex-1 py-2.5 font-mono text-[10px] font-semibold tracking-[0.04em] sm:py-3 sm:text-[11px] sm:tracking-[0.06em] text-denied transition-colors hover:bg-denied/15" style={{ background: 'rgba(239,68,68,0.05)' }}>OVER-SPEND</button>
       </div>
 
       <div className="px-4 pb-4 pt-3.5">
