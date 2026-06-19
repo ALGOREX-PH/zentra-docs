@@ -15,7 +15,7 @@ export default function PlaygroundPage() {
   return (
     <>
       <section className="zen-grid border-b border-fd-border">
-        <div className="mx-auto max-w-5xl px-6 py-20">
+        <div className="mx-auto max-w-5xl px-5 py-14 sm:px-6 sm:py-20">
           <Eyebrow accent="cyan">ZENTRA // PLAYGROUND</Eyebrow>
           <h1 className="font-display text-3xl font-bold tracking-tight sm:text-4xl">
             See the proof rail decide.
@@ -26,7 +26,7 @@ export default function PlaygroundPage() {
             deterministic and offline-capable.
           </p>
 
-          <div className="mt-10 grid gap-4 md:grid-cols-3">
+          <div className="mt-10 grid gap-4 sm:grid-cols-2 md:grid-cols-3">
             {SCENARIOS.map((s) => (
               <ScenarioPlayer key={s.id} s={s} />
             ))}
