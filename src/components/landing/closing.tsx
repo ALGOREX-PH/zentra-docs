@@ -3,8 +3,8 @@ import Link from 'next/link';
 export function Closing() {
   return (
     <>
-      <section className="px-7 py-16">
-        <div className="relative mx-auto max-w-[880px] border border-violet/40 bg-[#0a0c12] px-10 py-9">
+      <section className="px-5 py-12 sm:px-7 sm:py-16">
+        <div className="relative mx-auto max-w-[880px] border border-violet/40 bg-[#0a0c12] px-6 py-7 sm:px-10 sm:py-9">
           <span className="absolute -left-px -top-px h-3.5 w-3.5 border-l-2 border-t-2 border-violet" />
           <span className="absolute -right-px -top-px h-3.5 w-3.5 border-r-2 border-t-2 border-violet" />
           <span className="absolute -bottom-px -left-px h-3.5 w-3.5 border-b-2 border-l-2 border-violet" />
@@ -21,9 +21,9 @@ export function Closing() {
         </div>
       </section>
 
-      <section className="px-7 pb-24 pt-5">
+      <section className="px-5 pb-16 pt-4 sm:px-7 sm:pb-24 sm:pt-5">
         <div className="mx-auto max-w-[760px] text-center">
-          <h2 className="text-balance font-display text-4xl font-bold tracking-[-0.03em] sm:text-[46px]">
+          <h2 className="text-balance font-display text-3xl font-bold tracking-[-0.03em] sm:text-4xl md:text-[46px]">
             Build a guarded agent in 15 minutes.
           </h2>
           <p className="mt-3.5 text-lg text-muted">
