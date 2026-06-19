@@ -28,3 +28,50 @@ Agentic finance already has answers for *who is this agent?* (identity) and
 
 Proof replaces surveillance. Every action becomes a proof, every proof a receipt,
 every receipt reputation.
+
+## Documentation map
+
+### Start Here
+- [Start here](/docs/start-here) — the thesis in two minutes: let agents act, make them prove it.
+- [The problem](/docs/start-here/problem) — why identity and permissions don't stop a bad payment.
+- [How Zentra answers](/docs/start-here/how-zentra-answers) — proof before settlement, not logs after.
+- [What Zentra is not](/docs/start-here/what-zentra-is-not) — the boundary of what the protocol claims.
+
+### Quickstart
+- [Quickstart](/docs/quickstart) — zero to a verified, proof-gated payment on Stellar testnet, in one sitting.
+
+### Concepts
+- [Proof of compliance](/docs/concepts/proof-of-compliance) — prove a proposed action obeyed the policy *and* current state.
+- [Policy & commitment](/docs/concepts/policy-and-commitment) — a private policy reduced to one Poseidon commitment.
+- [Recipient allowlist](/docs/concepts/recipient-allowlist) — approved recipients as a Poseidon-Merkle root.
+- [Authority State](/docs/concepts/authority-state) — the on-chain record a proof is bound to.
+- [Epochs & limits](/docs/concepts/epochs-and-limits) — how the daily limit resets, computed identically off-chain.
+- [Nullifiers](/docs/concepts/nullifiers) — single-use markers that make actions un-replayable.
+- [Verifiable Action Receipt](/docs/concepts/verifiable-action-receipt) — the proof-backed attestation emitted on settle.
+- [Privacy model](/docs/concepts/privacy-model) — exactly what stays private vs. public.
+
+### Guides
+- [Define a policy](/docs/guides/define-a-policy) — author and register a policy (SDK or CLI).
+- [Integrate the SDK](/docs/guides/integrate-the-sdk) — construct the client and wire status events.
+- [Guard an agent](/docs/guides/guard-an-agent) — wrap an agent so it can only pay through a proof.
+- [The three failure modes](/docs/guides/three-failure-modes) — legit, prompt-injection, and over-spend, end to end.
+- [CLI workflow](/docs/guides/cli-workflow) — drive prove → submit from the terminal.
+- [Deploy your own verifier](/docs/guides/deploy-your-own-verifier) — build, deploy, and register your own contract.
+- [Read receipts](/docs/guides/read-receipts) — consume and parse `ActionReceipt` events.
+
+### How it works
+- [Overview](/docs/how-it-works/overview) — the end-to-end proof → verify → settle loop.
+- [The circuit](/docs/how-it-works/the-circuit) — 14 public inputs, 7 private, six constraint families.
+- [On-chain verification](/docs/how-it-works/on-chain-verification) — Groth16/BN254 inside Soroban, and its cost.
+- [Poseidon on-chain](/docs/how-it-works/poseidon-on-chain) — CAP-0075 host Poseidon for the receipt id.
+- [State binding](/docs/how-it-works/state-binding) — how prev-state makes over-spend impossible.
+- [Why now](/docs/how-it-works/why-now) — the Protocol 25/26 upgrades that made this feasible.
+
+### Reference
+- [SDK](/docs/reference/sdk) — `@zentra/sdk`: client, `GuardedAgent`, types.
+- [CLI](/docs/reference/cli) — `zentra`: commands, flags, config.
+- [Contract](/docs/reference/contract) — `ZentraVerifier`: methods, state machine, events.
+- [Circuit](/docs/reference/circuit) — `payment_policy.circom`: signals and build.
+- [Serialization](/docs/reference/serialization) — `@zentra/serialization`: the byte-exact codec.
+- [Errors](/docs/reference/errors) — error codes 1–8 with symptom and cause.
+- [Receipt schema](/docs/reference/receipt-schema) — `ActionReceipt` fields and the receipt JSON.
