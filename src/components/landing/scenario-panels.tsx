@@ -166,7 +166,7 @@ function Panel({ cfg }: { cfg: Cfg }) {
 
 export function ScenarioPanels() {
   return (
-    <section id="panels" className="border-t border-violet/20 bg-abyss px-7 py-20">
+    <section id="panels" className="border-t border-violet/20 bg-abyss px-5 py-14 sm:px-7 sm:py-20">
       <div className="mx-auto max-w-[1160px]">
         <div className="mb-[18px] flex items-center gap-3.5">
           <span className="font-mono text-xs tracking-[0.12em] text-violet">[ 02 ] PROOF PLAYGROUND</span>
