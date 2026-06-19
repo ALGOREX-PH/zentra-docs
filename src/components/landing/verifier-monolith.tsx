@@ -47,7 +47,7 @@ export function VerifierMonolith() {
   }, [run]);
 
   return (
-    <section ref={wrap} className="border-t border-violet/20 px-7 py-20">
+    <section ref={wrap} className="border-t border-violet/20 px-5 py-14 sm:px-7 sm:py-20">
       <div className="mx-auto max-w-[1160px]">
         <div className="mb-[18px] flex items-center gap-3.5">
           <span className="font-mono text-xs tracking-[0.12em] text-violet">[ 03 ] ON-CHAIN VERIFICATION</span>
@@ -84,7 +84,7 @@ export function VerifierMonolith() {
           </div>
 
           <div className="flex h-[400px] items-center justify-center">
-            <div className="relative h-[360px] w-[280px] overflow-hidden border border-violet/40" style={{ background: 'linear-gradient(180deg,#0e121c,#090b12)' }}>
+            <div className="relative h-[360px] w-full max-w-[280px] overflow-hidden border border-violet/40" style={{ background: 'linear-gradient(180deg,#0e121c,#090b12)' }}>
               <span className="absolute -left-px -top-px h-3.5 w-3.5 border-l-2 border-t-2 border-violet" />
               <span className="absolute -right-px -top-px h-3.5 w-3.5 border-r-2 border-t-2 border-violet" />
               <span className="absolute -bottom-px -left-px h-3.5 w-3.5 border-b-2 border-l-2 border-violet" />
