@@ -20,7 +20,7 @@ const ROWS = [
 
 export function TheGap() {
   return (
-    <section className="border-t border-violet/20 px-7 py-20">
+    <section className="border-t border-violet/20 px-5 py-14 sm:px-7 sm:py-20">
       <div className="mx-auto max-w-[920px]">
         <div className="mb-5 flex items-center gap-3.5">
           <span className="font-mono text-xs tracking-[0.12em] text-violet">[ 01 ] THE TRUST GAP</span>
@@ -48,7 +48,7 @@ export function TheGap() {
                 {r.ok ? <Check /> : <Cross />}
               </span>
               <div className="flex flex-1 flex-wrap items-center gap-x-3 gap-y-1 py-5 pr-5">
-                <span className="w-[120px] font-display font-semibold">{r.label}</span>
+                <span className="w-[96px] shrink-0 font-display font-semibold sm:w-[120px]">{r.label}</span>
                 <span className="text-[15px] text-[#cbd5e1]">
                   {r.ok ? r.desc : <>Did this action obey the rule <span className="font-semibold text-white">right now</span>?</>}
                   {r.tag && <span className="ml-2 font-mono text-xs text-faint">{r.tag}</span>}
