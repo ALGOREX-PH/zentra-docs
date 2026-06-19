@@ -78,7 +78,7 @@ console.log(result.status); // released`;
   }
 
   return (
-    <section id="developer" ref={wrap} className="border-t border-violet/20 bg-abyss px-7 py-20">
+    <section id="developer" ref={wrap} className="border-t border-violet/20 bg-abyss px-5 py-14 sm:px-7 sm:py-20">
       <div className="mx-auto max-w-[1160px]">
         <div className="mb-10 flex items-center gap-3.5">
           <span className="font-mono text-xs tracking-[0.12em] text-violet">[ 04 ] FOR DEVELOPERS</span>
@@ -126,7 +126,7 @@ console.log(result.status); // released`;
                 {copied ? 'COPIED' : 'COPY'}
               </button>
             </div>
-            <pre className="overflow-x-auto p-5 font-mono text-[12.5px] leading-[1.7] text-[#e2e8f0]">
+            <pre className="overflow-x-auto p-4 font-mono text-[11px] leading-[1.7] text-[#e2e8f0] sm:p-5 sm:text-[12.5px]">
               <code>
                 <span style={kw}>import</span> {'{ Zentra }'} <span style={kw}>from</span> <span style={str}>"@zentra/sdk"</span>;{'\n\n'}
                 <span style={kw}>const</span> zentra = <span style={kw}>new</span> <span style={fn}>Zentra</span>({'{'}{'\n'}
