@@ -3,13 +3,13 @@ import { ProofEngine } from './proof-engine';
 
 export function Hero() {
   return (
-    <header className="zen-grid relative overflow-hidden border-b border-violet/20 px-7 py-16">
+    <header className="zen-grid relative overflow-hidden border-b border-violet/20 px-5 py-12 sm:px-7 sm:py-16">
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0"
         style={{ background: 'radial-gradient(ellipse 70% 60% at 70% 30%, rgba(124,58,237,0.16), transparent 70%)' }}
       />
-      <div className="relative mx-auto grid max-w-6xl items-center gap-11 lg:grid-cols-2">
+      <div className="relative mx-auto grid max-w-6xl items-center gap-8 sm:gap-11 lg:grid-cols-2">
         <div>
           <div
             className="mb-6 inline-flex items-center gap-2.5 border border-violet/40 px-3 py-1.5"
@@ -21,7 +21,7 @@ export function Hero() {
             </span>
           </div>
 
-          <h1 className="font-display text-[42px] font-bold leading-[1.06] tracking-[-0.03em] sm:text-5xl">
+          <h1 className="font-display text-[32px] font-bold leading-[1.06] tracking-[-0.03em] sm:text-[42px] md:text-5xl">
             Let agents act.
             <br />
             <span className="bg-gradient-to-r from-violet-soft to-cyan bg-clip-text text-transparent">
