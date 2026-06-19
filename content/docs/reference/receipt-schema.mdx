@@ -39,7 +39,8 @@ from its fields off-chain.
 }
 ```
 
-`action_id` is computed on-chain with Poseidon, so the receipt id is verifiable
+`action_id` is computed on-chain with the CAP-0075 host Poseidon over
+`agent, recipient, amount, nullifier, new_spent` — so the receipt id is verifiable
 rather than asserted.
 
 <Cards>
