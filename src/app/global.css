@@ -182,3 +182,42 @@ pre {
     transition-duration: 0.001ms !important;
   }
 }
+
+/* ----------------------------------------------------------------------------
+   Docs reading column — match Zentra Docs.dc.html: display headings, cyan
+   links, violet inline code, framed code panels, and bordered tables.
+---------------------------------------------------------------------------- */
+.zen-prose :is(h1, h2, h3, h4) {
+  font-family: var(--font-display);
+  letter-spacing: -0.015em;
+}
+.zen-prose a {
+  color: var(--color-cyan);
+  text-decoration: none;
+}
+.zen-prose a:hover {
+  text-decoration: underline;
+}
+.zen-prose :not(pre) > code {
+  font-family: var(--font-mono);
+  color: var(--color-violet-soft);
+}
+.zen-prose pre {
+  border: 1px solid color-mix(in srgb, var(--color-violet) 28%, transparent);
+  background: var(--color-panel);
+}
+.zen-prose table {
+  border: 1px solid var(--color-fd-border);
+}
+.zen-prose th,
+.zen-prose td {
+  border: 1px solid var(--color-fd-border);
+}
+.zen-prose thead th {
+  background: var(--color-abyss);
+  font-family: var(--font-mono);
+  font-size: 0.78em;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-faint);
+}
