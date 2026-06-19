@@ -5,7 +5,7 @@ import { stellarExpertContractUrl } from '@/config/protocol';
 
 export function Footer() {
   return (
-    <footer className="border-t border-violet/20 bg-abyss px-7 py-8">
+    <footer className="border-t border-violet/20 bg-abyss px-5 py-6 sm:px-7 sm:py-8">
       <div className="mx-auto flex max-w-[1160px] flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-2.5">
           <ZentraMark size={22} title="Zentra Protocol" />
