@@ -50,25 +50,16 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
   const connect = useCallback(async () => {
     setConnecting(true);
-    const kit = getKit();
     try {
-      await kit.openModal({
-        onWalletSelected: async (option) => {
-          try {
-            kit.setWallet(option.id);
-            const { address: addr } = await kit.getAddress();
-            setAddress(addr);
-            window.localStorage.setItem(
-              STORAGE_KEY,
-              JSON.stringify({ walletId: option.id, address: addr }),
-            );
-          } finally {
-            setConnecting(false);
-          }
-        },
-        onClosed: () => setConnecting(false),
-      });
+      const { address: addr } = await getKit().authModal();
+      setAddress(addr);
+      window.localStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify({ walletId: FREIGHTER_ID, address: addr }),
+      );
     } catch {
+      // user dismissed the modal or declined — stay disconnected
+    } finally {
       setConnecting(false);
     }
   }, []);
