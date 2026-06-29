@@ -50,12 +50,12 @@ export default function BoardPage() {
         </div>
 
         <p className="mt-10 max-w-[680px] font-mono text-xs leading-relaxed text-faint">
-          The contract exposes <span className="text-muted">record</span> (write),{' '}
-          <span className="text-muted">get_count</span> /{' '}
-          <span className="text-muted">get_recent</span> (read), and emits a{' '}
-          <span className="text-muted">recorded</span> event the feed listens for.
-          Set your wallet to <span className="text-muted">Test Net</span> before
-          connecting.
+          Each <span className="text-muted">record</span> writes to the Action Log
+          and makes a <span className="text-muted">cross-contract call</span> to a
+          separate Reputation contract, bumping the author&apos;s score (shown as{' '}
+          <span className="text-muted">rep</span>). The feed listens for the{' '}
+          <span className="text-muted">recorded</span> event in real time. Set your
+          wallet to <span className="text-muted">Test Net</span> before connecting.
         </p>
       </div>
     </main>
