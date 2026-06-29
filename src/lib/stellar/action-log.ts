@@ -15,6 +15,7 @@ import { soroban } from './rpc';
 import type { ActionEntry } from './types';
 
 const contract = new Contract(actionLog.contractId);
+const reputation = new Contract(actionLog.reputationId);
 
 interface RawEntry {
   index: bigint | number;
@@ -35,13 +36,17 @@ function toEntry(raw: RawEntry): ActionEntry {
 }
 
 /** Simulate a read-only call and decode its return value to a native value. */
-async function simulateRead(method: string, args: xdr.ScVal[]): Promise<unknown> {
+async function simulateRead(
+  target: Contract,
+  method: string,
+  args: xdr.ScVal[],
+): Promise<unknown> {
   const source = new Account(actionLog.readSource, '0');
   const tx = new TransactionBuilder(source, {
     fee: BASE_FEE,
     networkPassphrase: stellar.networkPassphrase,
   })
-    .addOperation(contract.call(method, ...args))
+    .addOperation(target.call(method, ...args))
     .setTimeout(30)
     .build();
 
@@ -55,13 +60,23 @@ async function simulateRead(method: string, args: xdr.ScVal[]): Promise<unknown>
 
 /** Total number of actions recorded on-chain. */
 export async function getCount(): Promise<number> {
-  const value = await simulateRead('get_count', []);
+  const value = await simulateRead(contract, 'get_count', []);
+  return Number(value ?? 0);
+}
+
+/** The on-chain reputation score for an author (from the reputation contract). */
+export async function scoreOf(author: string): Promise<number> {
+  const value = await simulateRead(reputation, 'score_of', [
+    Address.fromString(author).toScVal(),
+  ]);
   return Number(value ?? 0);
 }
 
 /** The most recent entries, newest first. */
 export async function getRecent(limit = 20): Promise<ActionEntry[]> {
-  const value = await simulateRead('get_recent', [nativeToScVal(limit, { type: 'u32' })]);
+  const value = await simulateRead(contract, 'get_recent', [
+    nativeToScVal(limit, { type: 'u32' }),
+  ]);
   if (!Array.isArray(value)) return [];
   return value.map((raw) => toEntry(raw as RawEntry));
 }
