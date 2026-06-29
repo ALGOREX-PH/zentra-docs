@@ -1,5 +1,4 @@
 import { Networks } from '@stellar/stellar-sdk';
-import { WalletNetwork } from '@creit.tech/stellar-wallets-kit';
 
 /**
  * Stellar **testnet** endpoints and identifiers for the Zentra dApp.
@@ -13,7 +12,6 @@ export const stellar = {
   horizonUrl: 'https://horizon-testnet.stellar.org',
   friendbotUrl: 'https://friendbot.stellar.org',
   networkPassphrase: Networks.TESTNET,
-  walletNetwork: WalletNetwork.TESTNET,
   /** Stellar Expert links so users can independently verify a result on-chain. */
   explorerTxUrl: (hash: string) => `https://stellar.expert/explorer/testnet/tx/${hash}`,
   explorerAccountUrl: (address: string) =>
