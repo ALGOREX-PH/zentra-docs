@@ -67,6 +67,11 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const disconnect = useCallback(() => {
     setAddress(null);
     window.localStorage.removeItem(STORAGE_KEY);
+    try {
+      void getKit().disconnect();
+    } catch {
+      // nothing to tear down
+    }
   }, []);
 
   const signTransaction = useCallback(
