@@ -1,6 +1,6 @@
 #![no_std]
 use soroban_sdk::{
-    contract, contracterror, contractimpl, contracttype, symbol_short, vec, Address, Env, String,
+    contract, contractevent, contracterror, contractimpl, contracttype, vec, Address, Env, String,
     Vec,
 };
 
@@ -23,6 +23,16 @@ pub enum DataKey {
 #[contracttype]
 #[derive(Clone)]
 pub struct Entry {
+    pub index: u64,
+    pub author: Address,
+    pub message: String,
+    pub ledger: u32,
+}
+
+/// Emitted whenever an action is recorded — the frontend streams these for the
+/// live feed (topic `recorded`, data carries the full entry).
+#[contractevent(topics = ["recorded"])]
+pub struct Recorded {
     pub index: u64,
     pub author: Address,
     pub message: String,
@@ -73,7 +83,13 @@ impl ActionLog {
             .instance()
             .extend_ttl(INSTANCE_THRESHOLD, INSTANCE_BUMP);
 
-        env.events().publish((symbol_short!("recorded"),), entry);
+        Recorded {
+            index,
+            author,
+            message,
+            ledger: entry.ledger,
+        }
+        .publish(&env);
 
         Ok(index)
     }
