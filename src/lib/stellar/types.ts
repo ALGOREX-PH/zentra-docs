@@ -35,3 +35,11 @@ export interface PaymentResult {
   hash: string;
   ledger?: number;
 }
+
+/** One recorded action read from the on-chain Action Log contract. */
+export interface ActionEntry {
+  index: number;
+  author: string;
+  message: string;
+  ledger: number;
+}
