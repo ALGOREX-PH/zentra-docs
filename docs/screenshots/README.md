@@ -9,5 +9,6 @@ Freighter testnet session on `/app`:
 | `balance.png` | The **balance displayed** — the TESTNET BALANCE card showing your XLM. |
 | `transaction.png` | A **successful testnet transaction** — the Send form mid/after submit. |
 | `result.png` | The **result shown to the user** — the green "Payment settled" panel with the tx hash. |
+| `wallets.png` | The **wallet options** modal on `/board` — Freighter, xBull, Albedo, LOBSTR, Hana, Rabet. |
 
 The README references these paths, so the images render automatically once added.
