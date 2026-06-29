@@ -1,9 +1,8 @@
+import { Networks, StellarWalletsKit } from '@creit.tech/stellar-wallets-kit';
 import {
   FreighterModule,
   FREIGHTER_ID,
-  Networks,
-  StellarWalletsKit,
-} from '@creit.tech/stellar-wallets-kit';
+} from '@creit.tech/stellar-wallets-kit/modules/freighter';
 
 /**
  * The Stellar Wallets Kit singleton, configured for testnet with Freighter.
