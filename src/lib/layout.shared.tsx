@@ -13,6 +13,7 @@ export function baseOptions(): BaseLayoutProps {
     links: [
       { text: 'Docs', url: '/docs', active: 'nested-url' },
       { text: 'App', url: '/app' },
+      { text: 'Board', url: '/board' },
       { text: 'Playground', url: '/playground' },
       { text: 'Blog', url: '/blog' },
       { text: 'Roadmap', url: '/roadmap' },
