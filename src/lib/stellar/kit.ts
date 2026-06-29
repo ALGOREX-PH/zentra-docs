@@ -5,24 +5,25 @@ import {
 } from '@creit.tech/stellar-wallets-kit/modules/freighter';
 
 /**
- * The Stellar Wallets Kit singleton, configured for testnet with Freighter.
+ * Initialise the Stellar Wallets Kit once, for testnet with Freighter.
  *
- * Built lazily and only in the browser — the kit reaches for `window`, so it
- * must never be constructed during SSR. Every caller shares the one instance so
- * the selected wallet and signing context stay consistent.
+ * v2.4 exposes the kit as a static singleton: `init()` runs a single time in the
+ * browser, then every call site uses the static methods. Guarded so it never
+ * runs during SSR (the kit reaches for `window`) and never re-initialises.
  */
-let kit: StellarWalletsKit | null = null;
+let initialised = false;
 
-export function getKit(): StellarWalletsKit {
+export function getKit(): typeof StellarWalletsKit {
   if (typeof window === 'undefined') {
     throw new Error('Wallet kit is only available in the browser.');
   }
-  if (!kit) {
-    kit = new StellarWalletsKit({
+  if (!initialised) {
+    StellarWalletsKit.init({
       network: Networks.TESTNET,
       selectedWalletId: FREIGHTER_ID,
       modules: [new FreighterModule()],
     });
+    initialised = true;
   }
-  return kit;
+  return StellarWalletsKit;
 }
