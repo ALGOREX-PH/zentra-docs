@@ -117,6 +117,73 @@ stellar contract deploy \
 
 ---
 
+## Stellar Orange Belt — Reputation via inter-contract calls (`/board` v2)
+
+The Action Board is now a **two-contract system**. Each `record` writes the action
+**and makes a cross-contract call** to a separate Reputation contract that tracks a
+per-author score — Zentra's "verifiable action receipts → reputation" thesis, on-chain.
+
+- **Live:** https://zentra-docs.vercel.app/board
+- **Action Log contract:** [`CCSXFTQTWVSHUMH2C64RJKY7JKCVHD5REFIW3P3YPVY6PWHVSJ7ZDDES`](https://stellar.expert/explorer/testnet/contract/CCSXFTQTWVSHUMH2C64RJKY7JKCVHD5REFIW3P3YPVY6PWHVSJ7ZDDES)
+- **Reputation contract:** [`CA2QOMGVQ5XWGFDYT5XEJ7EQ6B6H4ZNDAPS337P3BT55XY3DJY4AIIPI`](https://stellar.expert/explorer/testnet/contract/CA2QOMGVQ5XWGFDYT5XEJ7EQ6B6H4ZNDAPS337P3BT55XY3DJY4AIIPI)
+- **Cross-contract interaction tx:** [`fd503072…0da8587`](https://stellar.expert/explorer/testnet/tx/fd50307244f94bc070fe8b2d84280b992781b2c7295dc5272d17bd1650da8587) — one transaction, two contracts, two events (`bumped` + `recorded`).
+
+### Architecture
+
+```
+record(author, message)                       [zentra-action-log]
+  │  author.require_auth()
+  │  store entry + bump global count
+  └─▶ reputation.bump(self, author) ─────────▶ [zentra-reputation]
+        (self = current contract address)        logger.require_auth()  ← only the
+                                                  registered Action Log may bump
+        new score  ◀───────────────────────────  score[author] += 1; emit `bumped`
+  store score in entry; emit `recorded`
+```
+
+The Reputation contract gates `bump` to the registered logger. Soroban auto-authorizes
+a contract for the direct cross-contract calls it makes, so `logger.require_auth()`
+passes only when the Action Log is the caller.
+
+### Level 3 requirements → where they live
+
+| Requirement | Implementation |
+| --- | --- |
+| Advanced smart contracts | `contracts/zentra-reputation` — constructor, admin, gated writes |
+| Inter-contract communication | `zentra-action-log::record` → `ReputationClient::bump` (`#[contractclient]`) |
+| Event streaming & real-time | `src/components/app/action-feed.tsx` polls Soroban RPC `getEvents` |
+| CI/CD pipeline | `.github/workflows/ci.yml` — contract + frontend jobs |
+| Contract deployment workflow | `contracts/deploy.sh` — build → deploy → wire both contracts |
+| Mobile responsive frontend | `/board` grid stacks on small screens |
+| Error handling & loading states | `errors.ts`, `tx-status.tsx`, feed loading / empty / error states |
+| Tests (contract + frontend) | 5 + 3 Rust unit tests; 10 Vitest tests (`bun run test`) |
+| Production architecture | typed libs, single-source config, CI, size-optimized wasm |
+
+### Build, test, deploy
+
+```bash
+# contracts
+cd contracts/zentra-reputation && cargo test && cd -
+cd contracts/zentra-action-log && cargo test && cd -
+SOURCE=<your-identity> ./contracts/deploy.sh   # builds, deploys, and wires both
+
+# frontend
+bun run test     # Vitest
+bun run build
+```
+
+### Screenshots
+
+| Mobile responsive | CI/CD running | Tests passing |
+| --- | --- | --- |
+| ![Mobile responsive](docs/screenshots/mobile.png) | ![CI running](docs/screenshots/ci.png) | ![Tests passing](docs/screenshots/tests.png) |
+
+### Demo video
+
+📹 _Add your 1–2 minute walkthrough link here._
+
+---
+
 ## The rest of the site
 
 Marketing landing, full developer documentation, an interactive proof playground,
