@@ -64,5 +64,5 @@ fn emits_recorded_event() {
     let author = Address::generate(&env);
 
     client.record(&author, &String::from_str(&env, "hi"));
-    assert_eq!(env.events().all().len(), 1);
+    assert_eq!(env.events().all().events().len(), 1);
 }
