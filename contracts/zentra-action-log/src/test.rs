@@ -1,16 +1,36 @@
 #![cfg(test)]
 use super::*;
 use soroban_sdk::{
+    contract, contractimpl,
     testutils::{Address as _, Events as _},
     Address, Env, String,
 };
+
+// A stand-in reputation contract: every `bump` returns an incrementing counter,
+// which is enough to prove the cross-contract call folded the score into a record.
+#[contract]
+pub struct MockReputation;
+
+#[contractimpl]
+impl MockReputation {
+    pub fn bump(env: Env, _logger: Address, _author: Address) -> u32 {
+        let n: u32 = env.storage().instance().get(&0u32).unwrap_or(0) + 1;
+        env.storage().instance().set(&0u32, &n);
+        n
+    }
+}
+
+fn setup(env: &Env) -> ActionLogClient<'_> {
+    let reputation = env.register(MockReputation, ());
+    let id = env.register(ActionLog, (reputation,));
+    ActionLogClient::new(env, &id)
+}
 
 #[test]
 fn records_and_counts() {
     let env = Env::default();
     env.mock_all_auths();
-    let id = env.register(ActionLog, ());
-    let client = ActionLogClient::new(&env, &id);
+    let client = setup(&env);
     let alice = Address::generate(&env);
 
     assert_eq!(client.get_count(), 0);
@@ -22,14 +42,27 @@ fn records_and_counts() {
     let entry = client.get_entry(&0).unwrap();
     assert_eq!(entry.author, alice);
     assert_eq!(entry.message, String::from_str(&env, "gm stellar"));
+    assert_eq!(entry.score, 1);
+}
+
+#[test]
+fn bumps_author_reputation() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let client = setup(&env);
+    let alice = Address::generate(&env);
+
+    client.record(&alice, &String::from_str(&env, "one"));
+    assert_eq!(client.get_entry(&0).unwrap().score, 1);
+    client.record(&alice, &String::from_str(&env, "two"));
+    assert_eq!(client.get_entry(&1).unwrap().score, 2);
 }
 
 #[test]
 fn recent_is_newest_first() {
     let env = Env::default();
     env.mock_all_auths();
-    let id = env.register(ActionLog, ());
-    let client = ActionLogClient::new(&env, &id);
+    let client = setup(&env);
     let author = Address::generate(&env);
 
     client.record(&author, &String::from_str(&env, "one"));
@@ -46,8 +79,7 @@ fn recent_is_newest_first() {
 fn rejects_empty_message() {
     let env = Env::default();
     env.mock_all_auths();
-    let id = env.register(ActionLog, ());
-    let client = ActionLogClient::new(&env, &id);
+    let client = setup(&env);
     let author = Address::generate(&env);
 
     let result = client.try_record(&author, &String::from_str(&env, ""));
@@ -59,8 +91,7 @@ fn rejects_empty_message() {
 fn emits_recorded_event() {
     let env = Env::default();
     env.mock_all_auths();
-    let id = env.register(ActionLog, ());
-    let client = ActionLogClient::new(&env, &id);
+    let client = setup(&env);
     let author = Address::generate(&env);
 
     client.record(&author, &String::from_str(&env, "hi"));
