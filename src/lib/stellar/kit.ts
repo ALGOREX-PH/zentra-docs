@@ -3,6 +3,11 @@ import {
   FreighterModule,
   FREIGHTER_ID,
 } from '@creit.tech/stellar-wallets-kit/modules/freighter';
+import { xBullModule } from '@creit.tech/stellar-wallets-kit/modules/xbull';
+import { AlbedoModule } from '@creit.tech/stellar-wallets-kit/modules/albedo';
+import { LobstrModule } from '@creit.tech/stellar-wallets-kit/modules/lobstr';
+import { HanaModule } from '@creit.tech/stellar-wallets-kit/modules/hana';
+import { RabetModule } from '@creit.tech/stellar-wallets-kit/modules/rabet';
 
 /**
  * Initialise the Stellar Wallets Kit once, for testnet with Freighter.
@@ -21,7 +26,14 @@ export function getKit(): typeof StellarWalletsKit {
     StellarWalletsKit.init({
       network: Networks.TESTNET,
       selectedWalletId: FREIGHTER_ID,
-      modules: [new FreighterModule()],
+      modules: [
+        new FreighterModule(),
+        new xBullModule(),
+        new AlbedoModule(),
+        new LobstrModule(),
+        new HanaModule(),
+        new RabetModule(),
+      ],
     });
     initialised = true;
   }
