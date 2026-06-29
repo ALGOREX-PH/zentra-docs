@@ -67,6 +67,56 @@ bun run dev        # http://localhost:3000/app
 
 ---
 
+## Stellar Yellow Belt — On-chain Action Board (`/board`)
+
+A multi-wallet dApp backed by a **Soroban smart contract deployed to testnet**.
+Record a message to the on-chain action log, then watch entries stream into a
+live feed driven by contract events.
+
+- **Live:** https://zentra-docs.vercel.app/board
+- **Contract:** [`CDDIQNNCZ23UVM4FTEKNFUB72WHNASWOX2JRXED3HYK6FNZGZCHBQFK7`](https://stellar.expert/explorer/testnet/contract/CDDIQNNCZ23UVM4FTEKNFUB72WHNASWOX2JRXED3HYK6FNZGZCHBQFK7)
+- **Example contract call (`record`):** [`eb02d05b…0d00d7`](https://stellar.expert/explorer/testnet/tx/eb02d05b742721c2161dcd7ddb3cdcb5464d0cb31d1cb760a3647990510d00d7)
+
+### What it does
+
+- **Multi-wallet** connect via Stellar Wallets Kit — Freighter, xBull, Albedo, LOBSTR, Hana, Rabet.
+- **Deployed Soroban contract** (`contracts/zentra-action-log/`, Rust) with `record` (write), `get_count` / `get_recent` (read), and a `recorded` event.
+- **Calls the contract from the frontend** — build → simulate → assemble → sign → submit, with pending → success / fail status and the tx hash.
+- **Reads on-chain data** — the live total and recent entries come straight from contract reads.
+- **Event listening + state sync** — the feed polls Soroban RPC `getEvents` and merges new `recorded` events in real time.
+- **Error handling** — wallet-not-found, signature-rejected, and insufficient-balance in plain language, plus contract errors for empty / too-long messages.
+
+### Level 2 requirements → where they live
+
+| Requirement | Implementation |
+| --- | --- |
+| Multi-wallet (Stellar Wallets Kit) | `src/lib/stellar/kit.ts` — six wallet modules |
+| 3+ error types handled | `src/lib/stellar/errors.ts` (not-found / rejected / insufficient) |
+| Contract deployed on testnet | `contracts/zentra-action-log/` → `CDDIQNNC…K7VY` |
+| Contract called from the frontend | `src/lib/stellar/action-log.ts` + `src/components/app/record-form.tsx` |
+| Read + write contract data | `get_count` / `get_recent` (read), `record` (write) |
+| Event listening / state sync | `src/components/app/action-feed.tsx` (RPC `getEvents`) |
+| Transaction status visible | `src/components/app/tx-status.tsx` |
+
+### The contract
+
+```bash
+cd contracts/zentra-action-log
+cargo test                 # 4 unit tests
+stellar contract build     # optimized wasm (wasm32v1-none)
+stellar contract deploy \
+  --wasm target/wasm32v1-none/release/zentra_action_log.wasm \
+  --source <your-identity> --network testnet
+```
+
+### Screenshot
+
+| Wallet options available |
+| --- |
+| ![Wallet options](docs/screenshots/wallets.png) |
+
+---
+
 ## The rest of the site
 
 Marketing landing, full developer documentation, an interactive proof playground,
