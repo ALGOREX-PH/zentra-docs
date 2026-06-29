@@ -21,6 +21,7 @@ interface RawEntry {
   author: string;
   message: string;
   ledger: number;
+  score: bigint | number;
 }
 
 function toEntry(raw: RawEntry): ActionEntry {
@@ -29,6 +30,7 @@ function toEntry(raw: RawEntry): ActionEntry {
     author: raw.author,
     message: raw.message,
     ledger: Number(raw.ledger),
+    score: Number(raw.score),
   };
 }
 
