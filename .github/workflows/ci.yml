@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  contracts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            contracts/zentra-reputation/target
+            contracts/zentra-action-log/target
+          key: cargo-${{ runner.os }}-${{ hashFiles('contracts/zentra-reputation/Cargo.toml', 'contracts/zentra-action-log/Cargo.toml') }}
+          restore-keys: |
+            cargo-${{ runner.os }}-
+      - name: Test reputation contract
+        run: cargo test --manifest-path contracts/zentra-reputation/Cargo.toml
+      - name: Test action-log contract
+        run: cargo test --manifest-path contracts/zentra-action-log/Cargo.toml
+
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - name: Install
+        run: bun install
+      - name: Unit tests
+        run: bun run test
+      - name: Build
+        run: bun run build
+        env:
+          NEXT_TELEMETRY_DISABLED: '1'
