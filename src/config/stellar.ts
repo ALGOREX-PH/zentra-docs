@@ -10,6 +10,7 @@ import { Networks } from '@stellar/stellar-sdk';
 export const stellar = {
   network: 'testnet',
   horizonUrl: 'https://horizon-testnet.stellar.org',
+  rpcUrl: 'https://soroban-testnet.stellar.org',
   friendbotUrl: 'https://friendbot.stellar.org',
   networkPassphrase: Networks.TESTNET,
   /** Stellar Expert links so users can independently verify a result on-chain. */
