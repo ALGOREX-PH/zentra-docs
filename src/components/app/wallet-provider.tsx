@@ -9,7 +9,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { FREIGHTER_ID } from '@creit.tech/stellar-wallets-kit';
+import { FREIGHTER_ID } from '@creit.tech/stellar-wallets-kit/modules/freighter';
 import { stellar } from '@/config/stellar';
 import { getKit } from '@/lib/stellar/kit';
 
