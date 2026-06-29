@@ -10,6 +10,8 @@
     "types:check": "fumadocs-mdx && next typegen && tsc --noEmit"
   },
   "dependencies": {
+    "@creit.tech/stellar-wallets-kit": "^2.4.0",
+    "@stellar/stellar-sdk": "^16.0.1",
     "fumadocs-core": "16.10.4",
     "fumadocs-mdx": "15.0.12",
     "fumadocs-ui": "16.10.4",
