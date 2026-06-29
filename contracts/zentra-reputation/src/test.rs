@@ -5,7 +5,7 @@ use soroban_sdk::{
     Address, Env,
 };
 
-fn deploy(env: &Env) -> (ReputationClient, Address) {
+fn deploy(env: &Env) -> (ReputationClient<'_>, Address) {
     let admin = Address::generate(env);
     let id = env.register(Reputation, (admin.clone(),));
     (ReputationClient::new(env, &id), admin)
