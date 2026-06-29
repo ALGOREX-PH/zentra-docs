@@ -16,6 +16,7 @@ const MAX_RECENT: u32 = 20;
 #[derive(Clone)]
 pub enum DataKey {
     Count,
+    Reputation,
     Entry(u64),
 }
 
@@ -52,6 +53,16 @@ pub struct ActionLog;
 
 #[contractimpl]
 impl ActionLog {
+    /// Wire the reputation contract this log bumps on each recorded action.
+    pub fn __constructor(env: Env, reputation: Address) {
+        env.storage().instance().set(&DataKey::Reputation, &reputation);
+    }
+
+    /// The reputation contract this log calls cross-contract.
+    pub fn reputation(env: Env) -> Address {
+        env.storage().instance().get(&DataKey::Reputation).unwrap()
+    }
+
     /// Record an action authored by `author`. Stores it, bumps the global
     /// count, emits a `recorded` event, and returns the new entry's index.
     pub fn record(env: Env, author: Address, message: String) -> Result<u64, Error> {
