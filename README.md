@@ -15,7 +15,7 @@ before any money moves. The rules stay secret; compliance is provable.
 ![Contracts](https://img.shields.io/badge/Soroban-Rust-DEA584?style=flat-square)
 ![Proofs](https://img.shields.io/badge/ZK-Groth16%20%2F%20BN254-00E5FF?style=flat-square)
 
-**Live:** https://zentra-docs.vercel.app · **Testnet dApp:** https://zentra-docs.vercel.app/app
+**[Website](https://zentra-docs.vercel.app)** · **[Docs](https://zentra-docs.vercel.app/docs)** · **[Playground](https://zentra-docs.vercel.app/playground)** · **[Live dApp](https://zentra-docs.vercel.app/app)** · **[Roadmap](https://zentra-docs.vercel.app/roadmap)**
 
 ![Zentra landing](docs/screenshots/landing.png)
 
