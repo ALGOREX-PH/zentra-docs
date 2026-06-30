@@ -79,9 +79,9 @@ Legend: ✅ done · ⬜ pending (you) · 🔄 in progress
 - [x] Screenshot — mobile responsive (`docs/screenshots/mobile.png`)
 - [x] Screenshot — CI/CD running (`docs/screenshots/ci.png`)
 - [x] Screenshot — test output, 3+ passing (`docs/screenshots/tests.png`)
-- [ ] Demo video (1–2 min) — record on `/board` with your wallet
+- [x] Demo video — **[youtu.be/JQapGdfgZJw](https://youtu.be/JQapGdfgZJw)**
 
-> Remaining: the demo video.
+> Complete.
 
 ---
 
@@ -108,11 +108,11 @@ Legend: ✅ done · ⬜ pending (you) · 🔄 in progress
 - [x] Screenshot — mobile responsive (`docs/screenshots/mobile.png`)
 - [x] Screenshot — analytics / monitoring (`docs/screenshots/metrics.png`)
 - [x] Basic user feedback summary (live on `/metrics`)
-- [ ] Demo video
-- [ ] Proof of 10+ user wallet interactions — real people (auto-counts on `/metrics`)
+- [x] Demo video — **[youtu.be/JQapGdfgZJw](https://youtu.be/JQapGdfgZJw)**
+- [ ] Proof of 10+ user wallet interactions — real people (auto-counts on `/metrics`); first real anchor: [tx `0490a1e3…`](https://stellar.expert/explorer/testnet/tx/0490a1e32093c0d3cdb578a60d14caccbb4c4d05636d70eade54a89e091976a4)
 
-> Built & live. Remaining are the two things only real people can produce: 10+
-> real users interacting, and the demo video.
+> Built & live, demo recorded. The one remaining item only real people can produce:
+> 10+ distinct wallets interacting — now under way (first real user anchor: `GA7A…5OQV`).
 
 ---
 
@@ -123,4 +123,4 @@ generates a **real Groth16 / BN254 proof** in the browser (snarkjs + the payment
 circuit), verifies it locally, and **anchors it on-chain** to a proof-registry contract
 `CBSGDR6WBOXHSRPDHOHY24DFHIJACY3DAK2MRRO6MLFRK7YUUBSNTSHS` with a live feed — plus a
 beginner visual guide (animated flow, Merkle membership tree, annotated public signals,
-glossary).
+glossary). A real user-anchored proof: [tx `0490a1e3…`](https://stellar.expert/explorer/testnet/tx/0490a1e32093c0d3cdb578a60d14caccbb4c4d05636d70eade54a89e091976a4).

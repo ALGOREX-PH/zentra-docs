@@ -56,6 +56,13 @@ Everything below is live on Stellar testnet — open it and try it yourself.
 | 📊 **Metrics** | Live on-chain usage + a feedback dashboard | [Open →](https://zentra-docs.vercel.app/metrics) |
 | 📚 **Docs** | Concepts, guides, and the full protocol reference | [Open →](https://zentra-docs.vercel.app/docs) |
 
+## Watch the demo
+
+[![Watch the Zentra demo](https://img.youtube.com/vi/JQapGdfgZJw/maxresdefault.jpg)](https://youtu.be/JQapGdfgZJw)
+
+A short walkthrough — connect a wallet, generate a real zero-knowledge proof, and
+anchor it on-chain. ▶ **[youtu.be/JQapGdfgZJw](https://youtu.be/JQapGdfgZJw)**
+
 ---
 
 ## 🏆 Built for the Stellar Hackathon — all four belts
@@ -247,7 +254,8 @@ bun run build
 
 ### Demo video
 
-📹 _Add your 1–2 minute walkthrough link here._
+▶ **[Watch the walkthrough](https://youtu.be/JQapGdfgZJw)** — wallet, the multi-contract
+action board, and on-chain proof anchoring, end to end.
 
 ---
 
@@ -311,7 +319,8 @@ feedback summary update automatically.
 
 ### Demo video
 
-📹 _Add your 1–2 minute walkthrough link here._
+▶ **[Watch the walkthrough](https://youtu.be/JQapGdfgZJw)** — the live product, analytics,
+and feedback.
 
 ---
 
@@ -335,6 +344,12 @@ you **anchor it on-chain**.
 _A real proof being anchored on-chain through Freighter:_
 
 ![Anchoring a proof on-chain](docs/screenshots/playground-anchor.png)
+
+…and confirmed on-chain — wallet `GA7A…5OQV` invoking `anchor(commitment, 14 signals)`
+on the registry,
+[**tx `0490a1e3…976a4`**](https://stellar.expert/explorer/testnet/tx/0490a1e32093c0d3cdb578a60d14caccbb4c4d05636d70eade54a89e091976a4):
+
+![Anchor transaction on stellar.expert](docs/screenshots/anchor-tx.png)
 
 > Note: the proof is generated and verified **client-side** (real snarkjs
 > verification), then anchored on-chain. On-chain *pairing re-verification*
