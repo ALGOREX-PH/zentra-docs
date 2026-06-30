@@ -267,6 +267,10 @@ you **anchor it on-chain**.
 
 ![Proof playground](docs/screenshots/playground.png)
 
+_A real proof being anchored on-chain through Freighter:_
+
+![Anchoring a proof on-chain](docs/screenshots/playground-anchor.png)
+
 > Note: the proof is generated and verified **client-side** (real snarkjs
 > verification), then anchored on-chain. On-chain *pairing re-verification*
 > against the live verifier is a roadmap item — the deployed verifier's verifying
