@@ -33,8 +33,15 @@ export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: { default: title, template: '%s — Zentra Protocol' },
   description,
-  openGraph: { title, description, type: 'website', url: siteUrl, siteName: 'Zentra Protocol' },
-  twitter: { card: 'summary_large_image', title, description },
+  openGraph: {
+    title,
+    description,
+    type: 'website',
+    url: siteUrl,
+    siteName: 'Zentra Protocol',
+    images: [{ url: '/og.png', width: 1200, height: 630, alt: 'Zentra Protocol — let agents act, make them prove it.' }],
+  },
+  twitter: { card: 'summary_large_image', title, description, images: ['/og.png'] },
 };
 
 export const viewport: Viewport = {
