@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { ZentraMark } from '@/components/brand/zentra-mark';
-import { repoUrl } from '@/lib/shared';
+import { repoUrl, protocolRepoUrl } from '@/lib/shared';
 import { stellarExpertContractUrl } from '@/config/protocol';
 
 export function Footer() {
@@ -15,6 +15,7 @@ export function Footer() {
         <div className="flex gap-6 font-mono text-xs text-muted">
           <Link href="/docs" className="transition-colors hover:text-cyan">DOCS</Link>
           <a href={repoUrl} target="_blank" rel="noreferrer" className="transition-colors hover:text-cyan">GITHUB</a>
+          <a href={protocolRepoUrl} target="_blank" rel="noreferrer" className="transition-colors hover:text-cyan">PROTOCOL</a>
           <a href={stellarExpertContractUrl} target="_blank" rel="noreferrer" className="transition-colors hover:text-cyan">STELLAR EXPERT</a>
         </div>
       </div>
