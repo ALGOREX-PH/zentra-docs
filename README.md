@@ -137,9 +137,10 @@ bun run dev        # http://localhost:3000/app
 | --- | --- |
 | ![Wallet connected](docs/screenshots/connected.png) | ![Balance displayed](docs/screenshots/balance.png) |
 
-| Successful testnet transaction | Result shown to the user |
-| --- | --- |
-| ![Successful transaction](docs/screenshots/transaction.png) | ![Transaction result](docs/screenshots/result.png) |
+The send → signed → settled flow — with the transaction hash and the result shown
+to the user — is demonstrated end to end in the
+**[demo video](https://youtu.be/JQapGdfgZJw)** and reproducible live at
+**[/app](https://zentra-docs.vercel.app/app)**.
 
 ---
 
