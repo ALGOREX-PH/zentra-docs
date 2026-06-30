@@ -418,5 +418,5 @@ comes next.
 
 ## Related
 
-- **All hackathon belt deliverables — the Soroban contracts, the dApp, the tests, and CI — are in this repo.**
-- The deeper protocol R&D (the full Circom circuit, the SDK, and the CLI) lives in the separate `zentra-protocol` repository.
+- **[`zentra-docs`](https://github.com/ALGOREX-PH/zentra-docs)** (this repo) — the docs site, the dApp, the Soroban contracts, the tests, and CI. All hackathon belt deliverables live here.
+- **[`zentra-protocol`](https://github.com/ALGOREX-PH/zentra-protocol)** — the deeper protocol R&D: the full Circom circuit, the SDK, and the CLI.
