@@ -3,6 +3,7 @@ import { SCENARIOS } from '@/lib/scenarios';
 import { ScenarioPlayer } from '@/components/playground/scenario-player';
 import { ProofConsole } from '@/components/playground/proof-console';
 import { ZkIntro } from '@/components/playground/zk-intro';
+import { ProofVisuals } from '@/components/playground/proof-visuals';
 import { ZkGlossary } from '@/components/playground/zk-glossary';
 import { Eyebrow } from '@/components/landing/primitives';
 import { Footer } from '@/components/landing/footer';
@@ -30,6 +31,9 @@ export default function PlaygroundPage() {
 
           <div className="mt-10">
             <ZkIntro />
+          </div>
+          <div className="mt-5">
+            <ProofVisuals />
           </div>
           <div className="mt-5">
             <ProofConsole />

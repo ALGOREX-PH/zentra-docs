@@ -259,7 +259,9 @@ you **anchor it on-chain**.
   `src/lib/zk/prover.ts` + `public/zk-worker.js` run `groth16.fullProve` +
   `groth16.verify` off the main thread (~3 s prove, ~0.4 s verify, 14 public signals).
 - **On-chain registry:** [`CBSGDR6WBOXHSRPDHOHY24DFHIJACY3DAK2MRRO6MLFRK7YUUBSNTSHS`](https://stellar.expert/explorer/testnet/contract/CBSGDR6WBOXHSRPDHOHY24DFHIJACY3DAK2MRRO6MLFRK7YUUBSNTSHS) — connect a wallet to `anchor` your proof's SHA-256 commitment on Stellar testnet; the live feed shows every proof made on the platform (prover · signals · ledger).
-- **Visualization:** the proving pipeline, the proof points (π_a / π_b / π_c), and the 14 public signals render live.
+- **Beginner visual guide:** a plain-English intro, an animated proof-flow pipeline, a private-vs-public split, a one-way commitment diagram, and a Merkle-tree membership visual — plus **annotated public signals** (tap to learn what each one reveals), a "what this proves vs what stays secret" panel, and a tap-to-expand ZK glossary.
+
+![Visual guide](docs/screenshots/visuals.png)
 
 ![Proof playground](docs/screenshots/playground.png)
 
