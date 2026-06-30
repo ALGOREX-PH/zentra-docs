@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from 'react';
 import { HudPanel, Eyebrow } from '@/components/landing/primitives';
 import { generateProof, loadExampleInput, type ProofResult } from '@/lib/zk/prover';
 import { ProofAnchor } from '@/components/playground/proof-anchor';
+import { SignalsTable } from '@/components/playground/signals-table';
+import { WhatThisProves } from '@/components/playground/what-this-proves';
 import { cn } from '@/lib/cn';
 
 type Phase = 'idle' | 'proving' | 'done' | 'error';
@@ -133,20 +135,9 @@ export function ProofLab({ onAnchored }: { onAnchored?: () => void }) {
             </div>
           </HudPanel>
 
-          <HudPanel>
-            <div className="p-5 sm:p-6">
-              <Eyebrow>PUBLIC SIGNALS · {result.publicSignals.length}</Eyebrow>
-              <ul className="mt-3 space-y-1.5 font-mono text-[11px] text-muted">
-                {result.publicSignals.map((sig, i) => (
-                  <li key={i} className="flex gap-2">
-                    <span className="text-faint">[{String(i).padStart(2, '0')}]</span>
-                    <span className="break-all text-violet-soft">{short(sig, 14, 8)}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </HudPanel>
+          <SignalsTable publicSignals={result.publicSignals} />
           </div>
+          <WhatThisProves />
           <ProofAnchor result={result} onAnchored={onAnchored} />
         </>
       ) : null}
