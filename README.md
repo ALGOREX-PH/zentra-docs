@@ -344,10 +344,10 @@ _A real proof being anchored on-chain through Freighter:_
 
 ---
 
-## The rest of the site
+## Development
 
-Marketing landing, full developer documentation, an interactive proof playground,
-a blog/changelog, and a roadmap.
+The site is a single Next.js + Fumadocs app — the landing, docs, playground, blog,
+and roadmap — plus the Soroban contracts in [`contracts/`](contracts).
 
 ### Stack
 
