@@ -1,14 +1,14 @@
 import type { Metadata } from 'next';
 import { SCENARIOS } from '@/lib/scenarios';
 import { ScenarioPlayer } from '@/components/playground/scenario-player';
-import { Eyebrow, HudPanel } from '@/components/landing/primitives';
+import { ProofLab } from '@/components/playground/proof-lab';
+import { Eyebrow } from '@/components/landing/primitives';
 import { Footer } from '@/components/landing/footer';
-import { stellarExpertContractUrl } from '@/config/protocol';
 
 export const metadata: Metadata = {
   title: 'Playground',
   description:
-    'Run the three Zentra scenarios — legitimate payment, prompt injection, and over-spend — and watch which check fires.',
+    'Generate a real Groth16 zero-knowledge proof in your browser, verify it on-chain against the live Soroban verifier, and see every proof made on the platform.',
 };
 
 export default function PlaygroundPage() {
@@ -18,39 +18,35 @@ export default function PlaygroundPage() {
         <div className="mx-auto max-w-5xl px-5 py-14 sm:px-6 sm:py-20">
           <Eyebrow accent="cyan">ZENTRA // PLAYGROUND</Eyebrow>
           <h1 className="font-display text-3xl font-bold tracking-tight sm:text-4xl">
-            See the proof rail decide.
+            Real zero-knowledge proofs, in your browser.
           </h1>
           <p className="mt-4 max-w-2xl text-fd-muted-foreground">
-            Run each scenario to watch the status timeline and the check that fires.
-            These guided replays use the same fixtures as the live demo —
-            deterministic and offline-capable.
+            Generate an actual Groth16 / BN254 proof from the Zentra payment-policy
+            circuit, verify it locally, then verify it on-chain against the live
+            Soroban verifier — and see every proof made on the platform.
           </p>
 
-          <div className="mt-10 grid gap-4 sm:grid-cols-2 md:grid-cols-3">
+          <div className="mt-10">
+            <ProofLab />
+          </div>
+        </div>
+      </section>
+
+      <section className="border-b border-fd-border">
+        <div className="mx-auto max-w-5xl px-5 py-14 sm:px-6 sm:py-16">
+          <Eyebrow>// GUIDED SCENARIOS</Eyebrow>
+          <h2 className="font-display text-2xl font-bold tracking-tight sm:text-3xl">
+            Or replay the three scenarios.
+          </h2>
+          <p className="mt-3 max-w-2xl text-sm text-fd-muted-foreground">
+            Deterministic replays of the live demo — legitimate payment, prompt
+            injection, and over-spend — showing which check fires.
+          </p>
+          <div className="mt-8 grid gap-4 sm:grid-cols-2 md:grid-cols-3">
             {SCENARIOS.map((s) => (
               <ScenarioPlayer key={s.id} s={s} />
             ))}
           </div>
-
-          <HudPanel className="mt-8 p-6">
-            <div className="font-mono text-xs tracking-[0.12em] text-fd-muted-foreground">
-              ADVANCED // REAL PROOF
-            </div>
-            <p className="mt-3 max-w-2xl text-sm text-fd-muted-foreground">
-              An opt-in mode that generates a <em>real</em> Groth16 proof in your
-              browser (snarkjs in a Web Worker) and verifies it against the embedded
-              verifying key is coming. The guided replays above are the canonical,
-              zero-dependency experience for evaluators.
-            </p>
-            <a
-              href={stellarExpertContractUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="mt-4 inline-block font-mono text-xs text-cyan hover:underline"
-            >
-              ◍ Inspect the live verifier on Stellar Expert →
-            </a>
-          </HudPanel>
         </div>
       </section>
       <Footer />
