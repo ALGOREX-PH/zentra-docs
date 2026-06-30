@@ -173,6 +173,14 @@ pre {
   50%, 100% { opacity: 0; }
 }
 
+/* A data pulse travelling along a pipeline connector (left → right). */
+@keyframes zen-flow {
+  0% { transform: translateX(-120%); opacity: 0; }
+  15% { opacity: 1; }
+  85% { opacity: 1; }
+  100% { transform: translateX(240%); opacity: 0; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
