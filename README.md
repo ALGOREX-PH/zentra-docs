@@ -10,6 +10,11 @@ before any money moves. The rules stay secret; compliance is provable.
 
 > Let agents act. Make them prove it. — **No proof, no payment.**
 
+![Demo](https://img.shields.io/badge/demo-live-00E5FF?style=flat-square)
+![Network](https://img.shields.io/badge/Stellar-testnet-7C3AED?style=flat-square)
+![Contracts](https://img.shields.io/badge/Soroban-Rust-DEA584?style=flat-square)
+![Proofs](https://img.shields.io/badge/ZK-Groth16%20%2F%20BN254-00E5FF?style=flat-square)
+
 **Live:** https://zentra-docs.vercel.app · **Testnet dApp:** https://zentra-docs.vercel.app/app
 
 ![Zentra landing](docs/screenshots/landing.png)
