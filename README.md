@@ -56,12 +56,14 @@ Everything below is live on Stellar testnet — open it and try it yourself.
 | 📊 **Metrics** | Live on-chain usage + a feedback dashboard | [Open →](https://zentra-docs.vercel.app/metrics) |
 | 📚 **Docs** | Concepts, guides, and the full protocol reference | [Open →](https://zentra-docs.vercel.app/docs) |
 
-## 🥋 Hackathon belts — all four, in this one repo
+---
 
-This repository **is the submission for every belt (Levels 1–4)** — each belt is a
-route in the same live product. Requirement-by-requirement coverage is in
-**[`docs/BELT-CHECKLIST.md`](docs/BELT-CHECKLIST.md)**; per-belt detail is in the
-sections below.
+## 🏆 Built for the Stellar Hackathon — all four belts
+
+Zentra is also a complete **Stellar hackathon submission**: this one repo covers
+every belt (Levels 1–4), each a route in the same live product. Requirement-by-
+requirement coverage is in **[`docs/BELT-CHECKLIST.md`](docs/BELT-CHECKLIST.md)**;
+per-belt detail follows below.
 
 | Belt | Level | Route | On-chain contracts |
 | --- | --- | --- | --- |
