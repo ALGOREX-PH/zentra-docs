@@ -17,6 +17,8 @@ before any money moves. The rules stay secret; compliance is provable.
 
 **[Website](https://zentra-docs.vercel.app)** · **[Docs](https://zentra-docs.vercel.app/docs)** · **[Playground](https://zentra-docs.vercel.app/playground)** · **[Live dApp](https://zentra-docs.vercel.app/app)** · **[Roadmap](https://zentra-docs.vercel.app/roadmap)**
 
+**Repos:** [zentra-docs](https://github.com/ALGOREX-PH/zentra-docs) (this app + contracts) · [zentra-protocol](https://github.com/ALGOREX-PH/zentra-protocol) (circuit + SDK + CLI)
+
 ![Zentra landing](docs/screenshots/landing.png)
 
 ## The one question
