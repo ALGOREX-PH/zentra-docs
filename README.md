@@ -117,6 +117,137 @@ stellar contract deploy \
 
 ---
 
+## Stellar Orange Belt — Reputation via inter-contract calls (`/board` v2)
+
+The Action Board is now a **two-contract system**. Each `record` writes the action
+**and makes a cross-contract call** to a separate Reputation contract that tracks a
+per-author score — Zentra's "verifiable action receipts → reputation" thesis, on-chain.
+
+- **Live:** https://zentra-docs.vercel.app/board
+- **Action Log contract:** [`CCSXFTQTWVSHUMH2C64RJKY7JKCVHD5REFIW3P3YPVY6PWHVSJ7ZDDES`](https://stellar.expert/explorer/testnet/contract/CCSXFTQTWVSHUMH2C64RJKY7JKCVHD5REFIW3P3YPVY6PWHVSJ7ZDDES)
+- **Reputation contract:** [`CA2QOMGVQ5XWGFDYT5XEJ7EQ6B6H4ZNDAPS337P3BT55XY3DJY4AIIPI`](https://stellar.expert/explorer/testnet/contract/CA2QOMGVQ5XWGFDYT5XEJ7EQ6B6H4ZNDAPS337P3BT55XY3DJY4AIIPI)
+- **Cross-contract interaction tx:** [`fd503072…0da8587`](https://stellar.expert/explorer/testnet/tx/fd50307244f94bc070fe8b2d84280b992781b2c7295dc5272d17bd1650da8587) — one transaction, two contracts, two events (`bumped` + `recorded`).
+
+### Architecture
+
+```
+record(author, message)                       [zentra-action-log]
+  │  author.require_auth()
+  │  store entry + bump global count
+  └─▶ reputation.bump(self, author) ─────────▶ [zentra-reputation]
+        (self = current contract address)        logger.require_auth()  ← only the
+                                                  registered Action Log may bump
+        new score  ◀───────────────────────────  score[author] += 1; emit `bumped`
+  store score in entry; emit `recorded`
+```
+
+The Reputation contract gates `bump` to the registered logger. Soroban auto-authorizes
+a contract for the direct cross-contract calls it makes, so `logger.require_auth()`
+passes only when the Action Log is the caller.
+
+### Level 3 requirements → where they live
+
+| Requirement | Implementation |
+| --- | --- |
+| Advanced smart contracts | `contracts/zentra-reputation` — constructor, admin, gated writes |
+| Inter-contract communication | `zentra-action-log::record` → `ReputationClient::bump` (`#[contractclient]`) |
+| Event streaming & real-time | `src/components/app/action-feed.tsx` polls Soroban RPC `getEvents` |
+| CI/CD pipeline | `.github/workflows/ci.yml` — contract + frontend jobs |
+| Contract deployment workflow | `contracts/deploy.sh` — build → deploy → wire both contracts |
+| Mobile responsive frontend | `/board` grid stacks on small screens |
+| Error handling & loading states | `errors.ts`, `tx-status.tsx`, feed loading / empty / error states |
+| Tests (contract + frontend) | 5 + 3 Rust unit tests; 10 Vitest tests (`bun run test`) |
+| Production architecture | typed libs, single-source config, CI, size-optimized wasm |
+
+### Build, test, deploy
+
+```bash
+# contracts
+cd contracts/zentra-reputation && cargo test && cd -
+cd contracts/zentra-action-log && cargo test && cd -
+SOURCE=<your-identity> ./contracts/deploy.sh   # builds, deploys, and wires both
+
+# frontend
+bun run test     # Vitest
+bun run build
+```
+
+### Screenshots
+
+| Mobile responsive | CI/CD running | Tests passing |
+| --- | --- | --- |
+| ![Mobile responsive](docs/screenshots/mobile.png) | ![CI running](docs/screenshots/ci.png) | ![Tests passing](docs/screenshots/tests.png) |
+
+### Demo video
+
+📹 _Add your 1–2 minute walkthrough link here._
+
+---
+
+## Stellar Green Belt — Production MVP (analytics + feedback + metrics)
+
+The product layer on top of the contracts: real analytics, a hybrid feedback
+system, and a live metrics dashboard.
+
+- **Live:** [`/metrics`](https://zentra-docs.vercel.app/metrics)
+- **Feedback contract:** [`CC6S6CKPWKUUH6NDLAENAGBN3EBZNO4GXZ7SLIJ4O3OK2I6U6K5F4CUG`](https://stellar.expert/explorer/testnet/contract/CC6S6CKPWKUUH6NDLAENAGBN3EBZNO4GXZ7SLIJ4O3OK2I6U6K5F4CUG)
+- **Feedback tx:** [`ab45f5b8…dc18a0`](https://stellar.expert/explorer/testnet/tx/ab45f5b8705b4f66769edd95a0bd5469884ed1ffa45935f8c4cee9dfdedc18a0)
+
+### Architecture
+
+```
+Frontend (Next.js on Vercel)
+  ├─ Vercel Web Analytics + Speed Insights         usage + Core Web Vitals
+  ├─ /metrics dashboard                            on-chain stats + feedback summary
+  ├─ /api/feedback  ─────▶  Neon Postgres          feedback index + fast summaries
+  └─ feedback form  ─────▶  zentra-feedback (chain) verifiable; also indexed in Neon
+On-chain (Soroban testnet)
+  └─ action-log → reputation (cross-contract) · feedback
+```
+
+**Hybrid feedback:** every submission is saved to **Neon Postgres** (fast
+summaries, no wallet required) and, when a wallet is connected, **also anchored
+on-chain** to the `zentra-feedback` contract with the tx hash stored alongside —
+both queryable and independently verifiable.
+
+### Level 4 requirements → where they live
+
+| Requirement | Implementation |
+| --- | --- |
+| Production-ready MVP | live `/app`, `/board`, `/metrics` on Vercel |
+| Mobile responsive | every route stacks on small screens |
+| Loading & error states | every data component (feed, balance, feedback, metrics) |
+| Analytics & monitoring | Vercel Web Analytics + Speed Insights (`src/app/layout.tsx`) + `/metrics` |
+| User feedback + summary | `/api/feedback` (Neon) + `zentra-feedback` contract + `feedback-summary.tsx` |
+| Proof of wallet interactions | `/metrics` reads distinct wallets + total actions live from chain |
+| Backend architecture | Next.js route handler + Neon serverless Postgres (`src/lib/db.ts`) |
+| Documentation | this README + [`docs/BELT-CHECKLIST.md`](docs/BELT-CHECKLIST.md) |
+
+### Backend setup
+
+Create a Neon Postgres database with a `feedback` table, then set `DATABASE_URL`
+locally (`.env.local`) and in the Vercel project env. The feedback API
+(`src/app/api/feedback/route.ts`) reads it at request time.
+
+### Screenshots
+
+| Product UI | Metrics & analytics | Mobile responsive |
+| --- | --- | --- |
+| ![Product UI](docs/screenshots/product-ui.png) | ![Metrics](docs/screenshots/metrics.png) | ![Mobile](docs/screenshots/mobile.png) |
+
+### Real users & feedback
+
+`/metrics` shows **distinct interacting wallets** and **total on-chain actions**,
+read live from the contracts — verifiable, non-fabricated proof of usage. As real
+users connect and record actions or leave on-chain feedback, those numbers and the
+feedback summary update automatically.
+
+### Demo video
+
+📹 _Add your 1–2 minute walkthrough link here._
+
+---
+
 ## The rest of the site
 
 Marketing landing, full developer documentation, an interactive proof playground,

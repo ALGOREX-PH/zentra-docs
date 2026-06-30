@@ -3,6 +3,8 @@ import type { ReactNode } from 'react';
 import type { Metadata, Viewport } from 'next';
 import { RootProvider } from 'fumadocs-ui/provider/next';
 import { Space_Grotesk, Inter, JetBrains_Mono } from 'next/font/google';
+import { Analytics } from '@vercel/analytics/next';
+import { SpeedInsights } from '@vercel/speed-insights/next';
 import { siteUrl } from '@/lib/site';
 
 const display = Space_Grotesk({
@@ -50,6 +52,8 @@ export default function Layout({ children }: { children: ReactNode }) {
         <RootProvider theme={{ attribute: 'class', forcedTheme: 'dark' }}>
           {children}
         </RootProvider>
+        <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );

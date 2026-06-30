@@ -42,4 +42,5 @@ export interface ActionEntry {
   author: string;
   message: string;
   ledger: number;
+  score: number;
 }

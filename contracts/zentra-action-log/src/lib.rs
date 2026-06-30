@@ -1,7 +1,7 @@
 #![no_std]
 use soroban_sdk::{
-    contract, contractevent, contracterror, contractimpl, contracttype, vec, Address, Env, String,
-    Vec,
+    contract, contractclient, contractevent, contracterror, contractimpl, contracttype, vec,
+    Address, Env, String, Vec,
 };
 
 const DAY_LEDGERS: u32 = 17_280; // ~1 day at 5s ledgers
@@ -16,6 +16,7 @@ const MAX_RECENT: u32 = 20;
 #[derive(Clone)]
 pub enum DataKey {
     Count,
+    Reputation,
     Entry(u64),
 }
 
@@ -27,6 +28,7 @@ pub struct Entry {
     pub author: Address,
     pub message: String,
     pub ledger: u32,
+    pub score: u32,
 }
 
 /// Emitted whenever an action is recorded — the frontend streams these for the
@@ -37,6 +39,7 @@ pub struct Recorded {
     pub author: Address,
     pub message: String,
     pub ledger: u32,
+    pub score: u32,
 }
 
 #[contracterror]
@@ -47,11 +50,27 @@ pub enum Error {
     MessageTooLong = 2,
 }
 
+/// The slice of the Reputation contract this log calls cross-contract.
+#[contractclient(name = "ReputationClient")]
+pub trait Reputation {
+    fn bump(env: Env, logger: Address, author: Address) -> u32;
+}
+
 #[contract]
 pub struct ActionLog;
 
 #[contractimpl]
 impl ActionLog {
+    /// Wire the reputation contract this log bumps on each recorded action.
+    pub fn __constructor(env: Env, reputation: Address) {
+        env.storage().instance().set(&DataKey::Reputation, &reputation);
+    }
+
+    /// The reputation contract this log calls cross-contract.
+    pub fn reputation(env: Env) -> Address {
+        env.storage().instance().get(&DataKey::Reputation).unwrap()
+    }
+
     /// Record an action authored by `author`. Stores it, bumps the global
     /// count, emits a `recorded` event, and returns the new entry's index.
     pub fn record(env: Env, author: Address, message: String) -> Result<u64, Error> {
@@ -66,11 +85,20 @@ impl ActionLog {
         }
 
         let index: u64 = env.storage().instance().get(&DataKey::Count).unwrap_or(0);
+
+        // Cross-contract call: bump the author's reputation and fold the new
+        // score into the entry. Soroban auto-authorizes this log for the call,
+        // and the reputation contract checks this log is the registered caller.
+        let reputation: Address = env.storage().instance().get(&DataKey::Reputation).unwrap();
+        let score = ReputationClient::new(&env, &reputation)
+            .bump(&env.current_contract_address(), &author);
+
         let entry = Entry {
             index,
             author: author.clone(),
             message: message.clone(),
             ledger: env.ledger().sequence(),
+            score,
         };
 
         env.storage().persistent().set(&DataKey::Entry(index), &entry);
@@ -88,6 +116,7 @@ impl ActionLog {
             author,
             message,
             ledger: entry.ledger,
+            score,
         }
         .publish(&env);
 

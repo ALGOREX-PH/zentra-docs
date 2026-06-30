@@ -7,9 +7,13 @@
  * account serves as the simulation source.
  */
 export const actionLog = {
-  contractId: 'CDDIQNNCZ23UVM4FTEKNFUB72WHNASWOX2JRXED3HYK6FNZGZCHBQFK7',
+  contractId: 'CCSXFTQTWVSHUMH2C64RJKY7JKCVHD5REFIW3P3YPVY6PWHVSJ7ZDDES',
+  /** The reputation contract the action log bumps via a cross-contract call. */
+  reputationId: 'CA2QOMGVQ5XWGFDYT5XEJ7EQ6B6H4ZNDAPS337P3BT55XY3DJY4AIIPI',
+  /** The feedback contract — on-chain product feedback, indexed off-chain too. */
+  feedbackId: 'CC6S6CKPWKUUH6NDLAENAGBN3EBZNO4GXZ7SLIJ4O3OK2I6U6K5F4CUG',
   /** Ledger of the first recorded action — a floor for event history. */
-  deployLedger: 3346663,
+  deployLedger: 3348158,
   /** Funded testnet account used purely as the source for read simulations. */
   readSource: 'GDUY4FYOA7C5FF45OL5HN2IMVE5CDXO2DZZQNKQXVVDRNCXOSDRHY7LO',
 } as const;

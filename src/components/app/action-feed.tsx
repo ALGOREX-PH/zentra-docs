@@ -102,14 +102,22 @@ export function ActionFeed({ refreshSignal = 0 }: { refreshSignal?: number }) {
             {entries.map((entry) => (
               <li key={entry.index} className="px-4 py-3">
                 <div className="flex items-center justify-between gap-3 font-mono text-[11px] text-faint">
-                  <a
-                    href={stellar.explorerAccountUrl(entry.author)}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="hover:text-cyan"
-                  >
-                    {truncateAddress(entry.author)}
-                  </a>
+                  <span className="flex items-center gap-2">
+                    <a
+                      href={stellar.explorerAccountUrl(entry.author)}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="hover:text-cyan"
+                    >
+                      {truncateAddress(entry.author)}
+                    </a>
+                    <span
+                      title="Reputation, bumped via a cross-contract call"
+                      className="border border-violet/40 bg-violet/[0.07] px-1.5 py-0.5 text-violet-soft"
+                    >
+                      rep {entry.score}
+                    </span>
+                  </span>
                   <span>
                     #{entry.index} · ledger {entry.ledger}
                   </span>
