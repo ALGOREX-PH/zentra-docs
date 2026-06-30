@@ -69,6 +69,13 @@ anchor it on-chain. ▶ **[youtu.be/JQapGdfgZJw](https://youtu.be/JQapGdfgZJw)**
 
 ## 🏆 Built for the Stellar Hackathon — all four belts
 
+> **Submit _this_ repo for every belt:** `https://github.com/ALGOREX-PH/zentra-docs`
+> — it has the Rust contracts (`contracts/*/src/lib.rs`) **and** the wallet dApp
+> (`@creit.tech/stellar-wallets-kit`, Freighter + 5 more). The separate
+> [`zentra-protocol`](https://github.com/ALGOREX-PH/zentra-protocol) repo is the
+> protocol only (circuits + verifier, **no wallet**) and will fail the
+> connect-wallet check.
+
 Zentra is also a complete **Stellar hackathon submission**: this one repo covers
 every belt (Levels 1–4), each a route in the same live product. Requirement-by-
 requirement coverage is in **[`docs/BELT-CHECKLIST.md`](docs/BELT-CHECKLIST.md)**;
