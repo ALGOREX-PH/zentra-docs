@@ -19,6 +19,19 @@ before any money moves. The rules stay secret; compliance is provable.
 
 ![Zentra landing](docs/screenshots/landing.png)
 
+## The one question
+
+Agentic finance already knows *who* an agent is (identity) and *what* it's allowed
+to do (permissions). Zentra answers the third question — the one that actually moves
+money:
+
+> Did this specific action, right now, actually follow the rules — without exposing
+> the private details?
+
+Identity and permission checks can't catch a prompt-injected or buggy agent in the
+moment. A proof can. With Zentra every action becomes a proof, and every proof a
+verifiable receipt.
+
 ## 🥋 Hackathon belts — all four, in this one repo
 
 This repository **is the submission for every belt (Levels 1–4)** — each belt is a
