@@ -32,6 +32,18 @@ Identity and permission checks can't catch a prompt-injected or buggy agent in t
 moment. A proof can. With Zentra every action becomes a proof, and every proof a
 verifiable receipt.
 
+## How it works
+
+1. **Prove** — the agent runs the Zentra payment-policy circuit (Circom + snarkjs,
+   Groth16 over BN254) and produces a proof that its action obeys your private policy.
+2. **Verify** — a Soroban contract checks the proof against the agent's authoritative
+   on-chain state, so it can't lie about prior spend.
+3. **Settle** — only if the proof holds does the payment move, and a verifiable
+   receipt is emitted.
+
+Watch a real proof generate in the [playground](https://zentra-docs.vercel.app/playground),
+or read the [end-to-end overview](https://zentra-docs.vercel.app/docs/how-it-works/overview).
+
 ## 🥋 Hackathon belts — all four, in this one repo
 
 This repository **is the submission for every belt (Levels 1–4)** — each belt is a
