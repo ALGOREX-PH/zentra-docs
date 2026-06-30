@@ -1,11 +1,14 @@
-# Zentra
+# Zentra Protocol
 
-The web home of **Zentra Protocol** — a zero-knowledge policy-enforcement layer
-for autonomous AI agents on Stellar. This repo is the documentation site, the
-marketing landing, an interactive proof playground, **and a live Stellar testnet
-dApp**. Built on Fumadocs + Next.js, deployed on Vercel.
+**Let AI agents move money — only after they prove they followed your rules.**
 
-> Let agents act. Make them prove it.
+Zentra is a zero-knowledge policy layer for autonomous agents on
+[Stellar](https://stellar.org). Before an agent can make a payment, it generates a
+Groth16 proof that the action obeys a **private** policy — spending limits, approved
+vendors, a daily budget — and a Soroban smart contract verifies that proof on-chain
+before any money moves. The rules stay secret; compliance is provable.
+
+> Let agents act. Make them prove it. — **No proof, no payment.**
 
 **Live:** https://zentra-docs.vercel.app · **Testnet dApp:** https://zentra-docs.vercel.app/app
 
