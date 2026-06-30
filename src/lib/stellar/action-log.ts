@@ -36,7 +36,7 @@ function toEntry(raw: RawEntry): ActionEntry {
 }
 
 /** Simulate a read-only call and decode its return value to a native value. */
-async function simulateRead(
+export async function simulateRead(
   target: Contract,
   method: string,
   args: xdr.ScVal[],
