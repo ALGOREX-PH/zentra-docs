@@ -248,6 +248,29 @@ feedback summary update automatically.
 
 ---
 
+## Proof Playground — real Groth16 proofs (`/playground`)
+
+[`/playground`](https://zentra-docs.vercel.app/playground) generates an **actual
+Groth16 / BN254 proof** of the Zentra payment-policy circuit (Circom + snarkjs)
+**entirely in your browser**, in a Web Worker — then verifies it locally and lets
+you **anchor it on-chain**.
+
+- **Real proof:** `public/zk/` ships the circuit `.wasm` + proving `.zkey` + vk;
+  `src/lib/zk/prover.ts` + `public/zk-worker.js` run `groth16.fullProve` +
+  `groth16.verify` off the main thread (~3 s prove, ~0.4 s verify, 14 public signals).
+- **On-chain registry:** [`CBSGDR6WBOXHSRPDHOHY24DFHIJACY3DAK2MRRO6MLFRK7YUUBSNTSHS`](https://stellar.expert/explorer/testnet/contract/CBSGDR6WBOXHSRPDHOHY24DFHIJACY3DAK2MRRO6MLFRK7YUUBSNTSHS) — connect a wallet to `anchor` your proof's SHA-256 commitment on Stellar testnet; the live feed shows every proof made on the platform (prover · signals · ledger).
+- **Visualization:** the proving pipeline, the proof points (π_a / π_b / π_c), and the 14 public signals render live.
+
+![Proof playground](docs/screenshots/playground.png)
+
+> Note: the proof is generated and verified **client-side** (real snarkjs
+> verification), then anchored on-chain. On-chain *pairing re-verification*
+> against the live verifier is a roadmap item — the deployed verifier's verifying
+> key predates the current circuit build, and rebuilding it is gated on the
+> `soroban_poseidon` host-function dependency.
+
+---
+
 ## The rest of the site
 
 Marketing landing, full developer documentation, an interactive proof playground,
