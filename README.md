@@ -184,6 +184,70 @@ bun run build
 
 ---
 
+## Stellar Green Belt — Production MVP (analytics + feedback + metrics)
+
+The product layer on top of the contracts: real analytics, a hybrid feedback
+system, and a live metrics dashboard.
+
+- **Live:** [`/metrics`](https://zentra-docs.vercel.app/metrics)
+- **Feedback contract:** [`CC6S6CKPWKUUH6NDLAENAGBN3EBZNO4GXZ7SLIJ4O3OK2I6U6K5F4CUG`](https://stellar.expert/explorer/testnet/contract/CC6S6CKPWKUUH6NDLAENAGBN3EBZNO4GXZ7SLIJ4O3OK2I6U6K5F4CUG)
+- **Feedback tx:** [`ab45f5b8…dc18a0`](https://stellar.expert/explorer/testnet/tx/ab45f5b8705b4f66769edd95a0bd5469884ed1ffa45935f8c4cee9dfdedc18a0)
+
+### Architecture
+
+```
+Frontend (Next.js on Vercel)
+  ├─ Vercel Web Analytics + Speed Insights         usage + Core Web Vitals
+  ├─ /metrics dashboard                            on-chain stats + feedback summary
+  ├─ /api/feedback  ─────▶  Neon Postgres          feedback index + fast summaries
+  └─ feedback form  ─────▶  zentra-feedback (chain) verifiable; also indexed in Neon
+On-chain (Soroban testnet)
+  └─ action-log → reputation (cross-contract) · feedback
+```
+
+**Hybrid feedback:** every submission is saved to **Neon Postgres** (fast
+summaries, no wallet required) and, when a wallet is connected, **also anchored
+on-chain** to the `zentra-feedback` contract with the tx hash stored alongside —
+both queryable and independently verifiable.
+
+### Level 4 requirements → where they live
+
+| Requirement | Implementation |
+| --- | --- |
+| Production-ready MVP | live `/app`, `/board`, `/metrics` on Vercel |
+| Mobile responsive | every route stacks on small screens |
+| Loading & error states | every data component (feed, balance, feedback, metrics) |
+| Analytics & monitoring | Vercel Web Analytics + Speed Insights (`src/app/layout.tsx`) + `/metrics` |
+| User feedback + summary | `/api/feedback` (Neon) + `zentra-feedback` contract + `feedback-summary.tsx` |
+| Proof of wallet interactions | `/metrics` reads distinct wallets + total actions live from chain |
+| Backend architecture | Next.js route handler + Neon serverless Postgres (`src/lib/db.ts`) |
+| Documentation | this README + [`docs/BELT-CHECKLIST.md`](docs/BELT-CHECKLIST.md) |
+
+### Backend setup
+
+Create a Neon Postgres database with a `feedback` table, then set `DATABASE_URL`
+locally (`.env.local`) and in the Vercel project env. The feedback API
+(`src/app/api/feedback/route.ts`) reads it at request time.
+
+### Screenshots
+
+| Product UI | Metrics & analytics | Mobile responsive |
+| --- | --- | --- |
+| ![Product UI](docs/screenshots/product-ui.png) | ![Metrics](docs/screenshots/metrics.png) | ![Mobile](docs/screenshots/mobile.png) |
+
+### Real users & feedback
+
+`/metrics` shows **distinct interacting wallets** and **total on-chain actions**,
+read live from the contracts — verifiable, non-fabricated proof of usage. As real
+users connect and record actions or leave on-chain feedback, those numbers and the
+feedback summary update automatically.
+
+### Demo video
+
+📹 _Add your 1–2 minute walkthrough link here._
+
+---
+
 ## The rest of the site
 
 Marketing landing, full developer documentation, an interactive proof playground,
