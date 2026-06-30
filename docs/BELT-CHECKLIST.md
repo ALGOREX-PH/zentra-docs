@@ -79,9 +79,9 @@ Legend: ✅ done · ⬜ pending (you) · 🔄 in progress
 - [x] Screenshot — mobile responsive (`docs/screenshots/mobile.png`)
 - [x] Screenshot — CI/CD running (`docs/screenshots/ci.png`)
 - [x] Screenshot — test output, 3+ passing (`docs/screenshots/tests.png`)
-- [ ] Demo video (1–2 min) — record on `/board` with your wallet
+- [x] Demo video — **[youtu.be/JQapGdfgZJw](https://youtu.be/JQapGdfgZJw)**
 
-> Remaining: the demo video.
+> Complete.
 
 ---
 
