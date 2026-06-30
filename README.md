@@ -345,6 +345,12 @@ _A real proof being anchored on-chain through Freighter:_
 
 ![Anchoring a proof on-chain](docs/screenshots/playground-anchor.png)
 
+…and confirmed on-chain — wallet `GA7A…5OQV` invoking `anchor(commitment, 14 signals)`
+on the registry,
+[**tx `0490a1e3…976a4`**](https://stellar.expert/explorer/testnet/tx/0490a1e32093c0d3cdb578a60d14caccbb4c4d05636d70eade54a89e091976a4):
+
+![Anchor transaction on stellar.expert](docs/screenshots/anchor-tx.png)
+
 > Note: the proof is generated and verified **client-side** (real snarkjs
 > verification), then anchored on-chain. On-chain *pairing re-verification*
 > against the live verifier is a roadmap item — the deployed verifier's verifying
