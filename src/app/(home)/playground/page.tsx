@@ -2,6 +2,8 @@ import type { Metadata } from 'next';
 import { SCENARIOS } from '@/lib/scenarios';
 import { ScenarioPlayer } from '@/components/playground/scenario-player';
 import { ProofConsole } from '@/components/playground/proof-console';
+import { ZkIntro } from '@/components/playground/zk-intro';
+import { ZkGlossary } from '@/components/playground/zk-glossary';
 import { Eyebrow } from '@/components/landing/primitives';
 import { Footer } from '@/components/landing/footer';
 
@@ -27,6 +29,9 @@ export default function PlaygroundPage() {
           </p>
 
           <div className="mt-10">
+            <ZkIntro />
+          </div>
+          <div className="mt-5">
             <ProofConsole />
           </div>
         </div>
@@ -47,6 +52,12 @@ export default function PlaygroundPage() {
               <ScenarioPlayer key={s.id} s={s} />
             ))}
           </div>
+        </div>
+      </section>
+
+      <section className="border-b border-fd-border">
+        <div className="mx-auto max-w-5xl px-5 py-14 sm:px-6 sm:py-16">
+          <ZkGlossary />
         </div>
       </section>
       <Footer />
