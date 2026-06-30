@@ -44,6 +44,18 @@ verifiable receipt.
 Watch a real proof generate in the [playground](https://zentra-docs.vercel.app/playground),
 or read the [end-to-end overview](https://zentra-docs.vercel.app/docs/how-it-works/overview).
 
+## Explore the live product
+
+Everything below is live on Stellar testnet — open it and try it yourself.
+
+| Surface | What you can do | Try |
+| --- | --- | --- |
+| 🔐 **Playground** | Generate a real ZK proof in your browser and anchor it on-chain | [Open →](https://zentra-docs.vercel.app/playground) |
+| 💸 **dApp** | Connect Freighter, check your balance, send testnet XLM | [Open →](https://zentra-docs.vercel.app/app) |
+| 📡 **Action Board** | Write to a Soroban contract and watch its events stream live | [Open →](https://zentra-docs.vercel.app/board) |
+| 📊 **Metrics** | Live on-chain usage + a feedback dashboard | [Open →](https://zentra-docs.vercel.app/metrics) |
+| 📚 **Docs** | Concepts, guides, and the full protocol reference | [Open →](https://zentra-docs.vercel.app/docs) |
+
 ## 🥋 Hackathon belts — all four, in this one repo
 
 This repository **is the submission for every belt (Levels 1–4)** — each belt is a
