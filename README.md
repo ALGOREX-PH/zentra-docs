@@ -346,4 +346,5 @@ the whole site at once — no contract id is hardcoded in prose.
 
 ## Related
 
-- Protocol source and the product spec live in the `zentra-protocol` repository.
+- **All hackathon belt deliverables — the Soroban contracts, the dApp, the tests, and CI — are in this repo.**
+- The deeper protocol R&D (the full Circom circuit, the SDK, and the CLI) lives in the separate `zentra-protocol` repository.
