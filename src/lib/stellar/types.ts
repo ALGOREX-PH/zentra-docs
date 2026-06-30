@@ -44,3 +44,12 @@ export interface ActionEntry {
   ledger: number;
   score: number;
 }
+
+/** One proof anchored to the on-chain Proof Registry contract. */
+export interface ProofEntry {
+  index: number;
+  prover: string;
+  commitment: string;
+  signals: number;
+  ledger: number;
+}
