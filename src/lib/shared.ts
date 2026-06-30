@@ -11,3 +11,4 @@ export const gitConfig = {
 };
 
 export const repoUrl = `https://github.com/${gitConfig.user}/${gitConfig.repo}`;
+export const protocolRepoUrl = `https://github.com/${gitConfig.user}/zentra-protocol`;
