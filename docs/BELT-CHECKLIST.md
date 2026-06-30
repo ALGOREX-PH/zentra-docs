@@ -123,4 +123,4 @@ generates a **real Groth16 / BN254 proof** in the browser (snarkjs + the payment
 circuit), verifies it locally, and **anchors it on-chain** to a proof-registry contract
 `CBSGDR6WBOXHSRPDHOHY24DFHIJACY3DAK2MRRO6MLFRK7YUUBSNTSHS` with a live feed — plus a
 beginner visual guide (animated flow, Merkle membership tree, annotated public signals,
-glossary).
+glossary). A real user-anchored proof: [tx `0490a1e3…`](https://stellar.expert/explorer/testnet/tx/0490a1e32093c0d3cdb578a60d14caccbb4c4d05636d70eade54a89e091976a4).
