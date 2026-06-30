@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { SCENARIOS } from '@/lib/scenarios';
 import { ScenarioPlayer } from '@/components/playground/scenario-player';
-import { ProofLab } from '@/components/playground/proof-lab';
+import { ProofConsole } from '@/components/playground/proof-console';
 import { Eyebrow } from '@/components/landing/primitives';
 import { Footer } from '@/components/landing/footer';
 
@@ -27,7 +27,7 @@ export default function PlaygroundPage() {
           </p>
 
           <div className="mt-10">
-            <ProofLab />
+            <ProofConsole />
           </div>
         </div>
       </section>
