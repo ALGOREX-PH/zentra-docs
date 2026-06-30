@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { HudPanel, Eyebrow } from '@/components/landing/primitives';
 import { generateProof, loadExampleInput, type ProofResult } from '@/lib/zk/prover';
+import { ProofAnchor } from '@/components/playground/proof-anchor';
 import { cn } from '@/lib/cn';
 
 type Phase = 'idle' | 'proving' | 'done' | 'error';
@@ -14,7 +15,7 @@ function short(value: string, head = 10, tail = 6) {
   return `${value.slice(0, head)}…${value.slice(-tail)}`;
 }
 
-export function ProofLab() {
+export function ProofLab({ onAnchored }: { onAnchored?: () => void }) {
   const [phase, setPhase] = useState<Phase>('idle');
   const [stage, setStage] = useState(0);
   const [result, setResult] = useState<ProofResult | null>(null);
@@ -110,7 +111,8 @@ export function ProofLab() {
       </HudPanel>
 
       {result ? (
-        <div className="grid gap-5 lg:grid-cols-2">
+        <>
+          <div className="grid gap-5 lg:grid-cols-2">
           <HudPanel accent="cyan">
             <div className="p-5 sm:p-6">
               <Eyebrow accent="cyan">THE PROOF · π</Eyebrow>
@@ -144,7 +146,9 @@ export function ProofLab() {
               </ul>
             </div>
           </HudPanel>
-        </div>
+          </div>
+          <ProofAnchor result={result} onAnchored={onAnchored} />
+        </>
       ) : null}
     </div>
   );
