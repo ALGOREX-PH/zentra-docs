@@ -6,6 +6,11 @@ description: Groth16 over BN254 inside a Soroban contract — the pairing check,
 The verifier runs a full Groth16 check **inside the Soroban contract** using
 Protocol 25/26 BN254 host functions. No trusted relayer, no off-chain verifier.
 
+[**Try it in the playground**](/playground) — generate a real Groth16 proof in your
+browser, inspect the 14 public signals, and anchor it on-chain through your wallet:
+
+![Generating and anchoring a real Groth16 proof in the Zentra playground](/img/playground-anchor.png)
+
 ## The proof
 
 ```rust
