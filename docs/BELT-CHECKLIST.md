@@ -89,22 +89,27 @@ Legend: ✅ done · ⬜ pending (you) · 🔄 in progress
 
 **Focus:** production MVP, onboarding, analytics/monitoring, feedback, validation
 
+**Route:** [`/metrics`](https://zentra-docs.vercel.app/metrics) · analytics + hybrid feedback
+
 **Requirements**
 - [x] Production-ready MVP (stable frontend + contracts)
 - [x] Mobile responsive UI
 - [x] Loading states & error handling
-- [ ] Analytics & monitoring integration
-- [ ] User feedback collection + summary
-- [ ] 10+ real users onboarded (proof of wallet interactions)
-- [ ] Optimized UX + onboarding
+- [x] Analytics & monitoring (Vercel Web Analytics + Speed Insights + `/metrics`)
+- [x] User feedback collection + summary (Neon Postgres + on-chain `zentra-feedback`)
+- [x] Backend architecture (Next.js API route + Neon serverless Postgres)
+- [x] On-chain proof-of-interactions surface (`/metrics`)
+- [ ] 10+ real users onboarded — real people you bring (I won't fabricate users)
 
 **Submission**
-- [x] Public repo · README · 15+ commits · live demo · contract address
-- [ ] Screenshot — product UI
-- [ ] Screenshot — mobile responsive (have `mobile.png`)
-- [ ] Screenshot — analytics / monitoring setup
+- [x] Public repo · README · 15+ commits · live demo · contract addresses
+- [x] Feedback contract — `CC6S6CKPWKUUH6NDLAENAGBN3EBZNO4GXZ7SLIJ4O3OK2I6U6K5F4CUG`
+- [x] Screenshot — product UI (`docs/screenshots/product-ui.png`)
+- [x] Screenshot — mobile responsive (`docs/screenshots/mobile.png`)
+- [x] Screenshot — analytics / monitoring (`docs/screenshots/metrics.png`)
+- [x] Basic user feedback summary (live on `/metrics`)
 - [ ] Demo video
-- [ ] Proof of 10+ user wallet interactions (real people)
-- [ ] Basic user feedback summary
+- [ ] Proof of 10+ user wallet interactions — real people (auto-counts on `/metrics`)
 
-> In progress — see the README's Green Belt section.
+> Built & live. Remaining are the two things only real people can produce: 10+
+> real users interacting, and the demo video.
