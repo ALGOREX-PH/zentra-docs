@@ -113,3 +113,14 @@ Legend: ✅ done · ⬜ pending (you) · 🔄 in progress
 
 > Built & live. Remaining are the two things only real people can produce: 10+
 > real users interacting, and the demo video.
+
+---
+
+## ⭐ Bonus — real ZK proof playground
+
+Beyond the belt requirements, [`/playground`](https://zentra-docs.vercel.app/playground)
+generates a **real Groth16 / BN254 proof** in the browser (snarkjs + the payment-policy
+circuit), verifies it locally, and **anchors it on-chain** to a proof-registry contract
+`CBSGDR6WBOXHSRPDHOHY24DFHIJACY3DAK2MRRO6MLFRK7YUUBSNTSHS` with a live feed — plus a
+beginner visual guide (animated flow, Merkle membership tree, annotated public signals,
+glossary).

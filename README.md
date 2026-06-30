@@ -9,6 +9,26 @@ dApp**. Built on Fumadocs + Next.js, deployed on Vercel.
 
 **Live:** https://zentra-docs.vercel.app · **Testnet dApp:** https://zentra-docs.vercel.app/app
 
+![Zentra landing](docs/screenshots/landing.png)
+
+## 🥋 Hackathon belts — all four, in this one repo
+
+This repository **is the submission for every belt (Levels 1–4)** — each belt is a
+route in the same live product. Requirement-by-requirement coverage is in
+**[`docs/BELT-CHECKLIST.md`](docs/BELT-CHECKLIST.md)**; per-belt detail is in the
+sections below.
+
+| Belt | Level | Route | On-chain contracts |
+| --- | --- | --- | --- |
+| 🥋 White | 1 — first Stellar dApp | [`/app`](https://zentra-docs.vercel.app/app) | — (classic XLM payments) |
+| 🟡 Yellow | 2 — multi-wallet + deployed contract | [`/board`](https://zentra-docs.vercel.app/board) | `CDDIQNNC…K7VY` |
+| 🟠 Orange | 3 — inter-contract + CI/CD + tests | [`/board`](https://zentra-docs.vercel.app/board) | `CCSXFTQT…ZDDES` + `CA2QOMGV…IIPI` |
+| 🟢 Green | 4 — production MVP + analytics + feedback | [`/metrics`](https://zentra-docs.vercel.app/metrics) | `CC6S6CKP…F4CUG` + Neon Postgres |
+
+Everything lives in **this** repo: contracts in [`contracts/`](contracts), the dApp
+in [`src/`](src), tests + CI in [`.github/workflows/ci.yml`](.github/workflows/ci.yml),
+and a real ZK proof playground at [`/playground`](https://zentra-docs.vercel.app/playground).
+
 ---
 
 ## Stellar White Belt — Testnet dApp (`/app`)
@@ -265,6 +285,10 @@ you **anchor it on-chain**.
 
 ![Proof playground](docs/screenshots/playground.png)
 
+_A real proof being anchored on-chain through Freighter:_
+
+![Anchoring a proof on-chain](docs/screenshots/playground-anchor.png)
+
 > Note: the proof is generated and verified **client-side** (real snarkjs
 > verification), then anchored on-chain. On-chain *pairing re-verification*
 > against the live verifier is a roadmap item — the deployed verifier's verifying
@@ -298,16 +322,20 @@ bun run build   # production build
 ### Structure
 
 ```
+contracts/                    # Soroban contracts (Rust): action-log · reputation · feedback · proof-registry + deploy.sh
+.github/workflows/ci.yml      # CI — cargo test (contracts) + Vitest + Next build
+public/zk/                    # ZK circuit artifacts (wasm + zkey + vk) for the playground
 content/docs/                 # MDX documentation (Start Here, Concepts, Guides, Reference…)
-src/app/(home)/app/           # the Stellar testnet dApp route
-src/app/(home)/               # landing, playground, blog, roadmap
-src/app/docs/                 # docs renderer
-src/components/app/           # wallet provider + dApp UI (connect, balance, send, status)
-src/components/brand/         # the Proof Gate · Z-Path mark
-src/components/landing/       # landing sections
-src/lib/stellar/              # Wallets Kit, Horizon client, account, payment, errors
-src/config/protocol.ts        # single source of truth for live protocol facts
-src/config/stellar.ts         # testnet endpoints for the dApp
+src/app/(home)/app/           # White Belt — testnet payments dApp
+src/app/(home)/board/         # Yellow + Orange Belt — on-chain action board
+src/app/(home)/metrics/       # Green Belt — metrics + feedback dashboard
+src/app/(home)/playground/    # real ZK proof playground
+src/app/api/feedback/         # Green Belt — feedback backend (Neon Postgres)
+src/components/app/           # dApp UI (connect, balance, send, record, feedback, metrics)
+src/components/playground/    # proof lab, visual guide, annotated signals, glossary
+src/lib/stellar/              # Wallets Kit, RPC/Horizon, contract clients
+src/lib/zk/                   # snarkjs prover + ZK education content
+src/config/                   # contract ids + testnet endpoints (single source)
 ```
 
 ### Live facts
@@ -318,4 +346,5 @@ the whole site at once — no contract id is hardcoded in prose.
 
 ## Related
 
-- Protocol source and the product spec live in the `zentra-protocol` repository.
+- **All hackathon belt deliverables — the Soroban contracts, the dApp, the tests, and CI — are in this repo.**
+- The deeper protocol R&D (the full Circom circuit, the SDK, and the CLI) lives in the separate `zentra-protocol` repository.
