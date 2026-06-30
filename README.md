@@ -319,7 +319,8 @@ feedback summary update automatically.
 
 ### Demo video
 
-📹 _Add your 1–2 minute walkthrough link here._
+▶ **[Watch the walkthrough](https://youtu.be/JQapGdfgZJw)** — the live product, analytics,
+and feedback.
 
 ---
 
