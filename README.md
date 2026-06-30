@@ -1,22 +1,69 @@
-# Zentra
+# Zentra Protocol
 
-The web home of **Zentra Protocol** — a zero-knowledge policy-enforcement layer
-for autonomous AI agents on Stellar. This repo is the documentation site, the
-marketing landing, an interactive proof playground, **and a live Stellar testnet
-dApp**. Built on Fumadocs + Next.js, deployed on Vercel.
+**Let AI agents move money — only after they prove they followed your rules.**
 
-> Let agents act. Make them prove it.
+Zentra is a zero-knowledge policy layer for autonomous agents on
+[Stellar](https://stellar.org). Before an agent can make a payment, it generates a
+Groth16 proof that the action obeys a **private** policy — spending limits, approved
+vendors, a daily budget — and a Soroban smart contract verifies that proof on-chain
+before any money moves. The rules stay secret; compliance is provable.
 
-**Live:** https://zentra-docs.vercel.app · **Testnet dApp:** https://zentra-docs.vercel.app/app
+> Let agents act. Make them prove it. — **No proof, no payment.**
+
+![Demo](https://img.shields.io/badge/demo-live-00E5FF?style=flat-square)
+![Network](https://img.shields.io/badge/Stellar-testnet-7C3AED?style=flat-square)
+![Contracts](https://img.shields.io/badge/Soroban-Rust-DEA584?style=flat-square)
+![Proofs](https://img.shields.io/badge/ZK-Groth16%20%2F%20BN254-00E5FF?style=flat-square)
+
+**[Website](https://zentra-docs.vercel.app)** · **[Docs](https://zentra-docs.vercel.app/docs)** · **[Playground](https://zentra-docs.vercel.app/playground)** · **[Live dApp](https://zentra-docs.vercel.app/app)** · **[Roadmap](https://zentra-docs.vercel.app/roadmap)**
 
 ![Zentra landing](docs/screenshots/landing.png)
 
-## 🥋 Hackathon belts — all four, in this one repo
+## The one question
 
-This repository **is the submission for every belt (Levels 1–4)** — each belt is a
-route in the same live product. Requirement-by-requirement coverage is in
-**[`docs/BELT-CHECKLIST.md`](docs/BELT-CHECKLIST.md)**; per-belt detail is in the
-sections below.
+Agentic finance already knows *who* an agent is (identity) and *what* it's allowed
+to do (permissions). Zentra answers the third question — the one that actually moves
+money:
+
+> Did this specific action, right now, actually follow the rules — without exposing
+> the private details?
+
+Identity and permission checks can't catch a prompt-injected or buggy agent in the
+moment. A proof can. With Zentra every action becomes a proof, and every proof a
+verifiable receipt.
+
+## How it works
+
+1. **Prove** — the agent runs the Zentra payment-policy circuit (Circom + snarkjs,
+   Groth16 over BN254) and produces a proof that its action obeys your private policy.
+2. **Verify** — a Soroban contract checks the proof against the agent's authoritative
+   on-chain state, so it can't lie about prior spend.
+3. **Settle** — only if the proof holds does the payment move, and a verifiable
+   receipt is emitted.
+
+Watch a real proof generate in the [playground](https://zentra-docs.vercel.app/playground),
+or read the [end-to-end overview](https://zentra-docs.vercel.app/docs/how-it-works/overview).
+
+## Explore the live product
+
+Everything below is live on Stellar testnet — open it and try it yourself.
+
+| Surface | What you can do | Try |
+| --- | --- | --- |
+| 🔐 **Playground** | Generate a real ZK proof in your browser and anchor it on-chain | [Open →](https://zentra-docs.vercel.app/playground) |
+| 💸 **dApp** | Connect Freighter, check your balance, send testnet XLM | [Open →](https://zentra-docs.vercel.app/app) |
+| 📡 **Action Board** | Write to a Soroban contract and watch its events stream live | [Open →](https://zentra-docs.vercel.app/board) |
+| 📊 **Metrics** | Live on-chain usage + a feedback dashboard | [Open →](https://zentra-docs.vercel.app/metrics) |
+| 📚 **Docs** | Concepts, guides, and the full protocol reference | [Open →](https://zentra-docs.vercel.app/docs) |
+
+---
+
+## 🏆 Built for the Stellar Hackathon — all four belts
+
+Zentra is also a complete **Stellar hackathon submission**: this one repo covers
+every belt (Levels 1–4), each a route in the same live product. Requirement-by-
+requirement coverage is in **[`docs/BELT-CHECKLIST.md`](docs/BELT-CHECKLIST.md)**;
+per-belt detail follows below.
 
 | Belt | Level | Route | On-chain contracts |
 | --- | --- | --- | --- |
@@ -297,10 +344,10 @@ _A real proof being anchored on-chain through Freighter:_
 
 ---
 
-## The rest of the site
+## Development
 
-Marketing landing, full developer documentation, an interactive proof playground,
-a blog/changelog, and a roadmap.
+The site is a single Next.js + Fumadocs app — the landing, docs, playground, blog,
+and roadmap — plus the Soroban contracts in [`contracts/`](contracts).
 
 ### Stack
 
@@ -343,6 +390,14 @@ src/config/                   # contract ids + testnet endpoints (single source)
 The current testnet contract id, RPC, asset, and CPU-budget figure live in
 `src/config/protocol.ts`. Every surface reads from there, so a redeploy updates
 the whole site at once — no contract id is hardcoded in prose.
+
+## Project status
+
+Zentra is a **testnet MVP** built for the Stellar hackathon — the proof → verify →
+settle loop, four deployed Soroban contracts, and the dApp all run live on Stellar
+**testnet**. It is not audited and not on mainnet; treat it as a working
+proof-of-concept. The [roadmap](https://zentra-docs.vercel.app/roadmap) tracks what
+comes next.
 
 ## Related
 
