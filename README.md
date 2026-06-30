@@ -322,16 +322,20 @@ bun run build   # production build
 ### Structure
 
 ```
+contracts/                    # Soroban contracts (Rust): action-log · reputation · feedback · proof-registry + deploy.sh
+.github/workflows/ci.yml      # CI — cargo test (contracts) + Vitest + Next build
+public/zk/                    # ZK circuit artifacts (wasm + zkey + vk) for the playground
 content/docs/                 # MDX documentation (Start Here, Concepts, Guides, Reference…)
-src/app/(home)/app/           # the Stellar testnet dApp route
-src/app/(home)/               # landing, playground, blog, roadmap
-src/app/docs/                 # docs renderer
-src/components/app/           # wallet provider + dApp UI (connect, balance, send, status)
-src/components/brand/         # the Proof Gate · Z-Path mark
-src/components/landing/       # landing sections
-src/lib/stellar/              # Wallets Kit, Horizon client, account, payment, errors
-src/config/protocol.ts        # single source of truth for live protocol facts
-src/config/stellar.ts         # testnet endpoints for the dApp
+src/app/(home)/app/           # White Belt — testnet payments dApp
+src/app/(home)/board/         # Yellow + Orange Belt — on-chain action board
+src/app/(home)/metrics/       # Green Belt — metrics + feedback dashboard
+src/app/(home)/playground/    # real ZK proof playground
+src/app/api/feedback/         # Green Belt — feedback backend (Neon Postgres)
+src/components/app/           # dApp UI (connect, balance, send, record, feedback, metrics)
+src/components/playground/    # proof lab, visual guide, annotated signals, glossary
+src/lib/stellar/              # Wallets Kit, RPC/Horizon, contract clients
+src/lib/zk/                   # snarkjs prover + ZK education content
+src/config/                   # contract ids + testnet endpoints (single source)
 ```
 
 ### Live facts
