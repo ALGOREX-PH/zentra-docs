@@ -3,6 +3,11 @@
 One public repo (`github.com/ALGOREX-PH/zentra-docs`, branch `Setup-1`), one live
 site (`https://zentra-docs.vercel.app`). Each belt is a route in the same product.
 
+> ⚠️ **Submit `github.com/ALGOREX-PH/zentra-docs` for every belt** — not the
+> `zentra-protocol` repo. zentra-protocol is the ZK protocol (circuits + verifier,
+> **no wallet**) and fails the connect-wallet check; this repo has the contracts
+> **and** the wallet dApp.
+
 Legend: ✅ done · ⬜ pending (you) · 🔄 in progress
 
 ---
