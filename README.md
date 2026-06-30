@@ -391,6 +391,14 @@ The current testnet contract id, RPC, asset, and CPU-budget figure live in
 `src/config/protocol.ts`. Every surface reads from there, so a redeploy updates
 the whole site at once — no contract id is hardcoded in prose.
 
+## Project status
+
+Zentra is a **testnet MVP** built for the Stellar hackathon — the proof → verify →
+settle loop, four deployed Soroban contracts, and the dApp all run live on Stellar
+**testnet**. It is not audited and not on mainnet; treat it as a working
+proof-of-concept. The [roadmap](https://zentra-docs.vercel.app/roadmap) tracks what
+comes next.
+
 ## Related
 
 - **All hackathon belt deliverables — the Soroban contracts, the dApp, the tests, and CI — are in this repo.**
