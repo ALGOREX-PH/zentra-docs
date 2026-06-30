@@ -11,6 +11,24 @@ dApp**. Built on Fumadocs + Next.js, deployed on Vercel.
 
 ![Zentra landing](docs/screenshots/landing.png)
 
+## 🥋 Hackathon belts — all four, in this one repo
+
+This repository **is the submission for every belt (Levels 1–4)** — each belt is a
+route in the same live product. Requirement-by-requirement coverage is in
+**[`docs/BELT-CHECKLIST.md`](docs/BELT-CHECKLIST.md)**; per-belt detail is in the
+sections below.
+
+| Belt | Level | Route | On-chain contracts |
+| --- | --- | --- | --- |
+| 🥋 White | 1 — first Stellar dApp | [`/app`](https://zentra-docs.vercel.app/app) | — (classic XLM payments) |
+| 🟡 Yellow | 2 — multi-wallet + deployed contract | [`/board`](https://zentra-docs.vercel.app/board) | `CDDIQNNC…K7VY` |
+| 🟠 Orange | 3 — inter-contract + CI/CD + tests | [`/board`](https://zentra-docs.vercel.app/board) | `CCSXFTQT…ZDDES` + `CA2QOMGV…IIPI` |
+| 🟢 Green | 4 — production MVP + analytics + feedback | [`/metrics`](https://zentra-docs.vercel.app/metrics) | `CC6S6CKP…F4CUG` + Neon Postgres |
+
+Everything lives in **this** repo: contracts in [`contracts/`](contracts), the dApp
+in [`src/`](src), tests + CI in [`.github/workflows/ci.yml`](.github/workflows/ci.yml),
+and a real ZK proof playground at [`/playground`](https://zentra-docs.vercel.app/playground).
+
 ---
 
 ## Stellar White Belt — Testnet dApp (`/app`)
