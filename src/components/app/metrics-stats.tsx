@@ -2,16 +2,17 @@
 
 import { useEffect, useState } from 'react';
 import { getCount, getRecent } from '@/lib/stellar/action-log';
+import { getFeedbackCount, getFeedbackAuthors } from '@/lib/stellar/feedback';
 import { HudPanel } from '@/components/landing/primitives';
 import { cn } from '@/lib/cn';
 
 /**
  * Live on-chain usage stats read straight from the Soroban contracts: total
- * actions recorded, distinct wallets seen in the recent window, and the network
- * the dApp is bound to — the product's proof of real wallet interactions.
+ * interactions across the action-log and feedback contracts, the distinct wallets
+ * behind them, and the network — the product's proof of real wallet interactions.
  */
 export function MetricsStats({ refreshSignal = 0 }: { refreshSignal?: number }) {
-  const [actions, setActions] = useState<number | null>(null);
+  const [interactions, setInteractions] = useState<number | null>(null);
   const [wallets, setWallets] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -22,10 +23,18 @@ export function MetricsStats({ refreshSignal = 0 }: { refreshSignal?: number }) 
     setError(null);
     (async () => {
       try {
-        const [total, recent] = await Promise.all([getCount(), getRecent(20)]);
+        const [actionTotal, actionRecent, feedbackTotal, feedbackAuthors] =
+          await Promise.all([
+            getCount(),
+            getRecent(20),
+            getFeedbackCount(),
+            getFeedbackAuthors(20),
+          ]);
         if (cancelled) return;
-        setActions(total);
-        setWallets(new Set(recent.map((e) => e.author)).size);
+        setInteractions(actionTotal + feedbackTotal);
+        setWallets(
+          new Set([...actionRecent.map((e) => e.author), ...feedbackAuthors]).size,
+        );
       } catch {
         if (cancelled) return;
         setError('Could not load on-chain stats.');
@@ -46,8 +55,8 @@ export function MetricsStats({ refreshSignal = 0 }: { refreshSignal?: number }) 
       <div className="grid gap-4 sm:grid-cols-3">
         <HudPanel>
           <div className="p-5">
-            <div className={labelClass}>ACTIONS ON-CHAIN</div>
-            <div className="font-display text-3xl font-bold text-text">{actions ?? '—'}</div>
+            <div className={labelClass}>ON-CHAIN INTERACTIONS</div>
+            <div className="font-display text-3xl font-bold text-text">{interactions ?? '—'}</div>
           </div>
         </HudPanel>
         <HudPanel>
