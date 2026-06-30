@@ -56,6 +56,13 @@ Everything below is live on Stellar testnet — open it and try it yourself.
 | 📊 **Metrics** | Live on-chain usage + a feedback dashboard | [Open →](https://zentra-docs.vercel.app/metrics) |
 | 📚 **Docs** | Concepts, guides, and the full protocol reference | [Open →](https://zentra-docs.vercel.app/docs) |
 
+## Watch the demo
+
+[![Watch the Zentra demo](https://img.youtube.com/vi/JQapGdfgZJw/maxresdefault.jpg)](https://youtu.be/JQapGdfgZJw)
+
+A short walkthrough — connect a wallet, generate a real zero-knowledge proof, and
+anchor it on-chain. ▶ **[youtu.be/JQapGdfgZJw](https://youtu.be/JQapGdfgZJw)**
+
 ---
 
 ## 🏆 Built for the Stellar Hackathon — all four belts
