@@ -9,6 +9,8 @@ dApp**. Built on Fumadocs + Next.js, deployed on Vercel.
 
 **Live:** https://zentra-docs.vercel.app · **Testnet dApp:** https://zentra-docs.vercel.app/app
 
+![Zentra landing](docs/screenshots/landing.png)
+
 ---
 
 ## Stellar White Belt — Testnet dApp (`/app`)
