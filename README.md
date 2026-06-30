@@ -254,7 +254,8 @@ bun run build
 
 ### Demo video
 
-📹 _Add your 1–2 minute walkthrough link here._
+▶ **[Watch the walkthrough](https://youtu.be/JQapGdfgZJw)** — wallet, the multi-contract
+action board, and on-chain proof anchoring, end to end.
 
 ---
 
