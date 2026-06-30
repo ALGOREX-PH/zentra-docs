@@ -108,8 +108,8 @@ Legend: ✅ done · ⬜ pending (you) · 🔄 in progress
 - [x] Screenshot — mobile responsive (`docs/screenshots/mobile.png`)
 - [x] Screenshot — analytics / monitoring (`docs/screenshots/metrics.png`)
 - [x] Basic user feedback summary (live on `/metrics`)
-- [ ] Demo video
-- [ ] Proof of 10+ user wallet interactions — real people (auto-counts on `/metrics`)
+- [x] Demo video — **[youtu.be/JQapGdfgZJw](https://youtu.be/JQapGdfgZJw)**
+- [ ] Proof of 10+ user wallet interactions — real people (auto-counts on `/metrics`); first real anchor: [tx `0490a1e3…`](https://stellar.expert/explorer/testnet/tx/0490a1e32093c0d3cdb578a60d14caccbb4c4d05636d70eade54a89e091976a4)
 
 > Built & live. Remaining are the two things only real people can produce: 10+
 > real users interacting, and the demo video.
