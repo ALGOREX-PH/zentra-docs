@@ -41,11 +41,12 @@ Work down this list. Anything unchecked is a claim you cannot make yet.
       §9 says **131**. The thread avoids the number entirely; if you add it back,
       fix the docs first. A reviewer who finds the contradiction stops believing
       the rest.
-- [ ] `docs/articles/soroban-action-log-tutorial.md` **does not exist yet** —
-      `docs/articles/` is an empty directory. The dev.to plan in §5 depends on
-      it. Write it or drop that channel.
-- [ ] The `/blog` page is three summary cards on one route; there are no
-      individual post permalinks. Do not link "the post about X" — link `/blog`
+- [x] `docs/articles/soroban-action-log-tutorial.md` exists — a full Soroban
+      tutorial, and the strongest thing to lead with in developer channels. The
+      dev.to plan in §5 is unblocked. It is linked from `/blog` as "Read it →".
+- [ ] The `/blog` page is a single route; only the tutorial has an outbound
+      link, and the three older cards have no permalinks. Do not link "the post
+      about X" for those — link `/blog`
       or nothing.
 
 **Network.**
@@ -344,10 +345,8 @@ Lower technical density than Discord, high sensitivity to self-promotion.
 
 ### dev.to
 
-**Blocked:** `docs/articles/soroban-action-log-tutorial.md` does not exist yet
-(`docs/articles/` is empty). Write it before planning this channel.
-
-When it exists:
+**Ready.** `docs/articles/soroban-action-log-tutorial.md` is written — a
+full Soroban walkthrough with every snippet taken from this repo. Cross-post it:
 
 - Cross-post the tutorial itself, in full. dev.to rewards complete, standalone,
   runnable content — a teaser with a "read more" link performs badly and reads as
