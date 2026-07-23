@@ -410,7 +410,10 @@ the logs for the matching `health.database` line to see the real cause.
   `db/schema.sql` against a database where `feedback` already exists is a no-op
   for the table body: new CHECK constraints and column changes are *not*
   applied. Only the `CREATE INDEX IF NOT EXISTS` statements add anything. An
-  existing database needs explicit `ALTER TABLE ... ADD CONSTRAINT` statements,
-  run once and by hand, after confirming existing rows satisfy them.
+  existing database needs explicit `ALTER TABLE ... ADD CONSTRAINT` statements.
+  `db/migrations/001_harden_feedback.sql` is exactly that: it normalises the
+  affected columns, adds all five constraints `NOT VALID` so they guard new
+  writes without locking the table for a full scan, and documents the
+  `VALIDATE CONSTRAINT` step to promote them once the historical rows check out.
 - **`x-request-id` is caller-controlled.** It is echoed as sent (capped at 200
   characters) and is a correlation aid, not an authenticated identifier.
