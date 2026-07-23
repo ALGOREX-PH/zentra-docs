@@ -15,7 +15,7 @@
  * to a log, in whole, hashed or truncated — a denial line carries only why.
  */
 
-import { ApiError, upstreamUnavailable } from '@/lib/api/errors';
+import { forbidden, unauthorized, upstreamUnavailable } from '@/lib/api/errors';
 import { log } from '@/lib/api/logger';
 
 /** Name of the environment variable holding the operator shared secret. */
@@ -120,9 +120,9 @@ function deny(requestId: string, reason: DenialReason): ApiError {
     return upstreamUnavailable('Admin access is not configured.');
   }
   if (reason === 'missing') {
-    return new ApiError(401, 'bad_request', 'Admin credentials are required.');
+    return unauthorized('Admin credentials are required.');
   }
-  return new ApiError(403, 'bad_request', 'Admin credentials are not valid.');
+  return forbidden('Admin credentials are not valid.');
 }
 
 /**
