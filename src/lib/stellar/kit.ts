@@ -8,9 +8,20 @@ import { AlbedoModule } from '@creit.tech/stellar-wallets-kit/modules/albedo';
 import { LobstrModule } from '@creit.tech/stellar-wallets-kit/modules/lobstr';
 import { HanaModule } from '@creit.tech/stellar-wallets-kit/modules/hana';
 import { RabetModule } from '@creit.tech/stellar-wallets-kit/modules/rabet';
+import { activeNetwork } from '@/config/network';
 
 /**
- * Initialise the Stellar Wallets Kit once, for testnet with Freighter.
+ * The kit ships its own network enum, distinct from the SDK's `Networks`.
+ *
+ * Mapping it off `activeNetwork` keeps this the single place the two
+ * vocabularies meet. Without it a mainnet cutover would need a code change in
+ * the wallet layer as well as a configuration change — precisely what
+ * `src/config/network.ts` exists to prevent.
+ */
+const KIT_NETWORK = activeNetwork === 'public' ? Networks.PUBLIC : Networks.TESTNET;
+
+/**
+ * Initialise the Stellar Wallets Kit once, for the active network with Freighter.
  *
  * v2.4 exposes the kit as a static singleton: `init()` runs a single time in the
  * browser, then every call site uses the static methods. Guarded so it never
@@ -24,7 +35,7 @@ export function getKit(): typeof StellarWalletsKit {
   }
   if (!initialised) {
     StellarWalletsKit.init({
-      network: Networks.TESTNET,
+      network: KIT_NETWORK,
       selectedWalletId: FREIGHTER_ID,
       modules: [
         new FreighterModule(),
