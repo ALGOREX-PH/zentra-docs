@@ -193,12 +193,34 @@ resulting transaction hash here.
 | `comment` | string | yes | Whitespace runs collapsed to single spaces, ASCII control characters stripped, then trimmed. The result must be 1–280 characters. |
 | `wallet` | string \| null | no | Must match `^G[A-Z2-7]{55}$` when present. Absent, `null`, or a blank/whitespace-only string is treated as not supplied and stored as `null`. |
 | `txHash` | string \| null | no | Must be 64 hex characters. Accepted case-insensitively, **stored lowercase** — the database CHECK and unique index both assume lowercase hex. |
-| `onChain` | boolean | no | Coerced with `Boolean()`, then **downgraded to `false` unless a valid `txHash` was supplied**. An unverifiable claim is quietly downgraded, not rejected. |
+| `onChain` | boolean | no | Coerced with `Boolean()`, then **downgraded to `false` unless a valid `txHash` was supplied** and that hash verifies on-chain (below). An unproven claim is quietly downgraded, not rejected. |
 
 Unknown keys are ignored: the validated value is rebuilt field by field, so
 nothing caller-supplied reaches the database. The whole body is capped at
 **4096 bytes** — `content-length` is checked before the stream is read, then
 the decoded text is measured again in case that header was absent or lying.
+
+#### On-chain claims are verified, not trusted
+
+Sixty-four hex characters are free to invent, so a well-formed `txHash` proves
+nothing on its own. When `onChain` is claimed, `src/lib/api/verify-anchor.ts`
+resolves the hash against Horizon (`GET /transactions/{hash}`, 3 s timeout)
+before it is believed. The claim only survives if the transaction **exists**,
+**succeeded** (`successful === true`), and — when a `wallet` was supplied — was
+**sourced from that wallet**. Otherwise `onChain` is set to `false` and the
+`txHash` is cleared, so an invented hash can neither be stored nor occupy the
+one-row-per-transaction unique index.
+
+| Verdict | Meaning |
+| --- | --- |
+| `not_found` | Horizon has no such transaction. Retried once after 1.5 s first, because Horizon ingests closed ledgers on its own schedule and can lag the RPC the client submitted through. |
+| `failed` | Included in a ledger but unsuccessful — an anchor of nothing. |
+| `wrong_account` | Real transaction, different source account. Stops a public hash being replayed as your own. |
+| `unavailable` | Horizon timed out, errored, or answered something unparseable. Deliberately distinct from `not_found`: Horizon being down is not evidence against the user. |
+
+The submission is still stored in every case — the feedback is real, only the
+badge is unearned. Each negative verdict is logged as `anchor.unverified`, and
+the downgrade itself as `feedback.anchor_rejected`.
 
 ```http
 POST /api/feedback HTTP/1.1
