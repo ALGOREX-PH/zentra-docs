@@ -11,9 +11,15 @@ talking to Neon Postgres over its HTTP driver), and a chain tier (four Soroban
 contracts deployed on Stellar testnet, reached directly from the browser via
 Soroban RPC and Horizon).
 
-The browser is the only client of both the API and the chain. There is no
-server-side wallet, no server-side signing, and no backend indexer: everything
-the server does is scoped to the feedback table and a readiness probe.
+The browser is the only client of the chain: user transactions are built there,
+signed by the user's own wallet, and submitted as signed XDR — there is no
+server-side wallet and no backend indexer. The one server-side key is the
+**optional** fee sponsor (`SPONSOR_SECRET`): when configured, `/api/sponsor`
+wraps a user-signed inner transaction in a fee-bump it signs, so a zero-balance
+wallet can still transact. It signs only fee-bumps around user transactions that
+target our own contracts, never arbitrary operations, and the feature is off
+unless the secret is set. Everything else the server does is scoped to Postgres
+and a readiness probe.
 
 ---
 
