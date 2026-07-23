@@ -309,7 +309,7 @@ both queryable and independently verifiable.
 | Proof of wallet interactions | `/metrics` reads distinct wallets + total actions live from chain |
 | Backend architecture | layered API in [`src/lib/api/`](src/lib/api) — see below |
 | Database design | [`db/schema.sql`](db/schema.sql) + [`db/migrations/`](db/migrations) — named constraints, 4 indexes |
-| Testing | 131 Vitest + 14 Rust contract tests (all four contracts); CI runs typecheck → tests → build |
+| Testing | 201 Vitest + 14 Rust contract tests (all four contracts); CI runs typecheck → tests → build |
 | Documentation | this README + [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) + [`docs/API.md`](docs/API.md) + [`docs/BELT-CHECKLIST.md`](docs/BELT-CHECKLIST.md) |
 
 ### Backend, in production terms
