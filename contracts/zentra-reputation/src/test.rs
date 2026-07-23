@@ -57,3 +57,17 @@ fn emits_bumped_event() {
 
     assert_eq!(env.events().all().events().len(), 1);
 }
+
+#[test]
+fn set_logger_emits_event() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (client, _admin) = deploy(&env);
+
+    // A repoint is a security-relevant admin action, so it must be observable
+    // on the ledger rather than a silent state change. ZEN-01.
+    let logger = Address::generate(&env);
+    client.set_logger(&logger);
+
+    assert_eq!(env.events().all().events().len(), 1);
+}
