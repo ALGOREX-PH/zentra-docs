@@ -67,7 +67,7 @@ anchor it on-chain. ▶ **[youtu.be/JQapGdfgZJw](https://youtu.be/JQapGdfgZJw)**
 
 ---
 
-## 🏆 Built for the Stellar Hackathon — all four belts
+## 🏆 Built for the Stellar Hackathon — all five belts
 
 > **Submit _this_ repo for every belt:** `https://github.com/ALGOREX-PH/zentra-docs`
 > — it has the Rust contracts (`contracts/*/src/lib.rs`) **and** the wallet dApp
@@ -77,7 +77,7 @@ anchor it on-chain. ▶ **[youtu.be/JQapGdfgZJw](https://youtu.be/JQapGdfgZJw)**
 > connect-wallet check.
 
 Zentra is also a complete **Stellar hackathon submission**: this one repo covers
-every belt (Levels 1–4), each a route in the same live product. Requirement-by-
+every belt (Levels 1–5), each a route in the same live product. Requirement-by-
 requirement coverage is in **[`docs/BELT-CHECKLIST.md`](docs/BELT-CHECKLIST.md)**;
 per-belt detail follows below.
 
@@ -87,6 +87,7 @@ per-belt detail follows below.
 | 🟡 Yellow | 2 — multi-wallet + deployed contract | [`/board`](https://zentra-docs.vercel.app/board) | `CDDIQNNC…K7VY` |
 | 🟠 Orange | 3 — inter-contract + CI/CD + tests | [`/board`](https://zentra-docs.vercel.app/board) | `CCSXFTQT…ZDDES` + `CA2QOMGV…IIPI` |
 | 🟢 Green | 4 — production MVP + analytics + feedback | [`/metrics`](https://zentra-docs.vercel.app/metrics) | `CC6S6CKP…F4CUG` + Neon Postgres |
+| 🔵 Blue | 5 — growth, iteration & pitch | [`/join`](https://zentra-docs.vercel.app/join) · [`/pitch`](https://zentra-docs.vercel.app/pitch) | `users` registry + moderation |
 
 Everything lives in **this** repo: contracts in [`contracts/`](contracts), the dApp
 in [`src/`](src), tests + CI in [`.github/workflows/ci.yml`](.github/workflows/ci.yml),
