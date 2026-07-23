@@ -69,7 +69,9 @@ Codes and statuses come from `src/lib/api/errors.ts`:
 
 | Code | Status | Triggered by |
 | --- | --- | --- |
-| `bad_request` | 400, 401, 403 | 400: empty body, body that is not valid JSON, or a body that is not a JSON object (arrays and scalars are rejected). 401 and 403: the admin gate — see the note below. |
+| `bad_request` | 400 | Empty body, body that is not valid JSON, or a body that is not a JSON object (arrays and scalars are rejected). |
+| `unauthorized` | 401 | No usable credential was presented to an admin route. |
+| `forbidden` | 403 | A credential was presented to an admin route and was not accepted. |
 | `validation_failed` | 422 | One or more fields failed validation. Every failing field is reported in `details` in a single response. |
 | `conflict` | 409 | A unique index raised Postgres `23505`: the `tx_hash` has already been recorded, or the signup's email or wallet is already registered. |
 | `payload_too_large` | 413 | Request body exceeds 4096 bytes, by declared `content-length` or by measured UTF-8 length. |
@@ -79,9 +81,10 @@ Codes and statuses come from `src/lib/api/errors.ts`:
 | `internal` | 500 | Anything thrown that is not an `ApiError`. Message and stack are withheld because they may quote connection strings or query fragments. |
 | `method_not_allowed` | — | Declared in the `ApiErrorCode` union but not produced by any current route. |
 
-**One code, three statuses.** `ApiErrorCode` has no authentication member, so
-the admin gate's 401 and 403 both carry `bad_request`. For those two, branch on
-the HTTP status rather than on `error.code`.
+`unauthorized` and `forbidden` are distinct on purpose: a client that sent no
+credential should prompt for one, while a client whose credential was rejected
+should not retry with the same value. Branching on `error.code` is enough to
+tell those apart — no status inspection required.
 
 ---
 
@@ -118,8 +121,8 @@ either header can open an ungated box.
 | Condition | Status | Code | Message | `admin.denied` reason |
 | --- | --- | --- | --- | --- |
 | `ADMIN_TOKEN` unset, empty or whitespace-only | 503 | `upstream_unavailable` | `Admin access is not configured.` | `not_configured` |
-| No usable credential — neither header, a non-Bearer `authorization`, or a blank value | 401 | `bad_request` | `Admin credentials are required.` | `missing` |
-| Credential present but does not match | 403 | `bad_request` | `Admin credentials are not valid.` | `invalid` |
+| No usable credential — neither header, a non-Bearer `authorization`, or a blank value | 401 | `unauthorized` | `Admin credentials are required.` | `missing` |
+| Credential present but does not match | 403 | `forbidden` | `Admin credentials are not valid.` | `invalid` |
 
 **An unset `ADMIN_TOKEN` denies everything.** It never opens the route. A deploy
 that forgot the variable fails closed, and it answers 503 rather than 401
@@ -570,8 +573,8 @@ and any inner double quote is doubled.
 
 | Status | Code | When |
 | --- | --- | --- |
-| 401 | `bad_request` | `Admin credentials are required.` |
-| 403 | `bad_request` | `Admin credentials are not valid.` |
+| 401 | `unauthorized` | `Admin credentials are required.` |
+| 403 | `forbidden` | `Admin credentials are not valid.` |
 | 503 | `upstream_unavailable` | `Admin access is not configured.` — `ADMIN_TOKEN` unset or blank. |
 | 503 | `upstream_unavailable` | `Registry storage is temporarily unavailable.` — the read failed. |
 | 500 | `internal` | Unexpected throw. |
@@ -629,8 +632,8 @@ call, and nothing is lost in either direction.
 | Status | Code | When |
 | --- | --- | --- |
 | 400 | `bad_request` | Body missing/blank, not valid JSON, or not a JSON object. |
-| 401 | `bad_request` | `Admin credentials are required.` |
-| 403 | `bad_request` | `Admin credentials are not valid.` |
+| 401 | `unauthorized` | `Admin credentials are required.` |
+| 403 | `forbidden` | `Admin credentials are not valid.` |
 | 404 | `not_found` | `No feedback row with that id.` |
 | 413 | `payload_too_large` | Body over 4096 bytes. |
 | 422 | `validation_failed` | `id` or `hidden` failed; both are reported at once. |
