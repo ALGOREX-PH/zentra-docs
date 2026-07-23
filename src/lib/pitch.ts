@@ -219,18 +219,18 @@ export const PITCH_SLIDES: PitchSlide[] = [
       },
       {
         label: 'Real feedback from real wallets',
-        body: '14 submissions from 12 distinct wallets, average rating 4.71, 13 of them anchored on-chain. An on-chain claim only counts after its transaction hash is resolved against Horizon and proved to have come from the claiming wallet.',
+        body: '14 submissions from 12 distinct wallets, 13 of them anchored on-chain and one withheld by moderation. An on-chain claim only counts once its transaction hash resolves against Horizon and proves to have come from the claiming wallet.',
       },
       {
         label: 'Tested and in CI',
-        body: '131 frontend tests (Vitest) and 14 Rust contract tests across all four contracts run on every push, alongside a typecheck and a production build.',
+        body: '201 frontend tests (Vitest) and 14 Rust contract tests across all four contracts run on every push, alongside a typecheck and a production build.',
       },
     ],
     stat: {
-      value: '4.71 / 5',
-      caption: '14 submissions from 12 distinct wallets; 13 anchored on-chain to the feedback contract.',
+      value: '5.00 / 5',
+      caption: '13 published submissions from 12 distinct wallets; 13 anchored on-chain to the feedback contract.',
     },
-    note: 'Testnet only and unaudited. The feedback figures are a snapshot — /metrics recomputes them live — and the distinct-wallet count is a lower bound, derived from the 20 most recent action-log entries and feedback authors. The 131 Vitest tests cover pure modules only; there are no component or end-to-end tests. Anchoring is a commitment, not on-chain re-verification: the deployed verifying key predates the current circuit build.',
+    note: 'Testnet only and unaudited. The feedback figures are a snapshot — /metrics recomputes them live — and cover published submissions only: one abusive entry is withheld by moderation and excluded from both the count and the average. The distinct-wallet count is a lower bound, derived from the 20 most recent action-log entries and feedback authors. The 201 Vitest tests cover pure modules only; there are no component or end-to-end tests. Anchoring is a commitment, not on-chain re-verification: the deployed verifying key predates the current circuit build.',
   },
 
   {
