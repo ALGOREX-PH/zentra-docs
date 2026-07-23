@@ -22,7 +22,8 @@ import {
   type RateLimitOptions,
 } from '@/lib/api/rate-limit';
 import { json, route } from '@/lib/api/route';
-import { parseFeedbackInput, readJsonBody } from '@/lib/api/validation';
+import { parseFeedbackInput, readJsonBody, type FeedbackInput } from '@/lib/api/validation';
+import { verifyAnchor } from '@/lib/api/verify-anchor';
 import { sql } from '@/lib/db';
 
 export const runtime = 'nodejs';
@@ -48,6 +49,9 @@ const READ_CACHE_CONTROL = 'public, s-maxage=30, stale-while-revalidate=120';
 /** Postgres unique-violation code, raised by the one-row-per-transaction index. */
 const UNIQUE_VIOLATION = '23505';
 
+/** Pause before the second anchor lookup, covering Horizon's ingestion lag. */
+const ANCHOR_RETRY_DELAY_MS = 1_500;
+
 interface Summary {
   count: number;
   average: number;
@@ -68,7 +72,8 @@ export const GET = route('feedback.list', async (request) => {
 export const POST = route('feedback.create', async (request, { requestId }) => {
   const headers = enforceRateLimit(request, 'feedback:write', WRITE_LIMIT);
 
-  const input = parseFeedbackInput(await readJsonBody(request));
+  const claimed = parseFeedbackInput(await readJsonBody(request));
+  const input = await confirmAnchor(claimed, requestId);
   await insertFeedback(input);
 
   // Wallet and transaction hash are public chain data, so logging them is safe
@@ -83,6 +88,47 @@ export const POST = route('feedback.create', async (request, { requestId }) => {
 
   return json({ ok: true }, { status: 201, headers });
 });
+
+/**
+ * Resolve an `onChain` claim against the ledger before it is believed.
+ *
+ * `parseFeedbackInput` can only check that a hash is well-formed, and 64 hex
+ * characters are free to invent. Left unchecked, anyone could post a fabricated
+ * hash and inflate the on-chain totals the dashboard reports. A claim that does
+ * not verify is downgraded rather than rejected: the feedback is real and worth
+ * keeping, only the badge is not earned. The hash is cleared along with it, so
+ * an invented value can neither be stored nor occupy the unique index that
+ * reserves one row per anchoring transaction.
+ */
+async function confirmAnchor(input: FeedbackInput, requestId: string): Promise<FeedbackInput> {
+  if (!input.onChain || input.txHash === null) return input;
+
+  let verdict = await verifyAnchor(input.txHash, input.wallet);
+
+  // The client polls the RPC until the transaction succeeds before posting, but
+  // Horizon ingests closed ledgers on its own schedule and can be a beat
+  // behind. One retry absorbs that lag instead of penalising an honest user.
+  if (!verdict.verified && verdict.reason === 'not_found') {
+    await delay(ANCHOR_RETRY_DELAY_MS);
+    verdict = await verifyAnchor(input.txHash, input.wallet);
+  }
+
+  if (verdict.verified) return input;
+
+  log('warn', 'feedback.anchor_rejected', {
+    requestId,
+    txHash: input.txHash,
+    wallet: input.wallet,
+    reason: verdict.reason,
+  });
+
+  return { ...input, onChain: false, txHash: null };
+}
+
+/** Resolve after `ms`, used to space the two anchor lookups apart. */
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 /**
  * Count one request against the caller's budget, or reject it with a 429.
@@ -146,13 +192,7 @@ async function readFeedback(): Promise<{ summary: Summary; recent: unknown[] }> 
 }
 
 /** Persist one validated submission, mapping a duplicate anchor to a 409. */
-async function insertFeedback(input: {
-  rating: number;
-  comment: string;
-  wallet: string | null;
-  txHash: string | null;
-  onChain: boolean;
-}): Promise<void> {
+async function insertFeedback(input: FeedbackInput): Promise<void> {
   const db = sql();
 
   try {
