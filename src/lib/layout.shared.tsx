@@ -19,6 +19,7 @@ export function baseOptions(): BaseLayoutProps {
       { text: 'Playground', url: '/playground' },
       { text: 'Blog', url: '/blog' },
       { text: 'Roadmap', url: '/roadmap' },
+      { text: 'Pitch', url: '/pitch' },
       {
         type: 'custom',
         secondary: true,
