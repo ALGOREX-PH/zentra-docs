@@ -357,6 +357,74 @@ and feedback.
 
 ---
 
+## Stellar Blue Belt — Growth, iteration & pitch (`/join`, `/pitch`)
+
+Level 5 is about turning a working MVP into a product that grows and improves
+from what its users actually do. Everything below is driven by the real feedback
+already sitting in the database, not by guesswork.
+
+- **Join the programme:** [`/join`](https://zentra-docs.vercel.app/join) — signup + live progress toward 50 users
+- **Pitch deck:** [`/pitch`](https://zentra-docs.vercel.app/pitch) — 11 slides, keyboard-navigable, print-to-PDF
+
+### Level 5 requirements → where they live
+
+| Requirement | Implementation |
+| --- | --- |
+| Minimum 50 testnet users | [`/join`](https://zentra-docs.vercel.app/join) registry + `users` table; live counter on the page |
+| Real transaction activity | `/metrics` reads distinct wallets and total actions live from the contracts |
+| Active usage proof | every anchored submission links to its transaction on stellar.expert |
+| New features from feedback | the iteration table below, each row with its commit |
+| Improve UX/UI and stability | moderation, error boundaries, 404, loading skeleton, anchor verification |
+| Optimise onboarding | 3-step Freighter → testnet → funding guide that collapses once connected |
+| Professional pitch deck | [`/pitch`](https://zentra-docs.vercel.app/pitch), content in [`src/lib/pitch.ts`](src/lib/pitch.ts) |
+| Product walkthrough demo | [youtu.be/JQapGdfgZJw](https://youtu.be/JQapGdfgZJw) |
+| 20+ meaningful commits | 100+ on this branch |
+| Updated documentation | this README + [`ARCHITECTURE`](docs/ARCHITECTURE.md) + [`API`](docs/API.md) |
+
+### User feedback → what we changed
+
+Every row started as something a real user did. The commit is the receipt.
+
+| What the data showed | What we shipped | Commit |
+| --- | --- | --- |
+| A submission was a personal attack with a self-harm taunt, rendered verbatim on the public feedback wall. Nothing screened comments. | Automated moderation: whole-word matching against a normalised form (defeats leetspeak and diacritic evasion), covering English and Tagalog. Withheld rows are stored but excluded from the feed *and* from the count and average. | [`7fb4116`](https://github.com/ALGOREX-PH/zentra-docs/commit/7fb4116) · [`f721e52`](https://github.com/ALGOREX-PH/zentra-docs/commit/f721e52) · [`c94ef35`](https://github.com/ALGOREX-PH/zentra-docs/commit/c94ef35) |
+| No way to reverse a moderation call without deleting the record. | `PATCH /api/admin/feedback` hides or unhides a row behind an operator token. The record is never destroyed. | [`7073ee0`](https://github.com/ALGOREX-PH/zentra-docs/commit/7073ee0) |
+| One wallet submitted identical feedback twice, 1.1 seconds apart, with the same transaction hash — a double-click became two rows. | A partial unique index on `tx_hash`, so one anchoring transaction can produce only one row. A retry now returns `409` instead of duplicating. | [`3368827`](https://github.com/ALGOREX-PH/zentra-docs/commit/3368827) |
+| 13 of 14 submissions claimed to be on-chain, but the API only checked that the hash was 64 hex characters — an invented hash earned the badge. | The hash is resolved against Horizon: it must exist, have succeeded, and be sourced from the claiming wallet. Unproven claims are downgraded, not rejected. | [`dd130f9`](https://github.com/ALGOREX-PH/zentra-docs/commit/dd130f9) · [`fd9bce0`](https://github.com/ALGOREX-PH/zentra-docs/commit/fd9bce0) |
+| Users praised onboarding ("smooth onboarding", "very easy to use") yet `/app` never mentioned Freighter, testnet, or funding — every one of them had to already know. | A 3-step guide that marks progress from observable wallet state and collapses to one line once connected, so returning users are not re-taught. | [`b341b5d`](https://github.com/ALGOREX-PH/zentra-docs/commit/b341b5d) |
+| Feedback arrived from wallets with no way to contact anyone or measure growth. | The `users` registry and `POST /api/onboard`, with a public count-only read powering the progress bar on `/join`. | [`2833600`](https://github.com/ALGOREX-PH/zentra-docs/commit/2833600) · [`eea7040`](https://github.com/ALGOREX-PH/zentra-docs/commit/eea7040) |
+
+### Onboarding data collection
+
+Two intake paths, one table:
+
+1. **On-site** — [`/join`](https://zentra-docs.vercel.app/join) writes straight to Postgres via `POST /api/onboard` (`source = 'site'`). Wallet autofills from a connected wallet.
+2. **Google Form** — for reaching people off-site. Collect **name, email, wallet address, rating (1–5), and feedback**, then import the responses with `source = 'form'`.
+
+Export everything for analysis at any time:
+
+```bash
+curl -H "Authorization: Bearer $ADMIN_TOKEN" \
+  https://zentra-docs.vercel.app/api/admin/users -o docs/users/onboarding-responses.csv
+```
+
+The export is admin-gated because the registry holds names and email addresses,
+and it escapes leading `=`, `+`, `-` and `@` so a submitted value cannot execute
+as a formula when the sheet is opened in Excel. The exported sheet lives at
+[`docs/users/onboarding-responses.csv`](docs/users/onboarding-responses.csv).
+
+### Next phase
+
+What the current data cannot yet tell us, and how we plan to find out — see
+[`docs/users/README.md`](docs/users/README.md) for the full plan.
+
+- **Retention is unmeasured.** Every number today is a first-touch count. Next is a returning-wallet metric on `/metrics`.
+- **Moderation is a fixed word list.** It will miss novel abuse. Next is a review queue over the withheld rows so misses and false positives are both visible.
+- **The distinct-wallet count is a lower bound**, capped by the contracts' `MAX_RECENT = 20`. Next is a paginated read or an indexer so the headline figure is exact.
+- **No deletion path for personal data.** The registry stores names and emails with no retention policy. Next is a delete-my-data endpoint before this leaves testnet.
+
+---
+
 ## Proof Playground — real Groth16 proofs (`/playground`)
 
 [`/playground`](https://zentra-docs.vercel.app/playground) generates an **actual
