@@ -1,13 +1,31 @@
 import type { Metadata } from 'next';
 import { Eyebrow } from '@/components/landing/primitives';
 import { Footer } from '@/components/landing/footer';
+import { gitConfig, repoUrl } from '@/lib/shared';
 
 export const metadata: Metadata = {
   title: 'Blog',
   description: 'Releases, deep-dives, and testnet results from Zentra Protocol.',
 };
 
-const POSTS = [
+/** Where a linked article lives, built off the git config the footer also uses. */
+const articleUrl = (file: string) =>
+  `${repoUrl}/blob/${gitConfig.branch}/docs/articles/${file}`;
+
+const POSTS: {
+  cat: string;
+  date: string;
+  title: string;
+  body: string;
+  href?: string;
+}[] = [
+  {
+    cat: 'Tutorial',
+    date: '2026-07-23',
+    title: 'Build and ship an on-chain action log on Soroban',
+    body: 'A full walkthrough for developers new to Soroban: storage keys and why instance differs from persistent, typed events, capping reads, extending TTLs so instance storage is not archived, cross-contract calls, testing with mocked auth, deploying, and a React frontend that reads by simulation and writes through a wallet.',
+    href: articleUrl('soroban-action-log-tutorial.md'),
+  },
   {
     cat: 'Deep-dive',
     date: '2026-06-12',
@@ -48,6 +66,16 @@ export default function BlogPage() {
                 </div>
                 <h2 className="mt-3 font-display text-xl font-semibold">{p.title}</h2>
                 <p className="mt-2 leading-relaxed text-fd-muted-foreground">{p.body}</p>
+                {p.href ? (
+                  <a
+                    href={p.href}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mt-3 inline-block font-mono text-xs text-cyan transition-colors hover:text-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan"
+                  >
+                    Read it →
+                  </a>
+                ) : null}
               </article>
             ))}
           </div>
