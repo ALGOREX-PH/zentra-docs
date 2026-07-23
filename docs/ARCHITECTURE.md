@@ -489,20 +489,18 @@ contract without a code change.
 - **Rate limiting is per instance.** In-memory fixed windows; the effective
   ceiling scales with concurrent Vercel instances and resets on scale-to-zero. A
   spam speed bump, not a security control.
-- **The feedback endpoints are unauthenticated, and `txHash` is not verified.**
-  `wallet` is self-reported. The API checks that `txHash` is 64 hex characters
-  but never resolves it against the ledger, so a well-formed hash is enough to
-  set `on_chain = true` on a row. Only the unique index prevents reusing the
-  same hash twice. Verifying anchors server-side would need an RPC lookup that
-  the API does not do today.
-- **CI runs only two of the four contract test suites.** `.github/workflows/ci.yml`
-  invokes `cargo test` for `zentra-reputation` and `zentra-action-log`; the
-  `zentra-feedback` (4) and `zentra-proof-registry` (2) tests exist but are not
-  run by the pipeline.
-- **Tests cover pure modules only.** The 113 Vitest tests exercise the API
-  helpers and two Stellar utilities. There are no tests for React components,
-  route handlers end to end, or any browser/E2E flow, and no test touches a
-  database or the network.
+- **The feedback endpoints are unauthenticated.** Anyone may submit. A `wallet`
+  sent on its own is self-reported and is not proof of key ownership — only an
+  anchored `txHash` is, because `src/lib/api/verify-anchor.ts` resolves it
+  against Horizon and requires the transaction to exist, to have succeeded, and
+  to be sourced from that same wallet before `on_chain` is set. An unproven
+  claim is downgraded rather than rejected, so the feedback survives without the
+  badge. Binding an unanchored `wallet` to its owner would need a signed
+  challenge, which the API does not do today.
+- **Tests cover pure modules only.** The 131 Vitest tests exercise the API
+  helpers and two Stellar utilities; all 14 Rust tests across the four contracts
+  run in CI. There are no tests for React components, route handlers end to end,
+  or any browser/E2E flow, and no test touches a live database or the network.
 - **No `script-src` CSP.** Only `frame-ancestors 'none'` is enforced, because
   WebAssembly proving needs `wasm-unsafe-eval` and Next emits inline bootstrap
   scripts. A nonce pipeline is the prerequisite for tightening this.
