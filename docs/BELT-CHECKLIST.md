@@ -99,10 +99,23 @@ Legend: ✅ done · ⬜ pending (you) · 🔄 in progress
 **Requirements**
 - [x] Production-ready MVP (stable frontend + contracts)
 - [x] Mobile responsive UI
-- [x] Loading states & error handling
+- [x] Loading states & error handling (route skeleton, segment + root error
+      boundaries, branded 404)
+- [x] User onboarding (3-step Freighter → testnet → funding guide on `/app`)
 - [x] Analytics & monitoring (Vercel Web Analytics + Speed Insights + `/metrics`)
 - [x] User feedback collection + summary (Neon Postgres + on-chain `zentra-feedback`)
-- [x] Backend architecture (Next.js API route + Neon serverless Postgres)
+- [x] Backend architecture — layered API (`src/lib/api/`): one `route()` wrapper
+      giving every endpoint request ids, structured JSON logs and a single error
+      envelope; strict validation at the trust boundary; per-route rate limits;
+      no driver message ever reaches a client
+- [x] Database design (`db/schema.sql` + `db/migrations/`, named constraints,
+      four query-serving indexes)
+- [x] Security (CSP `frame-ancestors`, HSTS, nosniff, Referrer-Policy,
+      Permissions-Policy; secret redaction in logs; 4 KB body ceiling)
+- [x] Health / readiness endpoint (`/api/health`, 200 ok · 503 degraded)
+- [x] API documentation (`docs/API.md`) + architecture (`docs/ARCHITECTURE.md`)
+- [x] Automated tests — 113 frontend (Vitest) + 8 contract (Rust); CI runs
+      typecheck, tests and build
 - [x] On-chain proof-of-interactions surface (`/metrics`)
 - [ ] 10+ real users onboarded — real people you bring (I won't fabricate users)
 
