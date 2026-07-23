@@ -188,7 +188,13 @@ describe('rateLimitHeaders', () => {
 
     expect(headers['X-RateLimit-Reset']).toBe(String(Math.ceil(result.resetAt / 1000)));
     expect(headers['X-RateLimit-Reset']).not.toBe(String(result.resetAt));
-    expect(Number(headers['X-RateLimit-Reset'])).toBeCloseTo(result.resetAt / 1000, 0);
+
+    // Bounded explicitly rather than with toBeCloseTo: rounding up can move the
+    // value by nearly a full second, which is wider than a 0-digit closeness
+    // check permits, so that form failed on roughly half of all wall clocks.
+    const seconds = Number(headers['X-RateLimit-Reset']);
+    expect(seconds).toBeGreaterThanOrEqual(result.resetAt / 1000);
+    expect(seconds - result.resetAt / 1000).toBeLessThan(1);
   });
 });
 
