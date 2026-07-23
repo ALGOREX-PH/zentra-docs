@@ -6,6 +6,7 @@ import {
   timingSafeEqual,
 } from '@/lib/api/auth';
 import type { ApiError } from '@/lib/api/errors';
+import { resetRateLimiter } from '@/lib/api/rate-limit';
 
 /** The configured secret for these tests; distinctive so it is greppable in logs. */
 const SECRET = 'zentra-operator-secret-6f3a91c4d0';
@@ -24,6 +25,10 @@ let emitted: string[] = [];
 beforeEach(() => {
   process.env[ADMIN_TOKEN_ENV] = SECRET;
   emitted = [];
+  // The admin gate now throttles failed attempts through the shared limiter, so
+  // each test starts from a clean window or an earlier test's denials would
+  // spill over as spurious 429s.
+  resetRateLimiter();
 
   const capture = (...args: unknown[]): void => {
     emitted.push(args.map((arg) => String(arg)).join(' '));
