@@ -12,6 +12,12 @@ import { badRequest, payloadTooLarge, validationFailed } from '@/lib/api/errors'
 /** Longest comment we store, in characters, after whitespace normalisation. */
 export const MAX_COMMENT_LENGTH = 280;
 
+/** Longest name we store, in characters, after whitespace normalisation. */
+export const MAX_NAME_LENGTH = 80;
+
+/** Longest signup note we store, in characters, after whitespace normalisation. */
+export const MAX_NOTE_LENGTH = 500;
+
 /** Largest request body we will read, in bytes. */
 export const MAX_BODY_BYTES = 4096;
 
@@ -24,11 +30,32 @@ export interface FeedbackInput {
   onChain: boolean;
 }
 
+/** A signup after validation — exactly the fields we persist to `users`. */
+export interface UserInput {
+  name: string;
+  email: string;
+  wallet: string;
+  rating: number | null;
+  note: string | null;
+}
+
 /** A Stellar Ed25519 public key: `G` plus 55 base32 characters. */
 const STELLAR_ACCOUNT_ID = /^G[A-Z2-7]{55}$/;
 
 /** A 32-byte transaction hash rendered as hex. */
 const TX_HASH = /^[0-9a-f]{64}$/i;
+
+/**
+ * A deliberately loose address shape: something, an `@`, a dotted host.
+ *
+ * The only authority on whether an address exists is a message sent to it, so
+ * anything stricter would reject valid addresses without catching invented
+ * ones. This filters out typos and obvious junk and leaves it there.
+ */
+const EMAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+
+/** Longest address the SMTP standard permits, and so the longest we accept. */
+const MAX_EMAIL_LENGTH = 254;
 
 /** ASCII control characters, which have no business in a stored comment. */
 const CONTROL_CHARACTERS = /[\u0000-\u001f\u007f]/g;
@@ -41,6 +68,11 @@ export function isStellarAccountId(value: unknown): value is string {
 /** Whether `value` is a well-formed transaction hash (64 hex characters). */
 export function isTxHash(value: unknown): value is string {
   return typeof value === 'string' && TX_HASH.test(value);
+}
+
+/** Whether `value` is a plausible email address within the 254-character limit. */
+export function isEmail(value: unknown): value is string {
+  return typeof value === 'string' && value.length <= MAX_EMAIL_LENGTH && EMAIL.test(value);
 }
 
 /**
@@ -100,6 +132,77 @@ export function parseFeedbackInput(raw: unknown): FeedbackInput {
     // A claim of being on-chain is only as good as the hash backing it, so an
     // unverifiable claim is quietly downgraded rather than rejected.
     onChain: Boolean(body.onChain) && txHash !== null,
+  };
+}
+
+/**
+ * Validate a decoded request body into a `UserInput`.
+ *
+ * Same contract as `parseFeedbackInput`: a 400 when the body is not a JSON
+ * object, otherwise a single 422 listing every field that failed. `name`,
+ * `email` and `wallet` are required; `rating` and `note` are optional and
+ * become `null` when absent.
+ */
+export function parseUserInput(raw: unknown): UserInput {
+  if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) {
+    throw badRequest('Request body must be a JSON object.');
+  }
+
+  const body = raw as Record<string, unknown>;
+  const details: Record<string, string> = {};
+
+  const name = typeof body.name === 'string' ? cleanComment(body.name) : '';
+  if (name.length < 1 || name.length > MAX_NAME_LENGTH) {
+    details.name = 'Name must be 1–80 characters.';
+  }
+
+  // Lowercased on the way in because the unique index is on `lower(email)`:
+  // storing the address as typed would let `Ada@…` and `ada@…` both be
+  // inserted and then collide inside Postgres as a 500 rather than a 409.
+  const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : '';
+  if (!isEmail(email)) {
+    details.email = 'Email must be a valid address.';
+  }
+
+  let wallet = '';
+  if (isStellarAccountId(body.wallet)) {
+    wallet = body.wallet;
+  } else {
+    details.wallet = 'Wallet must be a valid Stellar account id (G…).';
+  }
+
+  let rating: number | null = null;
+  if (isPresent(body.rating)) {
+    const value = body.rating;
+    if (typeof value === 'number' && Number.isInteger(value) && value >= 1 && value <= 5) {
+      rating = value;
+    } else {
+      details.rating = 'Rating must be an integer between 1 and 5.';
+    }
+  }
+
+  let note: string | null = null;
+  if (isPresent(body.note)) {
+    // Normalised exactly like a comment: the two fields are free text from the
+    // same form and there is no reason for them to be stored differently.
+    const cleaned = typeof body.note === 'string' ? cleanComment(body.note) : '';
+    if (cleaned.length >= 1 && cleaned.length <= MAX_NOTE_LENGTH) {
+      note = cleaned;
+    } else {
+      details.note = 'Note must be 1–500 characters.';
+    }
+  }
+
+  if (Object.keys(details).length > 0) {
+    throw validationFailed(details);
+  }
+
+  return {
+    name,
+    email,
+    wallet,
+    rating,
+    note,
   };
 }
 
