@@ -15,7 +15,7 @@
  * to a log, in whole, hashed or truncated — a denial line carries only why.
  */
 
-import { forbidden, unauthorized, upstreamUnavailable } from '@/lib/api/errors';
+import { forbidden, unauthorized, upstreamUnavailable, type ApiError } from '@/lib/api/errors';
 import { log } from '@/lib/api/logger';
 
 /** Name of the environment variable holding the operator shared secret. */
