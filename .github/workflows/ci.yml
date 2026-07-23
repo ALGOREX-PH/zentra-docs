@@ -28,6 +28,10 @@ jobs:
         run: cargo test --manifest-path contracts/zentra-reputation/Cargo.toml
       - name: Test action-log contract
         run: cargo test --manifest-path contracts/zentra-action-log/Cargo.toml
+      - name: Test feedback contract
+        run: cargo test --manifest-path contracts/zentra-feedback/Cargo.toml
+      - name: Test proof-registry contract
+        run: cargo test --manifest-path contracts/zentra-proof-registry/Cargo.toml
 
   frontend:
     runs-on: ubuntu-latest
