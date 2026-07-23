@@ -48,7 +48,7 @@ export function ProofsFeed({ refreshSignal = 0 }: { refreshSignal?: number }) {
           <span>{count ?? '—'} proof(s) anchored</span>
           <span>·</span>
           <a
-            href={`https://stellar.expert/explorer/testnet/contract/${actionLog.proofRegistryId}`}
+            href={stellar.explorerContractUrl(actionLog.proofRegistryId)}
             target="_blank"
             rel="noreferrer"
             className="hover:text-cyan"

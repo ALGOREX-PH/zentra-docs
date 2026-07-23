@@ -88,6 +88,7 @@ per-belt detail follows below.
 | 🟠 Orange | 3 — inter-contract + CI/CD + tests | [`/board`](https://zentra-docs.vercel.app/board) | `CCSXFTQT…ZDDES` + `CA2QOMGV…IIPI` |
 | 🟢 Green | 4 — production MVP + analytics + feedback | [`/metrics`](https://zentra-docs.vercel.app/metrics) | `CC6S6CKP…F4CUG` + Neon Postgres |
 | 🔵 Blue | 5 — growth, iteration & pitch | [`/join`](https://zentra-docs.vercel.app/join) · [`/pitch`](https://zentra-docs.vercel.app/pitch) | `users` registry + moderation |
+| ⚫ Black | 6 — mainnet-ready, security, adoption | [`/pitch`](https://zentra-docs.vercel.app/pitch) · [`/api/sponsor`](https://zentra-docs.vercel.app/api/sponsor) | multisig contract + fee sponsorship |
 
 Everything lives in **this** repo: contracts in [`contracts/`](contracts), the dApp
 in [`src/`](src), tests + CI in [`.github/workflows/ci.yml`](.github/workflows/ci.yml),
@@ -423,6 +424,70 @@ What the current data cannot yet tell us, and how we plan to find out — see
 - **Moderation is a fixed word list.** It will miss novel abuse. Next is a review queue over the withheld rows so misses and false positives are both visible.
 - **The distinct-wallet count is a lower bound**, capped by the contracts' `MAX_RECENT = 20`. Next is a paginated read or an indexer so the headline figure is exact.
 - **No deletion path for personal data.** The registry stores names and emails with no retention policy. Next is a delete-my-data endpoint before this leaves testnet.
+
+---
+
+## Stellar Black Belt — Mainnet-ready, security & advanced features
+
+Level 6 is about becoming a real ecosystem product: security, an advanced
+capability, and the operational readiness to launch on mainnet. **Nothing is
+deployed to mainnet** — that is a deliberate, gated decision documented in
+[`docs/MAINNET.md`](docs/MAINNET.md) — but everything needed to launch is built
+and the network is now a single config switch.
+
+### Advanced features (two of the four, not one)
+
+| Feature | Where | What it does |
+| --- | --- | --- |
+| **Multi-signature logic** | [`contracts/zentra-multisig`](contracts/zentra-multisig) | An N-of-M proposal/approval Soroban contract. Approving twice is rejected, execution is check-effects-interactions ordered, and every rejection is a typed `#[contracterror]`. 14 tests. |
+| **Fee sponsorship (gasless)** | [`src/lib/api/sponsor.ts`](src/lib/api/sponsor.ts), [`/api/sponsor`](https://zentra-docs.vercel.app/api/sponsor) | A zero-balance wallet signs an inner transaction; a sponsor account wraps it in a fee-bump and pays. Refuses anything that is not an invocation of our own contracts, so it can't be drained as an open faucet. |
+
+### Security review
+
+A full internal review — [`docs/SECURITY-REVIEW.md`](docs/SECURITY-REVIEW.md),
+22 findings graded honestly (1 High, 5 Medium, 8 Low, 8 Informational), every
+one citing a real file. It is an internal review, **not** a substitute for a
+professional audit before mainnet, and says so. Several findings were fixed in
+the same cycle (below); the rest are tracked with status and a pre-mainnet
+checklist.
+
+### Level 6 requirements → where they live
+
+| Requirement | Status |
+| --- | --- |
+| Smart contracts deployed on mainnet | **Not done — deliberate.** Runbook ready: [`docs/MAINNET.md`](docs/MAINNET.md). Network is one env var (`NEXT_PUBLIC_STELLAR_NETWORK`). |
+| Advanced feature (1 of 4 required) | **2 built** — multisig contract + fee sponsorship |
+| Security audit **or** review | Internal review: [`docs/SECURITY-REVIEW.md`](docs/SECURITY-REVIEW.md) |
+| Social launch content | [`docs/LAUNCH.md`](docs/LAUNCH.md) — X thread, showcase plan, guardrails (you publish) |
+| Ecosystem contribution | Tutorial: [`docs/articles/soroban-action-log-tutorial.md`](docs/articles/soroban-action-log-tutorial.md), linked from [`/blog`](https://zentra-docs.vercel.app/blog) |
+| Vuln disclosure policy | [`SECURITY.md`](SECURITY.md) |
+| User guide | [`docs/USER-GUIDE.md`](docs/USER-GUIDE.md) |
+| 30+ meaningful commits | 60+ this level alone |
+| Full documentation | [`ARCHITECTURE`](docs/ARCHITECTURE.md) · [`API`](docs/API.md) · [`MAINNET`](docs/MAINNET.md) · [`SECURITY-REVIEW`](docs/SECURITY-REVIEW.md) |
+| 20+ mainnet users, tx activity | Follows a mainnet launch — gated behind the audit |
+
+### Security findings fixed this cycle
+
+The review found real issues; these were fixed and re-tested, each with its commit.
+
+| Finding | Fix | Commit |
+| --- | --- | --- |
+| **ZEN-01 (High)** — the reputation admin could permanently brick the action log: `record` hard-depended on a cross-contract `bump`, which traps if the admin repoints the logger, and the pointer is immutable. | `record` now calls `try_bump` and degrades to a score of 0 rather than trapping, proven by a test driving it through a rejecting reputation stand-in. `set_logger` emits a `LoggerSet` event so a repoint is visible on-chain. | [`9df1410`](https://github.com/ALGOREX-PH/zentra-docs/commit/9df1410) · [`7a68468`](https://github.com/ALGOREX-PH/zentra-docs/commit/7a68468) |
+| **ZEN-04 (Medium)** — the admin gate was one static secret with no lockout, open to unlimited online guessing. | `requireAdmin` now throttles by caller IP (10 / 10 min → `429`) before the token is compared. | [`123953c`](https://github.com/ALGOREX-PH/zentra-docs/commit/123953c) |
+| **ZEN-06 (Medium→Info)** — the wallet kit hardcoded testnet, defeating the single network source. | Kit network derived from `activeNetwork`, so a mainnet cutover needs no code change in the wallet layer. | [`6be6345`](https://github.com/ALGOREX-PH/zentra-docs/commit/6be6345) |
+| **ZEN-21 (Low)** — docs claimed the server held no signing key, now false because of the fee sponsor. | `.env.example` and `ARCHITECTURE.md` corrected to describe the optional sponsor key honestly. | [`fc93198`](https://github.com/ALGOREX-PH/zentra-docs/commit/fc93198) |
+| Health probe reported healthy on a build pointed at the wrong chain. | `/api/health` now runs a chain check alongside the DB check and reports `network` + a passphrase mismatch as an error. | [`fcfb8f0`](https://github.com/ALGOREX-PH/zentra-docs/commit/fcfb8f0) |
+| `contracts/deploy.sh` `set_logger` was signed by the deployer, which breaks the moment the admin is a separate custody account (as mainnet requires). | Split the signer out as `ADMIN_SIGNER`. | [`49c4dcd`](https://github.com/ALGOREX-PH/zentra-docs/commit/49c4dcd) |
+
+### Mainnet is a config switch, not a rewrite
+
+`src/config/network.ts` is the one place that knows which chain the app talks
+to. It defaults to testnet and **fails safe** — an unrecognised value resolves
+to testnet, never mainnet, because a mistake there costs real money. Switching
+is `NEXT_PUBLIC_STELLAR_NETWORK=public`, the mainnet contract ids in
+[`src/config/contract.ts`](src/config/contract.ts), and a redeploy (public env
+vars inline at build time). The full gated sequence — audit, key custody,
+funding, cutover, verification, rollback — is [`docs/MAINNET.md`](docs/MAINNET.md).
 
 ---
 

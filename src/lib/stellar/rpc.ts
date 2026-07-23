@@ -2,7 +2,7 @@ import { rpc } from '@stellar/stellar-sdk';
 import { stellar } from '@/config/stellar';
 
 /**
- * One Soroban RPC client for the dApp, pinned to testnet.
+ * One Soroban RPC client for the dApp, pointed at the configured network.
  *
  * RPC (not Horizon) is the contract surface: it simulates read-only calls,
  * assembles invoke transactions with the right resources, submits them, and

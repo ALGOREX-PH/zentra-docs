@@ -20,6 +20,19 @@ impl MockReputation {
     }
 }
 
+// A reputation stand-in that always rejects, standing in for the case where the
+// reputation admin has repointed its authorised logger away from this action
+// log. Every `bump` traps, exactly as the real contract's `Unauthorized` does.
+#[contract]
+pub struct RejectingReputation;
+
+#[contractimpl]
+impl RejectingReputation {
+    pub fn bump(_env: Env, _logger: Address, _author: Address) -> u32 {
+        panic!("not the registered logger");
+    }
+}
+
 fn setup(env: &Env) -> ActionLogClient<'_> {
     let reputation = env.register(MockReputation, ());
     let id = env.register(ActionLog, (reputation,));
@@ -56,6 +69,24 @@ fn bumps_author_reputation() {
     assert_eq!(client.get_entry(&0).unwrap().score, 1);
     client.record(&alice, &String::from_str(&env, "two"));
     assert_eq!(client.get_entry(&1).unwrap().score, 2);
+}
+
+#[test]
+fn record_degrades_when_reputation_rejects() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let reputation = env.register(RejectingReputation, ());
+    let id = env.register(ActionLog, (reputation,));
+    let client = ActionLogClient::new(&env, &id);
+    let author = Address::generate(&env);
+
+    // The cross-contract bump traps, but the action must still be recorded —
+    // with a degraded score of 0 — rather than the whole call trapping. This is
+    // the ZEN-01 fix: a broken reputation pointer cannot brick `record`.
+    let index = client.record(&author, &String::from_str(&env, "still logged"));
+    assert_eq!(index, 0);
+    assert_eq!(client.get_count(), 1);
+    assert_eq!(client.get_entry(&0).unwrap().score, 0);
 }
 
 #[test]

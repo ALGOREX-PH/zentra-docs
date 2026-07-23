@@ -89,9 +89,20 @@ impl ActionLog {
         // Cross-contract call: bump the author's reputation and fold the new
         // score into the entry. Soroban auto-authorizes this log for the call,
         // and the reputation contract checks this log is the registered caller.
+        //
+        // Deliberately degrades instead of trapping. The reputation admin can
+        // repoint its authorised logger away from us at any time, and a plain
+        // `bump` would then trap here — permanently bricking `record`, whose
+        // reputation pointer is immutable. `try_bump` turns that dependency
+        // failure into a recorded score of 0 so the action is still logged.
+        // See docs/SECURITY-REVIEW.md ZEN-01.
         let reputation: Address = env.storage().instance().get(&DataKey::Reputation).unwrap();
-        let score = ReputationClient::new(&env, &reputation)
-            .bump(&env.current_contract_address(), &author);
+        let score = match ReputationClient::new(&env, &reputation)
+            .try_bump(&env.current_contract_address(), &author)
+        {
+            Ok(Ok(score)) => score,
+            _ => 0,
+        };
 
         let entry = Entry {
             index,

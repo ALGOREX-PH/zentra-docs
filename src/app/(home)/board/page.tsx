@@ -6,9 +6,10 @@ import { RecordForm } from '@/components/app/record-form';
 import { ActionFeed } from '@/components/app/action-feed';
 import { Eyebrow } from '@/components/landing/primitives';
 import { actionLog } from '@/config/contract';
+import { stellar } from '@/config/stellar';
 import { truncateAddress } from '@/lib/stellar/format';
 
-const contractUrl = `https://stellar.expert/explorer/testnet/contract/${actionLog.contractId}`;
+const contractUrl = stellar.explorerContractUrl(actionLog.contractId);
 
 export default function BoardPage() {
   // Bumped after a successful record so the feed re-seeds immediately.

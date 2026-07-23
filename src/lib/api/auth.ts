@@ -15,8 +15,15 @@
  * to a log, in whole, hashed or truncated — a denial line carries only why.
  */
 
-import { forbidden, unauthorized, upstreamUnavailable, type ApiError } from '@/lib/api/errors';
+import {
+  forbidden,
+  rateLimited,
+  unauthorized,
+  upstreamUnavailable,
+  type ApiError,
+} from '@/lib/api/errors';
 import { log } from '@/lib/api/logger';
+import { clientKey, rateLimit, type RateLimitOptions } from '@/lib/api/rate-limit';
 
 /** Name of the environment variable holding the operator shared secret. */
 export const ADMIN_TOKEN_ENV = 'ADMIN_TOKEN';
@@ -28,7 +35,16 @@ export interface AdminContext {
 }
 
 /** Why a request was refused, as it appears in the `admin.denied` log line. */
-type DenialReason = 'not_configured' | 'missing' | 'invalid';
+type DenialReason = 'not_configured' | 'missing' | 'invalid' | 'throttled';
+
+/**
+ * Failed admin attempts allowed per caller IP per window.
+ *
+ * Tight on purpose: legitimate operator use is occasional, so a low ceiling
+ * costs nothing real while turning an online brute force into a multi-year
+ * proposition against a high-entropy token.
+ */
+const ADMIN_RATE_LIMIT: RateLimitOptions = { limit: 10, windowMs: 10 * 60_000 };
 
 /** A credential presented as `Bearer <token>`, with the scheme case-insensitive. */
 const BEARER = /^bearer[ \t]+(.+)$/i;
@@ -55,6 +71,16 @@ export function isAdminConfigured(): boolean {
  * Otherwise a missing or malformed credential is a 401 and a wrong one a 403.
  */
 export function requireAdmin(request: Request, requestId: string): AdminContext {
+  // Throttled before the secret is even compared: one static token with no
+  // lockout is otherwise open to an offline-speed online guessing attack, and
+  // the timing-safe compare only slows each attempt, it does not cap them. The
+  // budget is keyed on the caller IP so one attacker cannot lock out an
+  // operator on a different address.
+  const limit = rateLimit(clientKey(request, 'admin:auth'), ADMIN_RATE_LIMIT);
+  if (!limit.ok) {
+    throw deny(requestId, 'throttled', limit.retryAfterSeconds);
+  }
+
   const expected = process.env[ADMIN_TOKEN_ENV] ?? '';
   if (expected.trim().length === 0) {
     throw deny(requestId, 'not_configured');
@@ -110,9 +136,15 @@ export function timingSafeEqual(a: string, b: string): boolean {
  * Every refusal funnels through here so the warn line and the status can never
  * drift apart, and so there is exactly one place to audit for a leaked secret.
  */
-function deny(requestId: string, reason: DenialReason): ApiError {
+function deny(requestId: string, reason: DenialReason, retryAfterSeconds?: number): ApiError {
   log('warn', 'admin.denied', { requestId, reason });
 
+  if (reason === 'throttled') {
+    // 429 before any credential check, so a guessing attack is capped rather
+    // than merely slowed. The caller learns only to back off, not whether the
+    // box is configured or the token was close.
+    return rateLimited(retryAfterSeconds ?? 60);
+  }
   if (reason === 'not_configured') {
     // 503 rather than 401: the fault is ours, and telling the caller their
     // credential was wrong would be a lie that sends them looking in the

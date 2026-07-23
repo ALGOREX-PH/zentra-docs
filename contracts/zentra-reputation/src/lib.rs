@@ -22,6 +22,17 @@ pub struct Bumped {
     pub score: u32,
 }
 
+/// Emitted whenever the authorised logger is set or repointed.
+///
+/// A repoint silently breaks the action log that depends on this contract, so
+/// it must not be an invisible admin action: this event puts every change on
+/// the ledger where it can be watched and audited. See docs/SECURITY-REVIEW.md
+/// ZEN-01.
+#[contractevent(topics = ["logger_set"])]
+pub struct LoggerSet {
+    pub logger: Address,
+}
+
 #[contracterror]
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 #[repr(u32)]
@@ -47,6 +58,7 @@ impl Reputation {
         admin.require_auth();
         env.storage().instance().set(&DataKey::Logger, &logger);
         env.storage().instance().extend_ttl(THRESHOLD, BUMP);
+        LoggerSet { logger }.publish(&env);
     }
 
     /// Increment `author`'s reputation by one and return the new score.

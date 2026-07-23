@@ -9,6 +9,12 @@
  * Canonical contract id = the demo default in
  * `examples/vendor-payment-agent/demo.ts`. (The protocol README still shows an
  * older id; this is the value to reconcile to.)
+ *
+ * The network here is deliberately NOT derived from `src/config/network.ts`.
+ * These are facts about where the ZentraVerifier is actually deployed — the
+ * testnet — and they stay true whatever network the dApp itself is pointed at.
+ * Switching the app to mainnet does not move this contract, so making these
+ * values dynamic would turn correct documentation into a broken link.
  */
 export const protocol = {
   network: 'testnet',

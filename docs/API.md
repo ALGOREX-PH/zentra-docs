@@ -1,8 +1,9 @@
 # Zentra Docs — HTTP API Reference
 
-Seven handlers back the site: two for the feedback widget on `/metrics`, two for
-the onboarding form, two operator-only admin routes, and one readiness probe.
-Base URL in production is `https://zentra-docs.vercel.app`.
+Nine handlers back the site: two for the feedback widget on `/metrics`, two for
+the onboarding form, two operator-only admin routes, one readiness probe, and
+two for gasless fee sponsorship. Base URL in production is
+`https://zentra-docs.vercel.app`.
 
 ---
 
@@ -39,6 +40,8 @@ handler passes in its own headers wins.
 | `GET /api/admin/users` (200) | `no-store` — set by hand, because that response is a file download built without `json()` |
 | `PATCH /api/admin/feedback` (200) | `no-store` |
 | `GET /api/health` (200 / 503) | `no-store` |
+| `GET /api/sponsor` (200) | `no-store` — a per-deployment status, never cached at a CDN |
+| `POST /api/sponsor` (200) | `no-store` |
 | Error envelopes | not set by the wrapper (the last-resort 500 fallback sets `no-store`) |
 
 **Errors.** Every failure — validation, rate limiting, database, unexpected
@@ -71,13 +74,13 @@ Codes and statuses come from `src/lib/api/errors.ts`:
 | --- | --- | --- |
 | `bad_request` | 400 | Empty body, body that is not valid JSON, or a body that is not a JSON object (arrays and scalars are rejected). |
 | `unauthorized` | 401 | No usable credential was presented to an admin route. |
-| `forbidden` | 403 | A credential was presented to an admin route and was not accepted. |
+| `forbidden` | 403 | A credential was presented to an admin route and was not accepted, **or** a `POST /api/sponsor` request whose inner transaction the allowlist refused (`malformed`, `fee_too_high`, `operation_not_allowed`, `wrong_network`). |
 | `validation_failed` | 422 | One or more fields failed validation. Every failing field is reported in `details` in a single response. |
 | `conflict` | 409 | A unique index raised Postgres `23505`: the `tx_hash` has already been recorded, or the signup's email or wallet is already registered. |
-| `payload_too_large` | 413 | Request body exceeds 4096 bytes, by declared `content-length` or by measured UTF-8 length. |
+| `payload_too_large` | 413 | Request body exceeds the route's byte cap — 4096 bytes on most writes, 98304 bytes (96 KB) on `POST /api/sponsor` — by declared `content-length` or by measured UTF-8 length. |
 | `rate_limited` | 429 | The caller exceeded the window for that route. Carries `Retry-After`. |
 | `not_found` | 404 | `PATCH /api/admin/feedback` was given an `id` no row matches. |
-| `upstream_unavailable` | 503 | A database read or write failed, **or** `ADMIN_TOKEN` is not configured on this deployment. The real driver error is logged, never returned. |
+| `upstream_unavailable` | 503 | A database read or write failed, `ADMIN_TOKEN` is not configured, or fee sponsorship is unavailable (`SPONSOR_SECRET` unset/unparseable, or an approved fee-bump failed to build) on this deployment. The real driver error is logged, never returned. |
 | `internal` | 500 | Anything thrown that is not an `ApiError`. Message and stack are withheld because they may quote connection strings or query fragments. |
 | `method_not_allowed` | — | Declared in the `ApiErrorCode` union but not produced by any current route. |
 
@@ -91,9 +94,19 @@ tell those apart — no status inspection required.
 ## 4. Authentication
 
 Most of the API is public and takes no credential at all: both feedback routes,
-both onboard routes and the health probe are open by design. Authentication
-applies to exactly one prefix — `/api/admin/*` — which today means
-`GET /api/admin/users` and `PATCH /api/admin/feedback`.
+both onboard routes, the health probe and both sponsor routes are open by
+design. Authentication applies to exactly one prefix — `/api/admin/*` — which
+today means `GET /api/admin/users` and `PATCH /api/admin/feedback`.
+
+**`/api/sponsor` is public, not admin-gated.** It presents no credential and is
+not covered by `requireAdmin`. Do not assume the spending route is behind the
+operator secret: `POST /api/sponsor` signs a fee-bump with the sponsor account,
+and the only things standing between a caller and that signature are the
+contract allowlist (`inspectInnerTransaction` in `src/lib/api/sponsor.ts`) and
+the per-instance rate limit — not a token. That is deliberate: a gasless path a
+dApp user must first obtain a secret to use is not a gasless path. The allowlist
+is what makes it safe to leave open, so it is the endpoint's whole control, not
+a supporting one.
 
 Those two are gated by `requireAdmin` in `src/lib/api/auth.ts`, which compares
 one process-wide shared secret held in the `ADMIN_TOKEN` environment variable
@@ -170,19 +183,26 @@ returned or logged.
 | `POST /api/feedback` | `feedback:write` | 5 requests | 10 min |
 | `GET /api/onboard` | `onboard:read` | 60 requests | 60 s |
 | `POST /api/onboard` | `onboard:write` | 3 requests | 10 min |
+| `GET /api/sponsor` | `sponsor:read` | 60 requests | 60 s |
+| `POST /api/sponsor` | `sponsor:write` | 5 requests | 10 min |
 | `GET /api/admin/users` | none | unlimited | — |
 | `PATCH /api/admin/feedback` | none | unlimited | — |
 | `GET /api/health` | none | unlimited | — |
 
-The two read ceilings are generous because both responses are a cached
-aggregate. `POST /api/onboard` is tighter than the feedback write path on
+The feedback and onboard read ceilings are generous because both responses are a
+cached aggregate. `POST /api/onboard` is tighter than the feedback write path on
 purpose: signing up is something a person does once, so three attempts covers a
 mistyped wallet and a retry and leaves no room for scripting the registry full
-of addresses. The admin routes are not rate limited at all — the shared secret
-is the control there, and an operator exporting the registry twice in a minute
-is not abuse.
+of addresses. `sponsor:read` shares the generous 60-per-minute read allowance —
+it only touches the environment — while `sponsor:write` is held to five bumps
+per ten minutes because every success spends real lumens the sponsor never gets
+back. That write limit is a cost speed bump, not the control that keeps the
+sponsor solvent: the contract allowlist is (see
+[`POST /api/sponsor`](#post-apisponsor)). The admin routes are not rate limited
+at all — the shared secret is the control there, and an operator exporting the
+registry twice in a minute is not abuse.
 
-Successful responses from the four rate-limited routes carry:
+Successful responses from the six rate-limited routes carry:
 
 | Header | Meaning |
 | --- | --- |
@@ -657,9 +677,21 @@ the audit trail exists without repeating what was submitted.
 
 Readiness probe for uptime monitors, load balancers and deploy gates. It
 reports whether the instance can actually serve traffic, not merely whether the
-process is listening: it round-trips `SELECT 1` against Postgres and reports
-the latency. The probe is capped at **2000 ms**; a slower response counts as a
-failure.
+process is listening. It runs **two checks concurrently** (`Promise.all`, so the
+endpoint answers in the time of the slower one, not the sum):
+
+- **`database`** round-trips `SELECT 1` against Postgres and reports the latency.
+- **`chain`** calls `getNetwork` on the Soroban RPC for the configured network
+  and confirms the passphrase it returns matches the one this build expects.
+
+Each check is capped at **2000 ms**; a slower response counts as a failure.
+
+**Why the chain check exists.** A database-only probe reports a perfectly
+healthy service on a build pointed at the wrong network: Postgres is reachable,
+so the process looks fine while it is talking to the wrong chain entirely. The
+chain check is the only thing that catches that class of misconfiguration, so a
+deploy accidentally serving mainnet traffic from a testnet build (or the
+reverse) fails the probe instead of passing it silently.
 
 **Request.** No body, no parameters, not rate limited.
 
@@ -674,12 +706,28 @@ Host: zentra-docs.vercel.app
 {
   "status": "ok",
   "requestId": "9f1c0f6a-2b31-4a35-9a1d-2f0f4d5e6c77",
+  "network": "testnet",
+  "contractsConfigured": true,
   "uptimeSeconds": 3812,
   "checks": {
-    "database": { "status": "ok", "latencyMs": 24 }
+    "database": { "status": "ok", "latencyMs": 24 },
+    "chain": { "status": "ok", "latencyMs": 118 }
   }
 }
 ```
+
+`network` is the chain this build talks to (`testnet` or `public`), and
+`contractsConfigured` reports whether that network actually has the Zentra
+contracts deployed — it is `false` on mainnet until the ids in
+`src/config/contract.ts` are filled in. Both are surfaced so a monitor can see
+not just that the service is up but that it is the *right* service.
+
+> **Network selection.** `NEXT_PUBLIC_STELLAR_NETWORK` selects the chain the
+> whole dApp talks to. It defaults to `testnet` (any unrecognised or absent
+> value fails safe to testnet, where mistakes are free) and, being a
+> `NEXT_PUBLIC_*` variable, is **inlined at build time** — so changing it takes
+> a redeploy, not just an environment edit. `network` in this body is what that
+> build resolved to.
 
 **Degraded — `503 Service Unavailable`**
 
@@ -687,9 +735,12 @@ Host: zentra-docs.vercel.app
 {
   "status": "degraded",
   "requestId": "9f1c0f6a-2b31-4a35-9a1d-2f0f4d5e6c77",
+  "network": "testnet",
+  "contractsConfigured": true,
   "uptimeSeconds": 3812,
   "checks": {
-    "database": { "status": "error", "latencyMs": 0, "error": "unavailable" }
+    "database": { "status": "ok", "latencyMs": 24 },
+    "chain": { "status": "error", "latencyMs": 0, "error": "unavailable" }
   }
 }
 ```
@@ -697,17 +748,214 @@ Host: zentra-docs.vercel.app
 The 503 body is the **normal** health body, not the error envelope — the route
 degrades rather than throws. `latencyMs` is `0` when the check never completed,
 and `error` is always the fixed string `unavailable`: a missing `DATABASE_URL`,
-a refused connection and a hung socket are indistinguishable to the client. The
-real cause is written to the server log under the same `requestId`.
+a refused connection, a hung socket and a passphrase mismatch are all
+indistinguishable to the client. The real cause is written to the server log
+under the same `requestId` (`health.database`, `health.chain`, or
+`health.chain.mismatch`).
+
+**A passphrase mismatch is an error, not merely degraded.** When the RPC
+answers but returns a passphrase that is not the one this build expects, the
+chain check resolves to `status: "error"` — the same result as an unreachable
+RPC — and the probe returns 503. Serving one network's traffic from another
+network's build is not a slow or partial service; it is the wrong service, so it
+is failed outright rather than tolerated.
 
 The body is safe to expose publicly: no environment variables, versions,
-hostnames, region names or dependency URLs.
+hostnames, region names or dependency URLs. `network` and `contractsConfigured`
+are policy facts, not secrets — the network passphrase is public and the
+contract ids are on-chain.
 
 | Status | Meaning |
 | --- | --- |
 | 200 | Every check passed. |
-| 503 | At least one check failed. |
+| 503 | At least one check failed (database unreachable, chain unreachable, or a passphrase mismatch). |
 | 500 | `internal` envelope, only if the handler itself throws. |
+
+---
+
+### GET /api/sponsor
+
+Reports whether fee sponsorship is available on this deployment, so the UI can
+offer a gasless path only when there is actually a funded account behind it.
+
+**Request.** No body, no parameters, no authentication.
+
+```http
+GET /api/sponsor HTTP/1.1
+Host: zentra-docs.vercel.app
+```
+
+**Success — `200 OK`**
+
+```json
+{
+  "configured": true,
+  "sponsor": "GBSPONSORXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+  "maxFeeStroops": 1000000
+}
+```
+
+| Field | Type | Meaning |
+| --- | --- | --- |
+| `configured` | boolean | Whether `SPONSOR_SECRET` holds a usable, signable seed on this deployment. `false` when it is unset, blank or unparseable. |
+| `sponsor` | string \| null | The sponsor's `G…` address, or `null` when nothing usable is configured. |
+| `maxFeeStroops` | number | The per-transaction fee ceiling, `1000000` stroops (0.1 XLM) — a policy constant, always present. |
+
+**This response exposes no secret material.** The sponsor's public key is public
+by nature: it is the fee source the ledger records on every bump the account
+signs, so returning it tells a client nothing it could not read off-chain. The
+seed in `SPONSOR_SECRET` is never derived into this response, and an
+unconfigured deployment simply reports `configured: false` and `sponsor: null`
+rather than erroring. `maxFeeStroops` is likewise just the published policy
+number.
+
+**Failure statuses**
+
+| Status | Code | When |
+| --- | --- | --- |
+| 429 | `rate_limited` | More than 60 reads in 60 s from the same key. |
+| 500 | `internal` | Unexpected throw. |
+
+---
+
+### POST /api/sponsor
+
+Takes a user-signed inner transaction and returns it wrapped in a **fee-bump**
+signed by the sponsor account, so a wallet holding zero XLM can still transact.
+A fee-bump changes who pays, never what happens: the user's signature is
+untouched and still authorises exactly what they signed.
+
+This is the one route in the app that spends money on a stranger's behalf, so it
+is written to be boring — a tight rate limit, a hard size cap, and a refusal for
+anything `inspectInnerTransaction` in `src/lib/api/sponsor.ts` does not
+positively approve.
+
+**Request.** **Public — not admin-gated** (see [Authentication](#4-authentication)):
+the control is the allowlist below, not a credential.
+
+| Field | Type | Required | Rule |
+| --- | --- | --- | --- |
+| `xdr` | string | yes | A non-empty base64 transaction envelope, trimmed. Rejected when absent, non-string, blank, or longer than **65536 characters** (64 KB). Message: `xdr must be a non-empty base64 transaction envelope under 64KB.` |
+
+The whole request body is capped at **98304 bytes** (96 KB): `content-length` is
+checked before the stream is read, then the decoded UTF-8 is measured again in
+case that header was absent or lying.
+
+**Why this route reads its own body.** Every other write uses the shared
+`readJsonBody`, which caps a body at 4096 bytes. A Soroban transaction envelope
+routinely exceeds that — the resource footprint of a contract call does not fit
+in 4 KB — so this route carries its own reader and its own far larger ceiling
+rather than rejecting legitimate envelopes as `payload_too_large`.
+
+```http
+POST /api/sponsor HTTP/1.1
+Host: zentra-docs.vercel.app
+Content-Type: application/json
+```
+
+```json
+{ "xdr": "AAAAAgAAAAA...base64 inner transaction envelope..." }
+```
+
+**Success — `200 OK`**
+
+```json
+{ "xdr": "AAAABQAAAAA...base64 signed fee-bump envelope..." }
+```
+
+The returned envelope is the fee-bump, signed **by the sponsor only** — the
+inner transaction keeps whatever signatures it arrived with.
+
+#### The anti-drain design is the point of the endpoint
+
+A route that fee-bumps whatever XDR it is handed is a free, open faucet: anyone
+could sign a payment to themselves, an account merge, a trustline change or a
+call into some unrelated contract, post it here, and have the sponsor pay for it
+until the balance is gone. The defence is a positive allowlist:
+
+**Every operation in the inner transaction must be an `invokeHostFunction` whose
+root invocation targets one of our own contract ids.** The allowed set
+(`SPONSORABLE_CONTRACT_IDS`) is built at runtime from `src/config/contract.ts` —
+the action log, reputation, feedback and proof-registry contracts — so a
+redeploy that changes an id cannot leave a stale allowlist behind. Everything
+else is refused:
+
+- **payments, account merges, change-trust, create-account** and any other
+  classic operation — none are our product being used;
+- **Wasm uploads and contract creation** (the non-invoke host functions) — they
+  are expensive and would let someone push arbitrary code on-chain at our
+  expense;
+- **calls into third-party contracts** — the gate is on the *root* invocation,
+  so a stranger's contract is never a valid target. Our own contracts' onward
+  cross-contract calls (the action log bumps the reputation contract) are reached
+  without appearing at the root, which is correct: trusting what our own code
+  calls is not the same as trusting an arbitrary root target.
+
+The **fee ceiling** (0.1 XLM per transaction) and the **5-per-10-minutes** write
+limit bound the cost of an attempt, but they are not the primary control — the
+attacker's cost per attempt is zero and the sponsor's is not, so no rate limit
+alone can protect the balance. The allowlist is what turns "we pay for anything"
+into "we pay for our own product being used".
+
+#### The server signs but does not broadcast
+
+The signed fee-bump is returned to the client to submit; the server never
+submits it itself. Two reasons, both recorded in the route:
+
+1. Submitting here would make the server the broadcast path for every sponsored
+   transaction, so an RPC outage or a slow ledger would turn into the request
+   timing out while the fee may or may not have been spent — ambiguous in
+   exactly the case where money moved.
+2. A submission that fails is the client's to retry: it already holds the wallet,
+   the sequence number and the user, and it is the only party that can tell
+   whether retrying is the right answer.
+
+#### Honest caveat on `wrong_network`
+
+`wrong_network` is detected by verifying the inner transaction's signatures
+against the expected network passphrase — a passphrase is not stored in an
+envelope, it is mixed into the hash that gets signed, so a signature that checks
+out under our passphrase is the only positive evidence the transaction was built
+for our chain. That makes two shapes **undecidable** at this check and therefore
+*not* blocked by it: an **unsigned** inner transaction (no signature to test)
+and one sourced from a **muxed (`M…`) account** (no single key to test against).
+This is acceptable because the check is a courtesy, not the defence: a bump
+wrapping an inner transaction the network will reject is never included in a
+ledger and so is never charged a fee. The contract allowlist, not this check, is
+what stands between the sponsor and a drained balance.
+
+**`SponsorDecision` reasons.** `inspectInnerTransaction` resolves every input to
+one of these and never throws; the route maps each to a status.
+
+| Reason | Triggered when | Response |
+| --- | --- | --- |
+| `not_configured` | The deployment has no usable `SPONSOR_SECRET` (unset, blank, or an unparseable seed). A property of the deployment, not the transaction — checked before inspection. | 503 `upstream_unavailable` (`Fee sponsorship is not configured.`) |
+| `malformed` | The XDR will not parse (bad base64, truncated, an envelope variant the SDK cannot read), or it is already a fee-bump. Also recorded when an already-approved transaction fails to build. | 403 `forbidden` from inspection; 503 `upstream_unavailable` on a build failure |
+| `fee_too_high` | The inner transaction's total declared fee is non-numeric, negative, or exceeds `MAX_SPONSORED_FEE_STROOPS` (1,000,000 stroops = 0.1 XLM). | 403 `forbidden` |
+| `operation_not_allowed` | The operation list is empty, or any operation is not an `invokeHostFunction` whose root invocation targets one of our own contract ids. | 403 `forbidden` |
+| `wrong_network` | The inner transaction is signed, has a testable source, and its signatures do not verify against this build's network passphrase. | 403 `forbidden` |
+
+(`ok` is the sixth member of the union — the only verdict that proceeds to a
+bump.) A 403 message names the reason (`Fee sponsorship refused: <reason>.`) so a
+client can tell "you asked us to pay for the wrong thing" from "your envelope is
+broken", but the submitted XDR is never echoed into an error body or a log line.
+
+**Failure statuses**
+
+| Status | Code | When |
+| --- | --- | --- |
+| 400 | `bad_request` | Body missing/blank, not valid JSON, or not a JSON object. |
+| 413 | `payload_too_large` | Body over 98304 bytes (96 KB), by declared `content-length` or measured UTF-8 length. |
+| 422 | `validation_failed` | `xdr` absent, non-string, blank, or over 65536 characters (64 KB); the detail is reported under `xdr`. |
+| 403 | `forbidden` | `inspectInnerTransaction` refused the envelope — `malformed`, `fee_too_high`, `operation_not_allowed` or `wrong_network` (table above). |
+| 503 | `upstream_unavailable` | Sponsorship not configured (`Fee sponsorship is not configured.`), or an approved transaction failed to build (`The fee-bump could not be built.`). |
+| 429 | `rate_limited` | More than 5 writes in 10 minutes from the same key. |
+| 500 | `internal` | Unexpected throw. |
+
+Each refusal logs `sponsor.refused` with the request id and the reason; a grant
+logs `sponsor.granted`; a build failure logs `sponsor.build_failed` with the
+underlying error attached. Neither the submitted XDR nor the sponsor secret is
+ever written to any of them.
 
 ---
 
@@ -891,7 +1139,12 @@ a failure it also carries `code`, and — only when the thrown value was not an
 | `admin.users.read` | `GET /api/admin/users` | The real database error, at `error` level. |
 | `admin.feedback.moderated` | `PATCH /api/admin/feedback` | `requestId`, `id`, `hidden` — the audit trail for one moderation decision. |
 | `admin.feedback.write` | `PATCH /api/admin/feedback` | The real database error, at `error` level. |
-| `health.database` | `GET /api/health` | The real cause behind a degraded probe. |
+| `health.database` | `GET /api/health` | The real cause behind a degraded database check. |
+| `health.chain` | `GET /api/health` | The real cause when the chain check cannot reach the RPC, at `error` level. |
+| `health.chain.mismatch` | `GET /api/health` | `requestId` and the expected `network`, at `error` level, when the RPC answers with the wrong passphrase. |
+| `sponsor.refused` | `POST /api/sponsor` | `requestId` and `reason`, at `warn` level, on any refusal. Never the submitted XDR. |
+| `sponsor.granted` | `POST /api/sponsor` | `requestId` and `reason`, when a bump is signed. |
+| `sponsor.build_failed` | `POST /api/sponsor` | The underlying error, at `error` level, when an approved transaction fails to build. The sponsor secret is not in it. |
 
 **Redaction.** Field values are masked with `[redacted]` when the *key name*
 matches `secret`, `token`, `password`, `key`, `authorization`, `cookie`,
@@ -909,8 +1162,10 @@ share it.
 Point the monitor at `GET /api/health` and alarm on any non-200. No body
 parsing is required: 200 means every check passed, 503 means at least one
 failed. The response is `no-store`, so an intermediary will not serve a stale
-healthy answer. When an alarm fires, take `requestId` from the body and search
-the logs for the matching `health.database` line to see the real cause.
+healthy answer. When an alarm fires, take `requestId` from the body, note which check reports
+`status: "error"`, and search the logs for the matching `health.database`,
+`health.chain` or `health.chain.mismatch` line under that id to see the real
+cause.
 
 ---
 
@@ -968,5 +1223,19 @@ the logs for the matching `health.database` line to see the real cause.
   partial index and the whole `users` table, and needs no `NOT VALID` step: the
   new column carries a non-null default rather than a constraint, and `users` is
   a brand new table with no legacy rows for a constraint to trip over.
+- **The fee sponsor is a hot key with a per-instance spend ceiling.** The
+  account that pays for sponsored transactions signs from a seed held in the
+  `SPONSOR_SECRET` environment variable — a hot key on a public route, so its
+  balance is the blast radius of any bug in the allowlist and it should be funded
+  with only what you are willing to lose and rotated the moment it is even
+  suspected of leaking. The allowlist itself is only as good as the contract-id
+  list in `src/config/contract.ts`: a wrong or stale id there either refuses
+  legitimate traffic or, worse, sponsors calls into a contract that is no longer
+  ours. And the rate limit that is supposed to cap spend is the same per-instance
+  counter as everywhere else — with several concurrent Vercel instances the real
+  ceiling is roughly `5 × instances` bumps per ten minutes, not five, so the true
+  worst-case spend scales with how many instances are live. None of these is the
+  primary control; the positive contract allowlist is, and these are the reasons
+  it has to be.
 - **`x-request-id` is caller-controlled.** It is echoed as sent (capped at 200
   characters) and is a correlation aid, not an authenticated identifier.

@@ -14,8 +14,11 @@
  * the server-side log, keyed by the same `requestId` returned to the caller.
  */
 
+import { contractsConfigured } from '@/config/contract';
+import { activeProfile } from '@/config/network';
 import { log } from '@/lib/api/logger';
 import { json, route } from '@/lib/api/route';
+import { soroban } from '@/lib/stellar/rpc';
 import { sql } from '@/lib/db';
 
 export const runtime = 'nodejs';
@@ -41,18 +44,28 @@ interface CheckResult {
 }
 
 export const GET = route('health', async (_request, { requestId }) => {
-  const database = await checkDatabase(requestId);
+  // Probed together: neither depends on the other, so the endpoint answers in
+  // the time of the slower one rather than the sum.
+  const [database, chain] = await Promise.all([
+    checkDatabase(requestId),
+    checkChain(requestId),
+  ]);
 
   // Every check contributes to one verdict, so adding a dependency later means
   // adding it to this list rather than touching the response shape.
-  const degraded = [database].some((check) => check.status !== 'ok');
+  const degraded = [database, chain].some((check) => check.status !== 'ok');
 
   return json(
     {
       status: degraded ? 'degraded' : 'ok',
       requestId,
+      // Which chain this build actually talks to. A deploy pointed at the wrong
+      // network is otherwise invisible to a monitor: Postgres is reachable, so
+      // a database-only probe reports a perfectly healthy, wrong application.
+      network: activeProfile.network,
+      contractsConfigured,
       uptimeSeconds: Math.round(process.uptime()),
-      checks: { database },
+      checks: { database, chain },
     },
     {
       status: degraded ? 503 : 200,
@@ -60,6 +73,34 @@ export const GET = route('health', async (_request, { requestId }) => {
     },
   );
 });
+
+/**
+ * Confirm the Soroban RPC for the configured network is reachable and is that
+ * network.
+ *
+ * `getNetwork` returns the RPC's own passphrase, so this catches the failure a
+ * database probe cannot see: a build whose environment points it at the wrong
+ * chain. A mismatch is reported as an error even though the endpoint answered,
+ * because serving mainnet traffic from a testnet build is not a degraded
+ * service, it is the wrong service.
+ */
+async function checkChain(requestId: string): Promise<CheckResult> {
+  const startedAt = Date.now();
+
+  try {
+    const { passphrase } = await withTimeout(soroban.getNetwork(), CHECK_TIMEOUT_MS);
+
+    if (passphrase !== activeProfile.networkPassphrase) {
+      log('error', 'health.chain.mismatch', { requestId, expected: activeProfile.network });
+      return { status: 'error', latencyMs: 0, error: CHECK_ERROR };
+    }
+
+    return { status: 'ok', latencyMs: Date.now() - startedAt };
+  } catch (err) {
+    log('error', 'health.chain', { requestId, err });
+    return { status: 'error', latencyMs: 0, error: CHECK_ERROR };
+  }
+}
 
 /**
  * Time a `SELECT 1` against Postgres, degrading rather than throwing.

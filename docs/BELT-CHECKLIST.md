@@ -177,6 +177,48 @@ Legend: ✅ done · ⬜ pending (you) · 🔄 in progress
 
 ---
 
+## ⚫ Black Belt — Level 6 · Mainnet-ready, security & advanced features
+
+**No mainnet deployment yet — deliberate and gated.** Everything needed to
+launch is built; the switch is `NEXT_PUBLIC_STELLAR_NETWORK=public` plus the
+steps in [`docs/MAINNET.md`](MAINNET.md).
+
+**Advanced features (1 required, 2 delivered)**
+- [x] Multi-signature logic — `contracts/zentra-multisig` (N-of-M, 14 tests)
+- [x] Fee sponsorship / gasless — `src/lib/api/sponsor.ts` + `/api/sponsor`
+
+**Security (1 required)**
+- [x] Security review — [`docs/SECURITY-REVIEW.md`](SECURITY-REVIEW.md) (22
+      findings, real citations; several fixed this cycle)
+- [x] Vulnerability disclosure policy — [`SECURITY.md`](../SECURITY.md)
+
+**Product marketing (you publish)**
+- [x] Launch kit written — [`docs/LAUNCH.md`](LAUNCH.md): X thread, showcase plan, guardrails
+- [x] Demo video — **[youtu.be/JQapGdfgZJw](https://youtu.be/JQapGdfgZJw)**
+- [ ] Actual X/Twitter launch post — yours to post from the kit
+
+**Ecosystem contribution (1 required)**
+- [x] Technical tutorial — [`docs/articles/soroban-action-log-tutorial.md`](articles/soroban-action-log-tutorial.md), linked from `/blog`
+
+**Mainnet readiness (built, not executed)**
+- [x] Network is a single config concern (`src/config/network.ts`, fails safe to testnet)
+- [x] Per-network contract ids (`src/config/contract.ts`, `contractsConfigured`)
+- [x] Launch runbook with key custody, funding, cutover, rollback ([`docs/MAINNET.md`](MAINNET.md))
+- [x] Health probe verifies the chain, not just the database
+- [x] User guide ([`docs/USER-GUIDE.md`](USER-GUIDE.md))
+- [x] 30+ meaningful commits (60+ this level)
+
+**Requires a mainnet launch (your call, post-audit)**
+- [ ] Contracts deployed on mainnet
+- [ ] 20+ verified mainnet users + transaction activity
+- [ ] Professional third-party audit (the internal review is not a substitute)
+
+> The gate is honest: a deployed contract cannot be un-deployed and mainnet
+> mistakes cost real money, so launch is deliberately behind an audit and a key-
+> custody decision. Everything reversible is done.
+
+---
+
 ## ⭐ Bonus — real ZK proof playground
 
 Beyond the belt requirements, [`/playground`](https://zentra-docs.vercel.app/playground)

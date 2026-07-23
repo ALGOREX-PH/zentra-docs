@@ -11,9 +11,15 @@ talking to Neon Postgres over its HTTP driver), and a chain tier (four Soroban
 contracts deployed on Stellar testnet, reached directly from the browser via
 Soroban RPC and Horizon).
 
-The browser is the only client of both the API and the chain. There is no
-server-side wallet, no server-side signing, and no backend indexer: everything
-the server does is scoped to the feedback table and a readiness probe.
+The browser is the only client of the chain: user transactions are built there,
+signed by the user's own wallet, and submitted as signed XDR — there is no
+server-side wallet and no backend indexer. The one server-side key is the
+**optional** fee sponsor (`SPONSOR_SECRET`): when configured, `/api/sponsor`
+wraps a user-signed inner transaction in a fee-bump it signs, so a zero-balance
+wallet can still transact. It signs only fee-bumps around user transactions that
+target our own contracts, never arbitrary operations, and the feature is off
+unless the secret is set. Everything else the server does is scoped to Postgres
+and a readiness probe.
 
 ---
 
@@ -497,10 +503,13 @@ contract without a code change.
   claim is downgraded rather than rejected, so the feedback survives without the
   badge. Binding an unanchored `wallet` to its owner would need a signed
   challenge, which the API does not do today.
-- **Tests cover pure modules only.** The 131 Vitest tests exercise the API
-  helpers and two Stellar utilities; all 14 Rust tests across the four contracts
-  run in CI. There are no tests for React components, route handlers end to end,
-  or any browser/E2E flow, and no test touches a live database or the network.
+- **Tests cover pure modules only.** The Vitest suite exercises the API helpers,
+  the network config and two Stellar utilities; the Rust tests cover all five
+  contracts and run in CI. There are no tests for React components, route
+  handlers end to end, or any browser/E2E flow, and no test touches a live
+  database or the network. Exact counts are deliberately not quoted here — they
+  move every time a module is added, and a stale number in a limitations section
+  is worse than none.
 - **No `script-src` CSP.** Only `frame-ancestors 'none'` is enforced, because
   WebAssembly proving needs `wasm-unsafe-eval` and Next emits inline bootstrap
   scripts. A nonce pipeline is the prerequisite for tightening this.
