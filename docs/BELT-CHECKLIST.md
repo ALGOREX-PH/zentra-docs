@@ -137,6 +137,46 @@ Legend: ✅ done · ⬜ pending (you) · 🔄 in progress
 
 ---
 
+## 🔵 Blue Belt — Level 5 · Growth, iteration & pitch
+
+**Routes:** [`/join`](https://zentra-docs.vercel.app/join) · signup + progress —
+[`/pitch`](https://zentra-docs.vercel.app/pitch) · 11-slide deck
+
+**Requirements**
+- [x] Product improvements driven by real feedback — see the iteration table in
+      the README, every row carrying its commit link
+- [x] Improved UX/UI and stability (moderation, error boundaries, 404, loading
+      skeleton, verified on-chain claims)
+- [x] Optimised onboarding (3-step guide; collapses once a wallet is connected)
+- [x] Professional pitch deck — `/pitch`, keyboard-navigable, print-to-PDF,
+      content in `src/lib/pitch.ts`
+- [x] Onboarding data collection — `users` table, `/join` signup, Google Form
+      import path, admin-gated CSV export
+- [x] Documentation updated (README, `docs/ARCHITECTURE.md`, `docs/API.md`,
+      `docs/users/README.md`)
+- [x] 20+ meaningful commits — 100+ on this branch
+- [ ] 50+ testnet users onboarded — real people you bring (I won't fabricate users)
+- [ ] Real transaction activity at that scale — follows from the above
+
+**Submission**
+- [x] Public repo · live app · updated README
+- [x] Pitch deck — [`/pitch`](https://zentra-docs.vercel.app/pitch)
+- [x] Demo video — **[youtu.be/JQapGdfgZJw](https://youtu.be/JQapGdfgZJw)**
+- [x] User feedback iteration summary — README, with commit links
+- [x] Exported responses sheet — [`docs/users/onboarding-responses.csv`](users/onboarding-responses.csv)
+- [ ] Proof of 50+ users — auto-counts on `/join` and `/metrics` as people sign up
+- [ ] Screenshots of analytics / transaction activity at 50 users
+
+> Everything buildable is built. The two open items need real people: send them to
+> `/join`, and the counter, the registry and `/metrics` fill in on their own.
+>
+> **First real moderation action:** one abusive submission of 14 is withheld from
+> the public feed (retained in the database, reversible via
+> `PATCH /api/admin/feedback`). Published feedback: 13 submissions, 12 distinct
+> wallets, average 5.00.
+
+---
+
 ## ⭐ Bonus — real ZK proof playground
 
 Beyond the belt requirements, [`/playground`](https://zentra-docs.vercel.app/playground)
