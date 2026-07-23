@@ -1,18 +1,23 @@
 -- ---------------------------------------------------------------------------
--- Zentra Docs -- feedback schema (PostgreSQL 16 / Neon serverless)
+-- Zentra Docs -- application schema (PostgreSQL 16 / Neon serverless)
 --
--- This file is the SINGLE SOURCE OF TRUTH for the Neon database schema backing
--- the feedback widget. Every table, constraint and index the application relies
--- on is declared here. If it is not in this file, it should not exist in the
--- database; if the app needs something new, add it here first.
+-- This file is the SINGLE SOURCE OF TRUTH for the Neon database schema: the
+-- `feedback` table behind the widget on /metrics, and the `users` onboarding
+-- registry behind /join. Every table, constraint and index the application
+-- relies on is declared here. If it is not in this file, it should not exist
+-- in the database; if the app needs something new, add it here first.
 --
 -- The script is idempotent and safe to re-run: every object is created with
 -- IF NOT EXISTS, so applying it against an already-provisioned database is a
 -- no-op. It uses plain standard Postgres only -- no extensions required.
 --
 -- Consumed by:
---   src/lib/db.ts                  -- Neon serverless client (DATABASE_URL)
---   src/app/api/feedback/route.ts  -- GET summary + recent, POST insert
+--   src/lib/db.ts                        -- Neon serverless client (DATABASE_URL)
+--   src/app/api/feedback/route.ts        -- GET summary + recent, POST insert
+--   src/app/api/onboard/route.ts         -- POST signup, GET count
+--   src/app/api/admin/users/route.ts     -- CSV export of the registry
+--   src/app/api/admin/feedback/route.ts  -- PATCH hide/unhide a row
+--   src/app/api/health/route.ts          -- SELECT 1 readiness probe
 --
 -- Apply with:
 --   psql "$DATABASE_URL" -f db/schema.sql
