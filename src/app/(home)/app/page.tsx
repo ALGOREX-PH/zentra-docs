@@ -44,11 +44,8 @@ export default function AppPage() {
         </div>
 
         <p className="mt-10 max-w-[640px] font-mono text-xs leading-relaxed text-faint">
-          Tip: set Freighter to the <span className="text-muted">Test Net</span>{' '}
-          network before connecting. Need test XLM? Use the{' '}
-          <span className="text-muted">Fund</span> button — it asks Friendbot to
-          seed your account. Every result links to stellar.expert so you can
-          verify it independently on-chain.
+          Every result links to <span className="text-muted">stellar.expert</span>{' '}
+          so you can verify it independently on-chain.
         </p>
       </div>
     </main>
