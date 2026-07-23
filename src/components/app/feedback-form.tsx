@@ -5,6 +5,7 @@ import { useWallet } from '@/components/app/wallet-provider';
 import { buildFeedbackXdr } from '@/lib/stellar/feedback';
 import { submitInvoke } from '@/lib/stellar/action-log';
 import { describeError } from '@/lib/stellar/errors';
+import { readApiError } from '@/lib/api/client';
 import { HudPanel, Eyebrow } from '@/components/landing/primitives';
 import { cn } from '@/lib/cn';
 
@@ -54,8 +55,7 @@ export function FeedbackForm({ onSubmitted }: { onSubmitted?: () => void }) {
       });
 
       if (!res.ok) {
-        const j = await res.json().catch(() => ({}));
-        throw new Error(j.error || 'Could not save feedback.');
+        throw new Error(await readApiError(res, 'Could not save feedback.'));
       }
 
       setStatus('success');
