@@ -426,8 +426,11 @@ the logs for the matching `health.database` line to see the real cause.
   (Redis/Upstash) is the fix when traffic justifies it.
 - **The feedback endpoints are unauthenticated.** This is deliberate — it is
   public feedback, and requiring an account would defeat the point. A `wallet`
-  in the body is self-reported and is not proof of key ownership; only a
-  `txHash` that resolves on-chain is. Anything stronger needs signed payloads.
+  in the body is self-reported and is not proof of key ownership; only an
+  anchored `txHash` is, and that anchor is now resolved against Horizon before
+  it counts (see [On-chain claims are verified](#on-chain-claims-are-verified-not-trusted)).
+  Binding an *unanchored* wallet to its owner would need a signed challenge,
+  which is not implemented.
 - **`CREATE TABLE IF NOT EXISTS` will not retrofit constraints.** Re-running
   `db/schema.sql` against a database where `feedback` already exists is a no-op
   for the table body: new CHECK constraints and column changes are *not*
