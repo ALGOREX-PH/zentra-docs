@@ -13,12 +13,15 @@ import { cn } from '@/lib/cn';
  */
 /**
  * How many recent entries each contract is asked for when counting distinct
- * wallets. Both contracts expose `get_recent(limit)` rather than a set of
- * authors, so the count is derived from a window rather than the full history.
- * 200 is far above current volume; if a window ever fills, the count below is
- * reported as a floor rather than silently under-reporting.
+ * wallets.
+ *
+ * Both contracts expose `get_recent(limit)` rather than a set of authors, and
+ * each clamps `limit` to its own `MAX_RECENT` of 20 — asking for more returns
+ * no more. So the distinct-wallet count is derived from a window, and once the
+ * on-chain totals exceed that window it is a lower bound, reported as such
+ * rather than silently under-counting.
  */
-const SAMPLE = 200;
+const SAMPLE = 20;
 
 export function MetricsStats({ refreshSignal = 0 }: { refreshSignal?: number }) {
   const [interactions, setInteractions] = useState<number | null>(null);
@@ -45,9 +48,13 @@ export function MetricsStats({ refreshSignal = 0 }: { refreshSignal?: number }) 
         setWallets(
           new Set([...actionRecent.map((e) => e.author), ...feedbackAuthors]).size,
         );
-        // A full window means older entries went unseen, so the distinct count
-        // is a lower bound on the real number of wallets.
-        setPartial(actionRecent.length >= SAMPLE || feedbackAuthors.length >= SAMPLE);
+        // Compare against the contracts' own totals rather than the requested
+        // window: they clamp the limit internally, so a returned page being
+        // "full" proves nothing. If either total exceeds what we actually saw,
+        // older authors went uncounted and the figure is a floor.
+        setPartial(
+          actionTotal > actionRecent.length || feedbackTotal > feedbackAuthors.length,
+        );
       } catch {
         if (cancelled) return;
         setError('Could not load on-chain stats.');
@@ -80,7 +87,7 @@ export function MetricsStats({ refreshSignal = 0 }: { refreshSignal?: number }) 
             </div>
             {partial ? (
               <div className="font-mono text-[11px] text-muted">
-                lower bound · last {SAMPLE} entries
+                lower bound · last {SAMPLE} per contract
               </div>
             ) : null}
           </div>
