@@ -15,6 +15,7 @@
 
 import { conflict, rateLimited, upstreamUnavailable } from '@/lib/api/errors';
 import { log } from '@/lib/api/logger';
+import { moderateComment } from '@/lib/api/moderation';
 import {
   clientKey,
   rateLimit,
@@ -74,7 +75,16 @@ export const POST = route('feedback.create', async (request, { requestId }) => {
 
   const claimed = parseFeedbackInput(await readJsonBody(request));
   const input = await confirmAnchor(claimed, requestId);
-  await insertFeedback(input);
+
+  // Screened, not refused. Telling a submitter which word tripped the filter
+  // just tells them what to change, so a withheld comment is stored and
+  // acknowledged exactly like any other — it simply never reaches the feed.
+  const verdict = moderateComment(input.comment);
+  if (!verdict.publish) {
+    log('warn', 'feedback.withheld', { requestId, reason: verdict.reason, wallet: input.wallet });
+  }
+
+  await insertFeedback(input, !verdict.publish);
 
   // Wallet and transaction hash are public chain data, so logging them is safe
   // and makes an anchored submission traceable from the log line to the ledger.
@@ -197,13 +207,13 @@ async function readFeedback(): Promise<{ summary: Summary; recent: unknown[] }> 
 }
 
 /** Persist one validated submission, mapping a duplicate anchor to a 409. */
-async function insertFeedback(input: FeedbackInput): Promise<void> {
+async function insertFeedback(input: FeedbackInput, hidden: boolean): Promise<void> {
   const db = sql();
 
   try {
     await db`
-      INSERT INTO feedback (rating, comment, wallet, tx_hash, on_chain)
-      VALUES (${input.rating}, ${input.comment}, ${input.wallet}, ${input.txHash}, ${input.onChain})
+      INSERT INTO feedback (rating, comment, wallet, tx_hash, on_chain, hidden)
+      VALUES (${input.rating}, ${input.comment}, ${input.wallet}, ${input.txHash}, ${input.onChain}, ${hidden})
     `;
   } catch (error) {
     // The partial unique index allows one row per anchoring transaction, so a
