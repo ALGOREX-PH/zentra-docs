@@ -38,6 +38,8 @@ jobs:
           bun-version: latest
       - name: Install
         run: bun install
+      - name: Typecheck
+        run: bun run types:check
       - name: Unit tests
         run: bun run test
       - name: Build
