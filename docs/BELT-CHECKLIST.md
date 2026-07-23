@@ -114,8 +114,11 @@ Legend: ✅ done · ⬜ pending (you) · 🔄 in progress
       Permissions-Policy; secret redaction in logs; 4 KB body ceiling)
 - [x] Health / readiness endpoint (`/api/health`, 200 ok · 503 degraded)
 - [x] API documentation (`docs/API.md`) + architecture (`docs/ARCHITECTURE.md`)
-- [x] Automated tests — 113 frontend (Vitest) + 8 contract (Rust); CI runs
-      typecheck, tests and build
+- [x] Automated tests — 131 frontend (Vitest) + 14 contract (Rust, all four
+      contracts); CI runs typecheck, tests and build
+- [x] On-chain claims verified server-side — a submitted `txHash` is resolved
+      against Horizon and must exist, have succeeded, and belong to the claiming
+      wallet before it counts as on-chain
 - [x] On-chain proof-of-interactions surface (`/metrics`)
 - [ ] 10+ real users onboarded — real people you bring (I won't fabricate users)
 
