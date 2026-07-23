@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { ConnectButton } from '@/components/app/connect-button';
+import { GetStarted } from '@/components/app/get-started';
 import { BalanceCard } from '@/components/app/balance-card';
 import { SendForm } from '@/components/app/send-form';
 import { Eyebrow } from '@/components/landing/primitives';
@@ -33,17 +34,18 @@ export default function AppPage() {
           </div>
         </header>
 
-        <div className="mt-10 grid gap-5 lg:grid-cols-2">
+        <div className="mt-8">
+          <GetStarted />
+        </div>
+
+        <div className="mt-5 grid gap-5 lg:grid-cols-2">
           <BalanceCard refreshSignal={refreshSignal} />
           <SendForm onPaid={() => setRefreshSignal((s) => s + 1)} />
         </div>
 
         <p className="mt-10 max-w-[640px] font-mono text-xs leading-relaxed text-faint">
-          Tip: set Freighter to the <span className="text-muted">Test Net</span>{' '}
-          network before connecting. Need test XLM? Use the{' '}
-          <span className="text-muted">Fund</span> button — it asks Friendbot to
-          seed your account. Every result links to stellar.expert so you can
-          verify it independently on-chain.
+          Every result links to <span className="text-muted">stellar.expert</span>{' '}
+          so you can verify it independently on-chain.
         </p>
       </div>
     </main>

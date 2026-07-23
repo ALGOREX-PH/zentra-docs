@@ -67,10 +67,17 @@ anchor it on-chain. ▶ **[youtu.be/JQapGdfgZJw](https://youtu.be/JQapGdfgZJw)**
 
 ---
 
-## 🏆 Built for the Stellar Hackathon — all four belts
+## 🏆 Built for the Stellar Hackathon — all five belts
+
+> **Submit _this_ repo for every belt:** `https://github.com/ALGOREX-PH/zentra-docs`
+> — it has the Rust contracts (`contracts/*/src/lib.rs`) **and** the wallet dApp
+> (`@creit.tech/stellar-wallets-kit`, Freighter + 5 more). The separate
+> [`zentra-protocol`](https://github.com/ALGOREX-PH/zentra-protocol) repo is the
+> protocol only (circuits + verifier, **no wallet**) and will fail the
+> connect-wallet check.
 
 Zentra is also a complete **Stellar hackathon submission**: this one repo covers
-every belt (Levels 1–4), each a route in the same live product. Requirement-by-
+every belt (Levels 1–5), each a route in the same live product. Requirement-by-
 requirement coverage is in **[`docs/BELT-CHECKLIST.md`](docs/BELT-CHECKLIST.md)**;
 per-belt detail follows below.
 
@@ -80,6 +87,7 @@ per-belt detail follows below.
 | 🟡 Yellow | 2 — multi-wallet + deployed contract | [`/board`](https://zentra-docs.vercel.app/board) | `CDDIQNNC…K7VY` |
 | 🟠 Orange | 3 — inter-contract + CI/CD + tests | [`/board`](https://zentra-docs.vercel.app/board) | `CCSXFTQT…ZDDES` + `CA2QOMGV…IIPI` |
 | 🟢 Green | 4 — production MVP + analytics + feedback | [`/metrics`](https://zentra-docs.vercel.app/metrics) | `CC6S6CKP…F4CUG` + Neon Postgres |
+| 🔵 Blue | 5 — growth, iteration & pitch | [`/join`](https://zentra-docs.vercel.app/join) · [`/pitch`](https://zentra-docs.vercel.app/pitch) | `users` registry + moderation |
 
 Everything lives in **this** repo: contracts in [`contracts/`](contracts), the dApp
 in [`src/`](src), tests + CI in [`.github/workflows/ci.yml`](.github/workflows/ci.yml),
@@ -294,12 +302,35 @@ both queryable and independently verifiable.
 | --- | --- |
 | Production-ready MVP | live `/app`, `/board`, `/metrics` on Vercel |
 | Mobile responsive | every route stacks on small screens |
-| Loading & error states | every data component (feed, balance, feedback, metrics) |
-| Analytics & monitoring | Vercel Web Analytics + Speed Insights (`src/app/layout.tsx`) + `/metrics` |
+| Loading & error states | every data component, plus a route skeleton, segment + root error boundaries and a branded 404 |
+| User onboarding | 3-step Freighter → testnet → funding guide on `/app`, collapsing once connected |
+| Analytics & monitoring | Vercel Web Analytics + Speed Insights (`src/app/layout.tsx`) + `/metrics` + [`/api/health`](https://zentra-docs.vercel.app/api/health) |
 | User feedback + summary | `/api/feedback` (Neon) + `zentra-feedback` contract + `feedback-summary.tsx` |
 | Proof of wallet interactions | `/metrics` reads distinct wallets + total actions live from chain |
-| Backend architecture | Next.js route handler + Neon serverless Postgres (`src/lib/db.ts`) |
-| Documentation | this README + [`docs/BELT-CHECKLIST.md`](docs/BELT-CHECKLIST.md) |
+| Backend architecture | layered API in [`src/lib/api/`](src/lib/api) — see below |
+| Database design | [`db/schema.sql`](db/schema.sql) + [`db/migrations/`](db/migrations) — named constraints, 4 indexes |
+| Testing | 201 Vitest + 14 Rust contract tests (all four contracts); CI runs typecheck → tests → build |
+| Documentation | this README + [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) + [`docs/API.md`](docs/API.md) + [`docs/BELT-CHECKLIST.md`](docs/BELT-CHECKLIST.md) |
+
+### Backend, in production terms
+
+Every endpoint is defined through one `route()` wrapper, so the things that must
+never vary cannot be forgotten or reinvented per handler:
+
+| Concern | Where | What it does |
+| --- | --- | --- |
+| Request tracing | `src/lib/api/route.ts` | mints or echoes `x-request-id`, returns it on every response |
+| Structured logging | `src/lib/api/logger.ts` | one line of JSON per request; values under secret-ish keys are redacted |
+| Error envelope | `src/lib/api/errors.ts` | one shape for every failure; an unknown throw collapses to a generic 500 so no driver message or connection string can leak |
+| Input validation | `src/lib/api/validation.ts` | the trust boundary — accumulates all field errors into one 422, rebuilds the object key by key (no mass assignment), 4 KB body ceiling |
+| On-chain claim checks | `src/lib/api/verify-anchor.ts` | a submitted `txHash` is resolved against Horizon; it must exist, have succeeded, and be sourced from the claiming wallet, or the on-chain badge is dropped |
+| Rate limiting | `src/lib/api/rate-limit.ts` | 60 reads/min, 5 writes/10 min per caller, with `X-RateLimit-*` and `Retry-After` |
+| Security headers | `next.config.mjs` | HSTS, nosniff, `frame-ancestors 'none'`, Referrer-Policy, Permissions-Policy |
+
+Honest limits are documented rather than papered over — the rate limiter is
+in-memory and therefore per-instance, and the feedback endpoints are
+deliberately unauthenticated. Both are written up in
+[`docs/API.md`](docs/API.md#10-known-limits).
 
 ### Backend setup
 
@@ -324,6 +355,74 @@ feedback summary update automatically.
 
 ▶ **[Watch the walkthrough](https://youtu.be/JQapGdfgZJw)** — the live product, analytics,
 and feedback.
+
+---
+
+## Stellar Blue Belt — Growth, iteration & pitch (`/join`, `/pitch`)
+
+Level 5 is about turning a working MVP into a product that grows and improves
+from what its users actually do. Everything below is driven by the real feedback
+already sitting in the database, not by guesswork.
+
+- **Join the programme:** [`/join`](https://zentra-docs.vercel.app/join) — signup + live progress toward 50 users
+- **Pitch deck:** [`/pitch`](https://zentra-docs.vercel.app/pitch) — 11 slides, keyboard-navigable, print-to-PDF
+
+### Level 5 requirements → where they live
+
+| Requirement | Implementation |
+| --- | --- |
+| Minimum 50 testnet users | [`/join`](https://zentra-docs.vercel.app/join) registry + `users` table; live counter on the page |
+| Real transaction activity | `/metrics` reads distinct wallets and total actions live from the contracts |
+| Active usage proof | every anchored submission links to its transaction on stellar.expert |
+| New features from feedback | the iteration table below, each row with its commit |
+| Improve UX/UI and stability | moderation, error boundaries, 404, loading skeleton, anchor verification |
+| Optimise onboarding | 3-step Freighter → testnet → funding guide that collapses once connected |
+| Professional pitch deck | [`/pitch`](https://zentra-docs.vercel.app/pitch), content in [`src/lib/pitch.ts`](src/lib/pitch.ts) |
+| Product walkthrough demo | [youtu.be/JQapGdfgZJw](https://youtu.be/JQapGdfgZJw) |
+| 20+ meaningful commits | 100+ on this branch |
+| Updated documentation | this README + [`ARCHITECTURE`](docs/ARCHITECTURE.md) + [`API`](docs/API.md) |
+
+### User feedback → what we changed
+
+Every row started as something a real user did. The commit is the receipt.
+
+| What the data showed | What we shipped | Commit |
+| --- | --- | --- |
+| A submission was a personal attack with a self-harm taunt, rendered verbatim on the public feedback wall. Nothing screened comments. | Automated moderation: whole-word matching against a normalised form (defeats leetspeak and diacritic evasion), covering English and Tagalog. Withheld rows are stored but excluded from the feed *and* from the count and average. | [`7fb4116`](https://github.com/ALGOREX-PH/zentra-docs/commit/7fb4116) · [`f721e52`](https://github.com/ALGOREX-PH/zentra-docs/commit/f721e52) · [`c94ef35`](https://github.com/ALGOREX-PH/zentra-docs/commit/c94ef35) |
+| No way to reverse a moderation call without deleting the record. | `PATCH /api/admin/feedback` hides or unhides a row behind an operator token. The record is never destroyed. | [`7073ee0`](https://github.com/ALGOREX-PH/zentra-docs/commit/7073ee0) |
+| One wallet submitted identical feedback twice, 1.1 seconds apart, with the same transaction hash — a double-click became two rows. | A partial unique index on `tx_hash`, so one anchoring transaction can produce only one row. A retry now returns `409` instead of duplicating. | [`3368827`](https://github.com/ALGOREX-PH/zentra-docs/commit/3368827) |
+| 13 of 14 submissions claimed to be on-chain, but the API only checked that the hash was 64 hex characters — an invented hash earned the badge. | The hash is resolved against Horizon: it must exist, have succeeded, and be sourced from the claiming wallet. Unproven claims are downgraded, not rejected. | [`dd130f9`](https://github.com/ALGOREX-PH/zentra-docs/commit/dd130f9) · [`fd9bce0`](https://github.com/ALGOREX-PH/zentra-docs/commit/fd9bce0) |
+| Users praised onboarding ("smooth onboarding", "very easy to use") yet `/app` never mentioned Freighter, testnet, or funding — every one of them had to already know. | A 3-step guide that marks progress from observable wallet state and collapses to one line once connected, so returning users are not re-taught. | [`b341b5d`](https://github.com/ALGOREX-PH/zentra-docs/commit/b341b5d) |
+| Feedback arrived from wallets with no way to contact anyone or measure growth. | The `users` registry and `POST /api/onboard`, with a public count-only read powering the progress bar on `/join`. | [`2833600`](https://github.com/ALGOREX-PH/zentra-docs/commit/2833600) · [`eea7040`](https://github.com/ALGOREX-PH/zentra-docs/commit/eea7040) |
+
+### Onboarding data collection
+
+Two intake paths, one table:
+
+1. **On-site** — [`/join`](https://zentra-docs.vercel.app/join) writes straight to Postgres via `POST /api/onboard` (`source = 'site'`). Wallet autofills from a connected wallet.
+2. **Google Form** — for reaching people off-site. Collect **name, email, wallet address, rating (1–5), and feedback**, then import the responses with `source = 'form'`.
+
+Export everything for analysis at any time:
+
+```bash
+curl -H "Authorization: Bearer $ADMIN_TOKEN" \
+  https://zentra-docs.vercel.app/api/admin/users -o docs/users/onboarding-responses.csv
+```
+
+The export is admin-gated because the registry holds names and email addresses,
+and it escapes leading `=`, `+`, `-` and `@` so a submitted value cannot execute
+as a formula when the sheet is opened in Excel. The exported sheet lives at
+[`docs/users/onboarding-responses.csv`](docs/users/onboarding-responses.csv).
+
+### Next phase
+
+What the current data cannot yet tell us, and how we plan to find out — see
+[`docs/users/README.md`](docs/users/README.md) for the full plan.
+
+- **Retention is unmeasured.** Every number today is a first-touch count. Next is a returning-wallet metric on `/metrics`.
+- **Moderation is a fixed word list.** It will miss novel abuse. Next is a review queue over the withheld rows so misses and false positives are both visible.
+- **The distinct-wallet count is a lower bound**, capped by the contracts' `MAX_RECENT = 20`. Next is a paginated read or an indexer so the headline figure is exact.
+- **No deletion path for personal data.** The registry stores names and emails with no retention policy. Next is a delete-my-data endpoint before this leaves testnet.
 
 ---
 

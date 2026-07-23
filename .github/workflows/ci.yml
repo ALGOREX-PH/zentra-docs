@@ -21,13 +21,19 @@ jobs:
             ~/.cargo/git
             contracts/zentra-reputation/target
             contracts/zentra-action-log/target
-          key: cargo-${{ runner.os }}-${{ hashFiles('contracts/zentra-reputation/Cargo.toml', 'contracts/zentra-action-log/Cargo.toml') }}
+            contracts/zentra-feedback/target
+            contracts/zentra-proof-registry/target
+          key: cargo-${{ runner.os }}-${{ hashFiles('contracts/*/Cargo.toml') }}
           restore-keys: |
             cargo-${{ runner.os }}-
       - name: Test reputation contract
         run: cargo test --manifest-path contracts/zentra-reputation/Cargo.toml
       - name: Test action-log contract
         run: cargo test --manifest-path contracts/zentra-action-log/Cargo.toml
+      - name: Test feedback contract
+        run: cargo test --manifest-path contracts/zentra-feedback/Cargo.toml
+      - name: Test proof-registry contract
+        run: cargo test --manifest-path contracts/zentra-proof-registry/Cargo.toml
 
   frontend:
     runs-on: ubuntu-latest
@@ -38,6 +44,8 @@ jobs:
           bun-version: latest
       - name: Install
         run: bun install
+      - name: Typecheck
+        run: bun run types:check
       - name: Unit tests
         run: bun run test
       - name: Build

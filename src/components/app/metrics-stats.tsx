@@ -11,9 +11,22 @@ import { cn } from '@/lib/cn';
  * interactions across the action-log and feedback contracts, the distinct wallets
  * behind them, and the network — the product's proof of real wallet interactions.
  */
+/**
+ * How many recent entries each contract is asked for when counting distinct
+ * wallets.
+ *
+ * Both contracts expose `get_recent(limit)` rather than a set of authors, and
+ * each clamps `limit` to its own `MAX_RECENT` of 20 — asking for more returns
+ * no more. So the distinct-wallet count is derived from a window, and once the
+ * on-chain totals exceed that window it is a lower bound, reported as such
+ * rather than silently under-counting.
+ */
+const SAMPLE = 20;
+
 export function MetricsStats({ refreshSignal = 0 }: { refreshSignal?: number }) {
   const [interactions, setInteractions] = useState<number | null>(null);
   const [wallets, setWallets] = useState<number | null>(null);
+  const [partial, setPartial] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -26,14 +39,21 @@ export function MetricsStats({ refreshSignal = 0 }: { refreshSignal?: number }) 
         const [actionTotal, actionRecent, feedbackTotal, feedbackAuthors] =
           await Promise.all([
             getCount(),
-            getRecent(20),
+            getRecent(SAMPLE),
             getFeedbackCount(),
-            getFeedbackAuthors(20),
+            getFeedbackAuthors(SAMPLE),
           ]);
         if (cancelled) return;
         setInteractions(actionTotal + feedbackTotal);
         setWallets(
           new Set([...actionRecent.map((e) => e.author), ...feedbackAuthors]).size,
+        );
+        // Compare against the contracts' own totals rather than the requested
+        // window: they clamp the limit internally, so a returned page being
+        // "full" proves nothing. If either total exceeds what we actually saw,
+        // older authors went uncounted and the figure is a floor.
+        setPartial(
+          actionTotal > actionRecent.length || feedbackTotal > feedbackAuthors.length,
         );
       } catch {
         if (cancelled) return;
@@ -62,7 +82,14 @@ export function MetricsStats({ refreshSignal = 0 }: { refreshSignal?: number }) 
         <HudPanel>
           <div className="p-5">
             <div className={labelClass}>DISTINCT WALLETS</div>
-            <div className="font-display text-3xl font-bold text-text">{wallets ?? '—'}</div>
+            <div className="font-display text-3xl font-bold text-text">
+              {wallets === null ? '—' : `${wallets}${partial ? '+' : ''}`}
+            </div>
+            {partial ? (
+              <div className="font-mono text-[11px] text-muted">
+                lower bound · last {SAMPLE} per contract
+              </div>
+            ) : null}
           </div>
         </HudPanel>
         <HudPanel accent="cyan">
