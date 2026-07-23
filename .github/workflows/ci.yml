@@ -21,7 +21,9 @@ jobs:
             ~/.cargo/git
             contracts/zentra-reputation/target
             contracts/zentra-action-log/target
-          key: cargo-${{ runner.os }}-${{ hashFiles('contracts/zentra-reputation/Cargo.toml', 'contracts/zentra-action-log/Cargo.toml') }}
+            contracts/zentra-feedback/target
+            contracts/zentra-proof-registry/target
+          key: cargo-${{ runner.os }}-${{ hashFiles('contracts/*/Cargo.toml') }}
           restore-keys: |
             cargo-${{ runner.os }}-
       - name: Test reputation contract
