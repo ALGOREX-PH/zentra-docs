@@ -301,12 +301,34 @@ both queryable and independently verifiable.
 | --- | --- |
 | Production-ready MVP | live `/app`, `/board`, `/metrics` on Vercel |
 | Mobile responsive | every route stacks on small screens |
-| Loading & error states | every data component (feed, balance, feedback, metrics) |
-| Analytics & monitoring | Vercel Web Analytics + Speed Insights (`src/app/layout.tsx`) + `/metrics` |
+| Loading & error states | every data component, plus a route skeleton, segment + root error boundaries and a branded 404 |
+| User onboarding | 3-step Freighter → testnet → funding guide on `/app`, collapsing once connected |
+| Analytics & monitoring | Vercel Web Analytics + Speed Insights (`src/app/layout.tsx`) + `/metrics` + [`/api/health`](https://zentra-docs.vercel.app/api/health) |
 | User feedback + summary | `/api/feedback` (Neon) + `zentra-feedback` contract + `feedback-summary.tsx` |
 | Proof of wallet interactions | `/metrics` reads distinct wallets + total actions live from chain |
-| Backend architecture | Next.js route handler + Neon serverless Postgres (`src/lib/db.ts`) |
-| Documentation | this README + [`docs/BELT-CHECKLIST.md`](docs/BELT-CHECKLIST.md) |
+| Backend architecture | layered API in [`src/lib/api/`](src/lib/api) — see below |
+| Database design | [`db/schema.sql`](db/schema.sql) + [`db/migrations/`](db/migrations) — named constraints, 4 indexes |
+| Testing | 113 Vitest + 8 Rust contract tests; CI runs typecheck → tests → build |
+| Documentation | this README + [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) + [`docs/API.md`](docs/API.md) + [`docs/BELT-CHECKLIST.md`](docs/BELT-CHECKLIST.md) |
+
+### Backend, in production terms
+
+Every endpoint is defined through one `route()` wrapper, so the things that must
+never vary cannot be forgotten or reinvented per handler:
+
+| Concern | Where | What it does |
+| --- | --- | --- |
+| Request tracing | `src/lib/api/route.ts` | mints or echoes `x-request-id`, returns it on every response |
+| Structured logging | `src/lib/api/logger.ts` | one line of JSON per request; values under secret-ish keys are redacted |
+| Error envelope | `src/lib/api/errors.ts` | one shape for every failure; an unknown throw collapses to a generic 500 so no driver message or connection string can leak |
+| Input validation | `src/lib/api/validation.ts` | the trust boundary — accumulates all field errors into one 422, rebuilds the object key by key (no mass assignment), 4 KB body ceiling |
+| Rate limiting | `src/lib/api/rate-limit.ts` | 60 reads/min, 5 writes/10 min per caller, with `X-RateLimit-*` and `Retry-After` |
+| Security headers | `next.config.mjs` | HSTS, nosniff, `frame-ancestors 'none'`, Referrer-Policy, Permissions-Policy |
+
+Honest limits are documented rather than papered over — the rate limiter is
+in-memory and therefore per-instance, and the feedback endpoints are
+deliberately unauthenticated. Both are written up in
+[`docs/API.md`](docs/API.md#known-limits).
 
 ### Backend setup
 
