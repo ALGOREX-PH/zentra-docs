@@ -308,7 +308,7 @@ both queryable and independently verifiable.
 | Proof of wallet interactions | `/metrics` reads distinct wallets + total actions live from chain |
 | Backend architecture | layered API in [`src/lib/api/`](src/lib/api) — see below |
 | Database design | [`db/schema.sql`](db/schema.sql) + [`db/migrations/`](db/migrations) — named constraints, 4 indexes |
-| Testing | 113 Vitest + 8 Rust contract tests; CI runs typecheck → tests → build |
+| Testing | 131 Vitest + 14 Rust contract tests (all four contracts); CI runs typecheck → tests → build |
 | Documentation | this README + [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) + [`docs/API.md`](docs/API.md) + [`docs/BELT-CHECKLIST.md`](docs/BELT-CHECKLIST.md) |
 
 ### Backend, in production terms
@@ -322,6 +322,7 @@ never vary cannot be forgotten or reinvented per handler:
 | Structured logging | `src/lib/api/logger.ts` | one line of JSON per request; values under secret-ish keys are redacted |
 | Error envelope | `src/lib/api/errors.ts` | one shape for every failure; an unknown throw collapses to a generic 500 so no driver message or connection string can leak |
 | Input validation | `src/lib/api/validation.ts` | the trust boundary — accumulates all field errors into one 422, rebuilds the object key by key (no mass assignment), 4 KB body ceiling |
+| On-chain claim checks | `src/lib/api/verify-anchor.ts` | a submitted `txHash` is resolved against Horizon; it must exist, have succeeded, and be sourced from the claiming wallet, or the on-chain badge is dropped |
 | Rate limiting | `src/lib/api/rate-limit.ts` | 60 reads/min, 5 writes/10 min per caller, with `X-RateLimit-*` and `Retry-After` |
 | Security headers | `next.config.mjs` | HSTS, nosniff, `frame-ancestors 'none'`, Referrer-Policy, Permissions-Policy |
 
