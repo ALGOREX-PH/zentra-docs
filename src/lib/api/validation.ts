@@ -134,11 +134,18 @@ export async function readJsonBody(request: Request): Promise<unknown> {
 /**
  * Collapse whitespace runs to single spaces, drop control characters, trim.
  *
- * Whitespace is normalised first so newlines and tabs become word boundaries
- * instead of vanishing and welding two words together.
+ * Whitespace is normalised first because newlines and tabs are themselves
+ * control characters: stripping them up front would weld two words together,
+ * whereas collapsing turns them into the word boundary they visually were. The
+ * pass is repeated afterwards so a control character removed from between two
+ * spaces does not leave a double space behind.
  */
 function cleanComment(value: string): string {
-  return value.replace(/\s+/g, ' ').replace(CONTROL_CHARACTERS, '').trim();
+  return value
+    .replace(/\s+/g, ' ')
+    .replace(CONTROL_CHARACTERS, '')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 /** Whether an optional field was supplied as something other than an empty value. */
