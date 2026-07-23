@@ -11,9 +11,19 @@ import { cn } from '@/lib/cn';
  * interactions across the action-log and feedback contracts, the distinct wallets
  * behind them, and the network — the product's proof of real wallet interactions.
  */
+/**
+ * How many recent entries each contract is asked for when counting distinct
+ * wallets. Both contracts expose `get_recent(limit)` rather than a set of
+ * authors, so the count is derived from a window rather than the full history.
+ * 200 is far above current volume; if a window ever fills, the count below is
+ * reported as a floor rather than silently under-reporting.
+ */
+const SAMPLE = 200;
+
 export function MetricsStats({ refreshSignal = 0 }: { refreshSignal?: number }) {
   const [interactions, setInteractions] = useState<number | null>(null);
   const [wallets, setWallets] = useState<number | null>(null);
+  const [partial, setPartial] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -26,15 +36,18 @@ export function MetricsStats({ refreshSignal = 0 }: { refreshSignal?: number }) 
         const [actionTotal, actionRecent, feedbackTotal, feedbackAuthors] =
           await Promise.all([
             getCount(),
-            getRecent(20),
+            getRecent(SAMPLE),
             getFeedbackCount(),
-            getFeedbackAuthors(20),
+            getFeedbackAuthors(SAMPLE),
           ]);
         if (cancelled) return;
         setInteractions(actionTotal + feedbackTotal);
         setWallets(
           new Set([...actionRecent.map((e) => e.author), ...feedbackAuthors]).size,
         );
+        // A full window means older entries went unseen, so the distinct count
+        // is a lower bound on the real number of wallets.
+        setPartial(actionRecent.length >= SAMPLE || feedbackAuthors.length >= SAMPLE);
       } catch {
         if (cancelled) return;
         setError('Could not load on-chain stats.');
@@ -62,7 +75,14 @@ export function MetricsStats({ refreshSignal = 0 }: { refreshSignal?: number }) 
         <HudPanel>
           <div className="p-5">
             <div className={labelClass}>DISTINCT WALLETS</div>
-            <div className="font-display text-3xl font-bold text-text">{wallets ?? '—'}</div>
+            <div className="font-display text-3xl font-bold text-text">
+              {wallets === null ? '—' : `${wallets}${partial ? '+' : ''}`}
+            </div>
+            {partial ? (
+              <div className="font-mono text-[11px] text-muted">
+                lower bound · last {SAMPLE} entries
+              </div>
+            ) : null}
           </div>
         </HudPanel>
         <HudPanel accent="cyan">
