@@ -236,12 +236,12 @@ export const PITCH_SLIDES: PitchSlide[] = [
   {
     id: 'architecture',
     eyebrow: 'ARCHITECTURE',
-    title: 'Three tiers, one deploy, no server-side keys.',
-    lead: 'One Next.js 16 application serves the landing page, the docs, the dApp and the API; four Rust contracts sit under it on testnet. The browser is the only client of both the API and the chain.',
+    title: 'Three tiers, one deploy, network as a config switch.',
+    lead: 'One Next.js 16 application serves the landing page, the docs, the dApp and the API; five Rust contracts sit under it on testnet. The browser is the only client of the chain, and which chain is a single environment variable that fails safe to testnet.',
     bullets: [
       {
         label: 'Browser tier',
-        body: 'React client components, the Stellar Wallets Kit across six wallets, and snarkjs Groth16 in a Web Worker. The witness — the private policy and its salts — never leaves the machine, and there is no server-side wallet, no server-side signing, and no backend indexer anywhere in the system.',
+        body: 'React client components, the Stellar Wallets Kit across six wallets, and snarkjs Groth16 in a Web Worker. The witness — the private policy and its salts — never leaves the machine. User transactions are signed by the user’s own wallet; the only server-side key is the optional fee sponsor, off unless configured, which signs only fee-bumps around user transactions that target our own contracts.',
       },
       {
         label: 'Serverless tier',
@@ -249,7 +249,7 @@ export const PITCH_SLIDES: PitchSlide[] = [
       },
       {
         label: 'Chain tier',
-        body: 'Four `#![no_std]` soroban-sdk contracts reached directly from the browser over Soroban RPC and Horizon. Contract ids are compile-time constants in `src/config`, so no id is hardcoded in prose and one redeploy updates every surface.',
+        body: 'Five `#![no_std]` soroban-sdk contracts — action log, reputation, feedback, proof registry, and an N-of-M multisig — reached directly from the browser over Soroban RPC and Horizon. Contract ids are per-network config, so a mainnet cutover changes an environment variable, not code.',
       },
       {
         label: 'Production posture',
