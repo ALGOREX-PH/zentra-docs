@@ -14,6 +14,7 @@ export type ApiErrorCode =
   | 'rate_limited'
   | 'not_found'
   | 'method_not_allowed'
+  | 'conflict'
   | 'payload_too_large'
   | 'upstream_unavailable'
   | 'internal';
@@ -59,6 +60,11 @@ export function rateLimited(retryAfterSeconds: number): ApiError {
   return new ApiError(429, 'rate_limited', 'Too many requests.', {
     retryAfterSeconds,
   });
+}
+
+/** 409 — the request collided with a row that already exists. */
+export function conflict(message: string): ApiError {
+  return new ApiError(409, 'conflict', message);
 }
 
 /** 413 — the request body exceeded the byte ceiling for this route. */
