@@ -290,7 +290,7 @@ export const PITCH_SLIDES: PitchSlide[] = [
         body: 'A demo video, engineering write-ups on the blog, and four Stellar hackathon belt submissions all pointing at the same live product rather than at four demos.',
       },
     ],
-    note: 'This is the built surface and the plan, not measured performance: there is no funnel data, no paid acquisition, and no retention curve yet. The onboarding registry currently exists as schema (db/schema.sql and db/migrations/002_users_and_moderation.sql); the on-site signup endpoint is not deployed.',
+    note: 'This is the built surface and the plan, not measured performance: there is no funnel data, no paid acquisition, and no retention curve yet. The onboarding registry is live — the /join signup writes to the users table through POST /api/onboard, and /join shows real progress against the 50-user goal.',
   },
 
   {
