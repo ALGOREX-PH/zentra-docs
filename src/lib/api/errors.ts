@@ -10,6 +10,8 @@
 /** The stable set of machine-readable error codes clients may branch on. */
 export type ApiErrorCode =
   | 'bad_request'
+  | 'unauthorized'
+  | 'forbidden'
   | 'validation_failed'
   | 'rate_limited'
   | 'not_found'
@@ -46,6 +48,16 @@ export class ApiError extends Error {
 /** 400 — the request itself was malformed or unusable. */
 export function badRequest(message: string): ApiError {
   return new ApiError(400, 'bad_request', message);
+}
+
+/** 401 — no usable credential was presented. */
+export function unauthorized(message: string): ApiError {
+  return new ApiError(401, 'unauthorized', message);
+}
+
+/** 403 — a credential was presented and it was not accepted. */
+export function forbidden(message: string): ApiError {
+  return new ApiError(403, 'forbidden', message);
 }
 
 /** 422 — the request parsed but individual fields failed validation. */
