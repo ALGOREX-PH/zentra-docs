@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { truncateAddress } from '@/lib/stellar/format';
+import { readApiError } from '@/lib/api/client';
 import { stellar } from '@/config/stellar';
 import { HudPanel, Eyebrow } from '@/components/landing/primitives';
 import { cn } from '@/lib/cn';
@@ -38,15 +39,19 @@ export function FeedbackSummary({ refreshSignal = 0 }: { refreshSignal?: number 
     setError(null);
 
     fetch('/api/feedback')
-      .then((res) => {
-        if (!res.ok) throw new Error(`Request failed with ${res.status}`);
-        return res.json() as Promise<FeedbackResponse>;
+      .then(async (res) => {
+        // The API answers every failure with the same envelope, so a rate limit
+        // or a storage outage can say so instead of showing a bare status code.
+        if (!res.ok) throw new Error(await readApiError(res, 'Could not load feedback.'));
+        return (await res.json()) as FeedbackResponse;
       })
       .then((json) => {
         if (!cancelled) setData(json);
       })
-      .catch(() => {
-        if (!cancelled) setError('Could not load feedback.');
+      .catch((err: unknown) => {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : 'Could not load feedback.');
+        }
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
