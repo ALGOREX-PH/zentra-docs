@@ -157,11 +157,15 @@ async function readFeedback(): Promise<{ summary: Summary; recent: unknown[] }> 
 
   try {
     const [summaryRows, recentRows] = await Promise.all([
+      // Moderated rows are excluded from both halves, not just the visible
+      // list: a withheld comment must not inflate the count or drag the
+      // average either. `feedback_visible_created_at_desc_idx` serves this.
       db`
         SELECT count(*)::int AS count,
                coalesce(round(avg(rating)::numeric, 2), 0)::float AS average,
                coalesce(sum(case when on_chain then 1 else 0 end), 0)::int AS "onChain"
         FROM feedback
+        WHERE NOT hidden
       `,
       db`
         SELECT rating,
@@ -171,6 +175,7 @@ async function readFeedback(): Promise<{ summary: Summary; recent: unknown[] }> 
                on_chain AS "onChain",
                created_at AS "createdAt"
         FROM feedback
+        WHERE NOT hidden
         ORDER BY created_at DESC
         LIMIT ${RECENT_LIMIT}
       `,
