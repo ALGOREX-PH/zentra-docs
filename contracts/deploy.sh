@@ -12,6 +12,16 @@ NETWORK="${NETWORK:-testnet}"
 SOURCE="${SOURCE:-zentra-deployer}"
 ADMIN="${ADMIN:-$(stellar keys address "$SOURCE")}"
 
+# The key that SIGNS the set_logger call, as opposed to the address recorded as
+# admin. Reputation::set_logger calls admin.require_auth(), so this must be the
+# admin's key, not the deployer's.
+#
+# They are the same account by default, which is why this has never mattered on
+# testnet. The moment ADMIN is set to a separately-custodied account -- exactly
+# what docs/MAINNET.md tells you to do -- signing with SOURCE fails the auth
+# check. Set ADMIN_SIGNER to the admin's configured key in that case.
+ADMIN_SIGNER="${ADMIN_SIGNER:-$SOURCE}"
+
 cd "$(dirname "$0")"
 
 echo "==> Building contracts"
@@ -31,9 +41,9 @@ ACTION_LOG=$(stellar contract deploy --wasm "$LOG_WASM" \
   --source "$SOURCE" --network "$NETWORK" -- --reputation "$REPUTATION")
 echo "    action_log = $ACTION_LOG"
 
-echo "==> Authorizing the action log as the reputation's logger"
+echo "==> Authorizing the action log as the reputation's logger (signed by admin=$ADMIN)"
 stellar contract invoke --id "$REPUTATION" \
-  --source "$SOURCE" --network "$NETWORK" -- set_logger --logger "$ACTION_LOG"
+  --source "$ADMIN_SIGNER" --network "$NETWORK" -- set_logger --logger "$ACTION_LOG"
 
 echo
 echo "Deployed and wired on $NETWORK:"
