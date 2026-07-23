@@ -497,10 +497,13 @@ contract without a code change.
   claim is downgraded rather than rejected, so the feedback survives without the
   badge. Binding an unanchored `wallet` to its owner would need a signed
   challenge, which the API does not do today.
-- **Tests cover pure modules only.** The 131 Vitest tests exercise the API
-  helpers and two Stellar utilities; all 14 Rust tests across the four contracts
-  run in CI. There are no tests for React components, route handlers end to end,
-  or any browser/E2E flow, and no test touches a live database or the network.
+- **Tests cover pure modules only.** The Vitest suite exercises the API helpers,
+  the network config and two Stellar utilities; the Rust tests cover all five
+  contracts and run in CI. There are no tests for React components, route
+  handlers end to end, or any browser/E2E flow, and no test touches a live
+  database or the network. Exact counts are deliberately not quoted here — they
+  move every time a module is added, and a stale number in a limitations section
+  is worse than none.
 - **No `script-src` CSP.** Only `frame-ancestors 'none'` is enforced, because
   WebAssembly proving needs `wasm-unsafe-eval` and Next emits inline bootstrap
   scripts. A nonce pipeline is the prerequisite for tightening this.
