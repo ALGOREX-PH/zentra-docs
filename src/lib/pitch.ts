@@ -287,7 +287,7 @@ export const PITCH_SLIDES: PitchSlide[] = [
       },
       {
         label: 'Community distribution',
-        body: 'A demo video, engineering write-ups on the blog, and four Stellar hackathon belt submissions all pointing at the same live product rather than at four demos.',
+        body: 'A demo video, engineering write-ups on the blog, and five Stellar hackathon belt submissions all pointing at the same live product rather than at five demos.',
       },
     ],
     note: 'This is the built surface and the plan, not measured performance: there is no funnel data, no paid acquisition, and no retention curve yet. The onboarding registry is live — the /join signup writes to the users table through POST /api/onboard, and /join shows real progress against the 50-user goal.',
