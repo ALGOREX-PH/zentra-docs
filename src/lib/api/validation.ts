@@ -79,7 +79,10 @@ export function parseFeedbackInput(raw: unknown): FeedbackInput {
   let txHash: string | null = null;
   if (isPresent(body.txHash)) {
     if (isTxHash(body.txHash)) {
-      txHash = body.txHash;
+      // Accepted case-insensitively, stored lowercase: the database CHECK and
+      // the unique index both assume lowercase hex, so an upper-case hash from
+      // a client would otherwise be rejected by Postgres as a 500.
+      txHash = body.txHash.toLowerCase();
     } else {
       details.txHash = 'Transaction hash must be 64 hex characters.';
     }
