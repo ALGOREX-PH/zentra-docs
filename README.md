@@ -330,7 +330,7 @@ never vary cannot be forgotten or reinvented per handler:
 Honest limits are documented rather than papered over — the rate limiter is
 in-memory and therefore per-instance, and the feedback endpoints are
 deliberately unauthenticated. Both are written up in
-[`docs/API.md`](docs/API.md#known-limits).
+[`docs/API.md`](docs/API.md#10-known-limits).
 
 ### Backend setup
 
