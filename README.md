@@ -88,6 +88,7 @@ per-belt detail follows below.
 | 🟠 Orange | 3 — inter-contract + CI/CD + tests | [`/board`](https://zentra-docs.vercel.app/board) | `CCSXFTQT…ZDDES` + `CA2QOMGV…IIPI` |
 | 🟢 Green | 4 — production MVP + analytics + feedback | [`/metrics`](https://zentra-docs.vercel.app/metrics) | `CC6S6CKP…F4CUG` + Neon Postgres |
 | 🔵 Blue | 5 — growth, iteration & pitch | [`/join`](https://zentra-docs.vercel.app/join) · [`/pitch`](https://zentra-docs.vercel.app/pitch) | `users` registry + moderation |
+| ⚫ Black | 6 — mainnet-ready, security, adoption | [`/pitch`](https://zentra-docs.vercel.app/pitch) · [`/api/sponsor`](https://zentra-docs.vercel.app/api/sponsor) | multisig contract + fee sponsorship |
 
 Everything lives in **this** repo: contracts in [`contracts/`](contracts), the dApp
 in [`src/`](src), tests + CI in [`.github/workflows/ci.yml`](.github/workflows/ci.yml),
