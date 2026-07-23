@@ -300,6 +300,10 @@ export const PITCH_SLIDES: PitchSlide[] = [
     lead: 'v0.1 is live on testnet. Everything after it is articulated in the repo as versions, not as dates.',
     bullets: [
       {
+        label: 'Built, awaiting a launch decision',
+        body: 'Two of the four advanced capabilities already exist in the repo: an N-of-M multisig contract and fee-sponsored gasless transactions. The network is a single config switch that fails safe to testnet, and a full mainnet runbook — audit, key custody, funding, cutover, rollback — is written. Mainnet itself is gated behind an independent audit, on purpose.',
+      },
+      {
         label: 'Near — harden what exists',
         body: 'Rebuild the deployed verifying key against the current circuit and re-verify the Groth16 pairing on-chain; that work is gated on the `soroban_poseidon` host-function dependency. Then v0.2: composable, versioned, revocable policies, a TypeScript policy DSL, and policy templates.',
       },
