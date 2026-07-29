@@ -134,10 +134,10 @@ export function ProofLab({ onAnchored }: { onAnchored?: () => void }) {
       setPhase('done');
     } catch (err) {
       if (controller.signal.aborted) return;
-      const stage = err instanceof ProofError ? err.stage : 'proving';
+      const failedAt = err instanceof ProofError ? err.stage : 'proving';
       setError({
-        stage,
-        title: stage === 'circuit' ? 'Circuit could not be loaded' : 'Proving failed',
+        stage: failedAt,
+        title: failedAt === 'circuit' ? 'Circuit could not be loaded' : 'Proving failed',
         message: err instanceof Error ? err.message : 'Proof generation failed.',
       });
       setPhase('error');
