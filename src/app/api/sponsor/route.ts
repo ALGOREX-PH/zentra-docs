@@ -23,6 +23,7 @@ import {
   validationFailed,
 } from '@/lib/api/errors';
 import { log } from '@/lib/api/logger';
+import { requireSameOrigin } from '@/lib/api/origin';
 import {
   clientKey,
   rateLimit,
@@ -84,6 +85,11 @@ export const GET = route('sponsor.status', async (request) => {
 });
 
 export const POST = route('sponsor.bump', async (request, { requestId }) => {
+  // This is the one endpoint that spends real lumens, so it is the one that can
+  // least afford to be driven from someone else's page: refuse cross-origin
+  // callers before any budget, parsing or signing work happens.
+  requireSameOrigin(request, requestId);
+
   const headers = enforceRateLimit(request, 'sponsor:write', WRITE_LIMIT);
 
   const xdr = readXdr(await readBody(request));
