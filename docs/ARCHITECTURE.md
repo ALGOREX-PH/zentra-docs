@@ -397,8 +397,8 @@ from the other direction: it degrades to 503 with the fixed string
 
 | Suite | Scope | Count |
 | --- | --- | --- |
-| Vitest (`vitest.config.ts`, node environment, `@` alias) | `src/lib/api/{auth,client,errors,logger,moderation,rate-limit,validation,verify-anchor}` and `src/lib/stellar/{errors,format}` | 201 tests in 10 files, verified passing |
-| `cargo test` | `zentra-action-log` 5, `zentra-reputation` 3, `zentra-feedback` 4, `zentra-proof-registry` 2 | 14 `#[test]` functions; each contract also carries Soroban test snapshots |
+| Vitest (`vitest.config.ts`, node environment, `@` alias) | `src/lib/api/{auth,client,errors,logger,moderation,rate-limit,validation,verify-anchor}` and `src/lib/stellar/{errors,format}` | 255 tests in 12 files, verified passing |
+| `cargo test` | `zentra-action-log` 6, `zentra-reputation` 4, `zentra-feedback` 4, `zentra-proof-registry` 2, `zentra-multisig` 14 | 30 `#[test]` functions across five contracts; each contract also carries Soroban test snapshots |
 
 **CI** (`.github/workflows/ci.yml`, on every push and pull request, permissions
 `contents: read`): a `contracts` job (Rust stable, cargo cache, `cargo test` for
