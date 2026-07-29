@@ -158,42 +158,58 @@ function SignupForm() {
     }
   }
 
+  /**
+   * Success swaps the whole panel out, which a screen reader has no reason to
+   * notice. Rendering this region as the first child of both branches keeps one
+   * node across the switch, so the outcome is spoken instead of just drawn.
+   */
+  const announcement = (
+    <p aria-live="polite" aria-atomic="true" className="sr-only">
+      {status === 'success'
+        ? 'You are on the list. We will email you about the testnet programme.'
+        : ''}
+    </p>
+  );
+
   if (status === 'success') {
     return (
-      <HudPanel accent="cyan">
-        <div className="p-5 sm:p-6">
-          <Eyebrow accent="cyan">YOU ARE ON THE LIST</Eyebrow>
-          <p className="max-w-[520px] text-[15px] leading-relaxed text-text">
-            Thanks for joining. We will email you about the testnet programme —
-            nothing else.
-          </p>
-          <p className="mt-3 max-w-[520px] text-[13px] leading-relaxed text-muted">
-            You do not have to wait for us. Everything is live on Stellar testnet
-            right now.
-          </p>
-          <div className="mt-5 flex flex-wrap gap-3">
-            <Link
-              href="/app"
-              className={cn(
-                'inline-flex items-center gap-2 bg-violet px-4 py-2.5 font-mono text-xs uppercase tracking-[0.1em] text-white transition-colors hover:bg-violet-bright',
-                focusRing,
-              )}
-            >
-              <span aria-hidden className="size-1.5 bg-cyan" />
-              Open the testnet app
-            </Link>
-            <Link
-              href="/playground"
-              className={cn(
-                'inline-flex items-center border border-fd-border px-4 py-2.5 font-mono text-xs uppercase tracking-[0.1em] text-muted transition-colors hover:border-cyan/40 hover:text-cyan',
-                focusRing,
-              )}
-            >
-              Try the playground
-            </Link>
+      <>
+        {announcement}
+        <HudPanel accent="cyan">
+          <div className="p-5 sm:p-6">
+            <Eyebrow accent="cyan">YOU ARE ON THE LIST</Eyebrow>
+            <p className="max-w-[520px] text-[15px] leading-relaxed text-text">
+              Thanks for joining. We will email you about the testnet programme —
+              nothing else.
+            </p>
+            <p className="mt-3 max-w-[520px] text-[13px] leading-relaxed text-muted">
+              You do not have to wait for us. Everything is live on Stellar testnet
+              right now.
+            </p>
+            <div className="mt-5 flex flex-wrap gap-3">
+              <Link
+                href="/app"
+                className={cn(
+                  'inline-flex items-center gap-2 bg-violet px-4 py-2.5 font-mono text-xs uppercase tracking-[0.1em] text-white transition-colors hover:bg-violet-bright',
+                  focusRing,
+                )}
+              >
+                <span aria-hidden className="size-1.5 bg-cyan" />
+                Open the testnet app
+              </Link>
+              <Link
+                href="/playground"
+                className={cn(
+                  'inline-flex items-center border border-fd-border px-4 py-2.5 font-mono text-xs uppercase tracking-[0.1em] text-muted transition-colors hover:border-cyan/40 hover:text-cyan',
+                  focusRing,
+                )}
+              >
+                Try the playground
+              </Link>
+            </div>
           </div>
-        </div>
-      </HudPanel>
+        </HudPanel>
+      </>
     );
   }
 
@@ -203,181 +219,190 @@ function SignupForm() {
   const noteError = errorFor('note');
 
   return (
-    <HudPanel accent="violet">
-      <div className="p-5 sm:p-6">
-        <Eyebrow>REGISTER</Eyebrow>
+    <>
+      {announcement}
+      <HudPanel accent="violet">
+        <div className="p-5 sm:p-6">
+          <Eyebrow>REGISTER</Eyebrow>
 
-        <form onSubmit={handleSubmit} noValidate>
-          <label htmlFor={`${ids}-name`} className={labelClass}>
-            Name
-          </label>
-          <input
-            id={`${ids}-name`}
-            name="name"
-            type="text"
-            maxLength={MAX_NAME}
-            required
-            value={name}
-            onChange={(event) => setName(event.target.value)}
-            onBlur={() => markTouched('name')}
-            aria-invalid={nameError !== null}
-            aria-describedby={nameError ? `${ids}-name-error` : undefined}
-            className={fieldClass}
-          />
-          {nameError ? (
-            <p id={`${ids}-name-error`} className="mt-1 font-mono text-[11px] text-denied">
-              {nameError}
-            </p>
-          ) : null}
-
-          <label htmlFor={`${ids}-email`} className={cn(labelClass, 'mt-4')}>
-            Email
-          </label>
-          <input
-            id={`${ids}-email`}
-            name="email"
-            type="email"
-            autoComplete="email"
-            required
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            onBlur={() => markTouched('email')}
-            aria-invalid={emailError !== null}
-            aria-describedby={emailError ? `${ids}-email-error` : undefined}
-            className={fieldClass}
-          />
-          {emailError ? (
-            <p id={`${ids}-email-error`} className="mt-1 font-mono text-[11px] text-denied">
-              {emailError}
-            </p>
-          ) : null}
-
-          <label htmlFor={`${ids}-wallet`} className={cn(labelClass, 'mt-4')}>
-            Stellar wallet
-          </label>
-          <input
-            id={`${ids}-wallet`}
-            name="wallet"
-            type="text"
-            required
-            spellCheck={false}
-            autoComplete="off"
-            placeholder="G…"
-            value={wallet}
-            onChange={(event) => {
-              setWalletEdited(true);
-              setWallet(event.target.value.trim());
-            }}
-            onBlur={() => markTouched('wallet')}
-            aria-invalid={walletError !== null}
-            aria-describedby={[walletError ? `${ids}-wallet-error` : null, `${ids}-wallet-hint`]
-              .filter(Boolean)
-              .join(' ')}
-            className={fieldClass}
-          />
-          {walletError ? (
-            <p id={`${ids}-wallet-error`} className="mt-1 font-mono text-[11px] text-denied">
-              {walletError}
-            </p>
-          ) : null}
-          <p id={`${ids}-wallet-hint`} className="mt-1 font-mono text-[11px] text-faint">
-            {prefilled
-              ? 'From your connected wallet — edit it if you want to register a different account.'
-              : 'Connect a wallet anywhere on the site to autofill this, or paste a testnet account id.'}
-          </p>
-
-          <span id={`${ids}-rating-label`} className={cn(labelClass, 'mt-4')}>
-            Rating (optional)
-          </span>
-          {/*
-            A group rather than a radiogroup: these stay ordinary buttons, so
-            every star keeps its own tab stop and Enter/Space, and the filled
-            state is carried by aria-pressed instead of a glyph nobody hears.
-          */}
-          <div
-            role="group"
-            aria-labelledby={`${ids}-rating-label`}
-            className="flex items-center gap-1"
-          >
-            {[1, 2, 3, 4, 5].map((value) => {
-              const filled = value <= rating;
-              return (
-                <button
-                  key={value}
-                  type="button"
-                  aria-label={`Rate ${value} of 5`}
-                  aria-pressed={filled}
-                  onClick={() => setRating(value)}
-                  className={cn(
-                    'text-2xl leading-none transition-colors',
-                    filled ? 'text-cyan' : 'text-faint',
-                    focusRing,
-                  )}
-                >
-                  {filled ? '★' : '☆'}
-                </button>
-              );
-            })}
-          </div>
-
-          <label htmlFor={`${ids}-note`} className={cn(labelClass, 'mt-4')}>
-            Note (optional)
-          </label>
-          <textarea
-            id={`${ids}-note`}
-            name="note"
-            rows={3}
-            value={note}
-            onChange={(event) => setNote(event.target.value)}
-            onBlur={() => markTouched('note')}
-            placeholder="What are you hoping to build?"
-            aria-invalid={noteError !== null}
-            aria-describedby={[noteError ? `${ids}-note-error` : null, `${ids}-note-count`]
-              .filter(Boolean)
-              .join(' ')}
-            className={cn(fieldClass, 'resize-none')}
-          />
-
-          <div className="mt-1 flex items-start justify-between gap-3 font-mono text-[11px]">
-            {noteError ? (
-              <p id={`${ids}-note-error`} className="text-denied">
-                {noteError}
+          <form onSubmit={handleSubmit} noValidate>
+            <label htmlFor={`${ids}-name`} className={labelClass}>
+              Name
+            </label>
+            <input
+              id={`${ids}-name`}
+              name="name"
+              type="text"
+              maxLength={MAX_NAME}
+              required
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+              onBlur={() => markTouched('name')}
+              aria-invalid={nameError !== null}
+              aria-describedby={nameError ? `${ids}-name-error` : undefined}
+              className={fieldClass}
+            />
+            {nameError ? (
+              <p id={`${ids}-name-error`} className="mt-1 font-mono text-[11px] text-denied">
+                {nameError}
               </p>
-            ) : (
-              <span />
-            )}
-            <span
-              id={`${ids}-note-count`}
-              className={cn('shrink-0 text-faint', noteOver && 'text-denied')}
-            >
-              {note.length}/{MAX_NOTE}
-            </span>
-          </div>
+            ) : null}
 
-          <button
-            type="submit"
-            disabled={disabled}
-            className={cn(
-              'mt-4 w-full bg-violet px-4 py-3 font-mono text-xs uppercase tracking-[0.1em] text-white transition-colors hover:bg-violet-bright disabled:cursor-not-allowed disabled:opacity-50',
-              focusRing,
-            )}
-          >
-            {inFlight ? 'Registering…' : 'Join the testnet programme'}
-          </button>
+            <label htmlFor={`${ids}-email`} className={cn(labelClass, 'mt-4')}>
+              Email
+            </label>
+            <input
+              id={`${ids}-email`}
+              name="email"
+              type="email"
+              autoComplete="email"
+              required
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              onBlur={() => markTouched('email')}
+              aria-invalid={emailError !== null}
+              aria-describedby={emailError ? `${ids}-email-error` : undefined}
+              className={fieldClass}
+            />
+            {emailError ? (
+              <p id={`${ids}-email-error`} className="mt-1 font-mono text-[11px] text-denied">
+                {emailError}
+              </p>
+            ) : null}
 
-          {status === 'error' && error ? (
-            <p role="alert" className="mt-2 font-mono text-xs text-denied">
-              {error}
+            <label htmlFor={`${ids}-wallet`} className={cn(labelClass, 'mt-4')}>
+              Stellar wallet
+            </label>
+            <input
+              id={`${ids}-wallet`}
+              name="wallet"
+              type="text"
+              required
+              spellCheck={false}
+              autoComplete="off"
+              placeholder="G…"
+              value={wallet}
+              onChange={(event) => {
+                setWalletEdited(true);
+                setWallet(event.target.value.trim());
+              }}
+              onBlur={() => markTouched('wallet')}
+              aria-invalid={walletError !== null}
+              aria-describedby={[walletError ? `${ids}-wallet-error` : null, `${ids}-wallet-hint`]
+                .filter(Boolean)
+                .join(' ')}
+              className={fieldClass}
+            />
+            {walletError ? (
+              <p id={`${ids}-wallet-error`} className="mt-1 font-mono text-[11px] text-denied">
+                {walletError}
+              </p>
+            ) : null}
+            <p id={`${ids}-wallet-hint`} className="mt-1 font-mono text-[11px] text-faint">
+              {prefilled
+                ? 'From your connected wallet — edit it if you want to register a different account.'
+                : 'Connect a wallet anywhere on the site to autofill this, or paste a testnet account id.'}
             </p>
-          ) : null}
-        </form>
 
-        <p className="mt-4 max-w-[520px] text-[12px] leading-relaxed text-faint">
-          Your email is used only to contact you about the Zentra testnet
-          programme. It is never displayed publicly, never shown alongside your
-          wallet, and never sold or shared.
-        </p>
-      </div>
-    </HudPanel>
+            <span id={`${ids}-rating-label`} className={cn(labelClass, 'mt-4')}>
+              Rating (optional)
+            </span>
+            {/*
+              A group rather than a radiogroup: these stay ordinary buttons, so
+              every star keeps its own tab stop and Enter/Space, and the filled
+              state is carried by aria-pressed instead of a glyph nobody hears.
+            */}
+            <div
+              role="group"
+              aria-labelledby={`${ids}-rating-label`}
+              className="flex items-center gap-1"
+            >
+              {[1, 2, 3, 4, 5].map((value) => {
+                const filled = value <= rating;
+                return (
+                  <button
+                    key={value}
+                    type="button"
+                    aria-label={`Rate ${value} of 5`}
+                    aria-pressed={filled}
+                    onClick={() => setRating(value)}
+                    className={cn(
+                      'text-2xl leading-none transition-colors',
+                      filled ? 'text-cyan' : 'text-faint',
+                      focusRing,
+                    )}
+                  >
+                    {filled ? '★' : '☆'}
+                  </button>
+                );
+              })}
+            </div>
+
+            <label htmlFor={`${ids}-note`} className={cn(labelClass, 'mt-4')}>
+              Note (optional)
+            </label>
+            <textarea
+              id={`${ids}-note`}
+              name="note"
+              rows={3}
+              value={note}
+              onChange={(event) => setNote(event.target.value)}
+              onBlur={() => markTouched('note')}
+              placeholder="What are you hoping to build?"
+              aria-invalid={noteError !== null}
+              aria-describedby={[noteError ? `${ids}-note-error` : null, `${ids}-note-count`]
+                .filter(Boolean)
+                .join(' ')}
+              className={cn(fieldClass, 'resize-none')}
+            />
+
+            <div className="mt-1 flex items-start justify-between gap-3 font-mono text-[11px]">
+              {noteError ? (
+                <p id={`${ids}-note-error`} className="text-denied">
+                  {noteError}
+                </p>
+              ) : (
+                <span />
+              )}
+              <span
+                id={`${ids}-note-count`}
+                className={cn('shrink-0 text-faint', noteOver && 'text-denied')}
+              >
+                {note.length}/{MAX_NOTE}
+              </span>
+            </div>
+
+            <button
+              type="submit"
+              disabled={disabled}
+              className={cn(
+                'mt-4 w-full bg-violet px-4 py-3 font-mono text-xs uppercase tracking-[0.1em] text-white transition-colors hover:bg-violet-bright disabled:cursor-not-allowed disabled:opacity-50',
+                focusRing,
+              )}
+            >
+              {inFlight ? 'Registering…' : 'Join the testnet programme'}
+            </button>
+
+            {/* Mounted from the first render so the alert is not created and
+                filled in the same tick, which screen readers routinely miss. */}
+            <p
+              role="alert"
+              className={cn(
+                'font-mono text-xs text-denied',
+                status === 'error' && error && 'mt-2',
+              )}
+            >
+              {status === 'error' && error ? error : ''}
+            </p>
+          </form>
+
+          <p className="mt-4 max-w-[520px] text-[12px] leading-relaxed text-faint">
+            Your email is used only to contact you about the Zentra testnet
+            programme. It is never displayed publicly, never shown alongside your
+            wallet, and never sold or shared.
+          </p>
+        </div>
+      </HudPanel>
+    </>
   );
 }
