@@ -33,11 +33,16 @@ function PanelSkeleton({ lines = 3 }: { lines?: number }) {
 export default function Loading() {
   return (
     <main
-      role="status"
-      aria-label="Loading"
-      className="zen-grid px-5 py-14 sm:px-7 sm:py-20"
+      id="content"
+      tabIndex={-1}
+      aria-busy="true"
+      className="zen-grid flex-1 px-5 py-14 focus:outline-none sm:px-7 sm:py-20"
     >
-      <span className="sr-only">Loading</span>
+      {/* The live region is a child, not the landmark itself — `role="status"`
+          on `<main>` would replace the main role rather than add to it. */}
+      <p role="status" className="sr-only">
+        Loading this page.
+      </p>
 
       <div aria-hidden="true" className="mx-auto max-w-[1100px]">
         <div className="border-b border-violet/20 pb-8">
