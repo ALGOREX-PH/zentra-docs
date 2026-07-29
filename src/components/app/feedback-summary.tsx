@@ -75,6 +75,17 @@ export function FeedbackSummary({ refreshSignal = 0 }: { refreshSignal?: number 
           <p className="font-mono text-sm text-muted">No feedback yet — be the first.</p>
         ) : (
           <>
+            {/*
+              A refresh that fails after the first load used to be invisible:
+              the summary kept showing the previous response as if it were
+              current. The figures stay, with a line saying they may not be.
+            */}
+            {error ? (
+              <p className="mb-3 border border-denied/40 bg-denied/[0.06] px-3 py-2 font-mono text-[11px] text-denied">
+                {error} Showing the last response loaded.
+              </p>
+            ) : null}
+
             <div className="mb-4 flex items-baseline gap-2">
               <span className="font-display text-3xl text-text">
                 {data.average.toFixed(1)}
