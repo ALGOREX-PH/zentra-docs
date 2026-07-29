@@ -101,7 +101,7 @@ export function VerifierMonolith() {
 
               <div
                 className="absolute left-1/2 top-16 flex h-[26px] w-[54px] items-center justify-center font-mono text-[10px] font-bold text-[#06070d] transition-all duration-700"
-                style={{ background: 'linear-gradient(135deg,#7c3aed,#00e5ff)', boxShadow: '0 0 16px rgba(0,229,255,0.5)', transform: `translate(-50%, ${dropped ? '96px' : '-44px'})`, opacity: dropped ? 0 : 1 }}
+                style={{ background: 'linear-gradient(135deg,#8b5cf6,#00e5ff)', boxShadow: '0 0 16px rgba(0,229,255,0.5)', transform: `translate(-50%, ${dropped ? '96px' : '-44px'})`, opacity: dropped ? 0 : 1 }}
               >
                 PROOF
               </div>
