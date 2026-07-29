@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { HudPanel, Eyebrow } from '@/components/landing/primitives';
 import {
+  ProofError,
   generateProof,
   loadExampleInput,
   type ProofResult,
@@ -15,12 +16,20 @@ import { WhatThisProves } from '@/components/playground/what-this-proves';
 import { cn } from '@/lib/cn';
 
 type Phase = 'idle' | 'proving' | 'done' | 'error';
-type StepState = 'pending' | 'active' | 'done';
+type StepState = 'pending' | 'active' | 'done' | 'failed';
+
+/** A failure, pinned to the step it happened in. */
+interface RunError {
+  stage: ProofStage;
+  title: string;
+  message: string;
+}
 
 const STEP_CLASS: Record<StepState, string> = {
   pending: 'border-fd-border text-faint',
   active: 'border-cyan/50 text-cyan',
   done: 'border-live/40 text-live',
+  failed: 'border-denied/50 text-denied',
 };
 
 function short(value: string, head = 10, tail = 6) {
@@ -29,8 +38,18 @@ function short(value: string, head = 10, tail = 6) {
 }
 
 /** Where a step sits relative to the phase the run has actually reached. */
-function stepState(step: PipelineStep, phase: Phase, stage: ProofStage): StepState {
+function stepState(
+  step: PipelineStep,
+  phase: Phase,
+  stage: ProofStage,
+  failedAt: ProofStage | null,
+): StepState {
   if (phase === 'done') return 'done';
+  if (phase === 'error') {
+    if (failedAt === null) return 'pending';
+    if (step.stage === failedAt) return 'failed';
+    return step.stage === 'circuit' ? 'done' : 'pending';
+  }
   if (phase !== 'proving') return 'pending';
   if (step.stage === stage) return 'active';
   return stage === 'proving' && step.stage === 'circuit' ? 'done' : 'pending';
@@ -42,7 +61,7 @@ export function ProofLab({ onAnchored }: { onAnchored?: () => void }) {
   const [percent, setPercent] = useState(0);
   const [elapsed, setElapsed] = useState(0);
   const [result, setResult] = useState<ProofResult | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<RunError | null>(null);
   const run = useRef<AbortController | null>(null);
 
   // Tear the worker down if the user leaves mid-proof.
@@ -82,11 +101,28 @@ export function ProofLab({ onAnchored }: { onAnchored?: () => void }) {
         },
       });
       if (controller.signal.aborted) return;
+      // A proof that fails its own verification is a failure, not a result:
+      // it must never reach the signals table or the on-chain anchor.
+      if (!res.verified) {
+        setError({
+          stage: 'proving',
+          title: 'Proof did not verify',
+          message:
+            'The proof was produced but failed verification against the verification key, so it was discarded.',
+        });
+        setPhase('error');
+        return;
+      }
       setResult(res);
       setPhase('done');
     } catch (err) {
       if (controller.signal.aborted) return;
-      setError(err instanceof Error ? err.message : 'Proof generation failed.');
+      const stage = err instanceof ProofError ? err.stage : 'proving';
+      setError({
+        stage,
+        title: stage === 'circuit' ? 'Circuit could not be loaded' : 'Proving failed',
+        message: err instanceof Error ? err.message : 'Proof generation failed.',
+      });
       setPhase('error');
     }
   }
@@ -115,12 +151,24 @@ export function ProofLab({ onAnchored }: { onAnchored?: () => void }) {
             className="mt-5 inline-flex items-center gap-2 bg-violet px-5 py-3 font-mono text-xs uppercase tracking-[0.1em] text-white transition-colors hover:bg-[#8b5cf6] disabled:cursor-not-allowed disabled:opacity-50"
           >
             <span aria-hidden className="size-1.5 bg-cyan" />
-            {proving ? 'Proving…' : 'Generate real proof'}
+            {proving
+              ? 'Proving…'
+              : phase === 'error'
+                ? 'Try again'
+                : phase === 'done'
+                  ? 'Generate another proof'
+                  : 'Generate real proof'}
           </button>
+
+          {phase === 'idle' ? (
+            <p className="mt-4 font-mono text-[11px] text-faint">
+              No proof yet — nothing is sent to a server, the circuit runs in this tab.
+            </p>
+          ) : null}
 
           <ol className="mt-6 grid gap-3 sm:grid-cols-4">
             {PIPELINE.map((step, i) => {
-              const state = stepState(step, phase, stage);
+              const state = stepState(step, phase, stage, error?.stage ?? null);
               return (
                 <li
                   key={step.label}
@@ -171,7 +219,16 @@ export function ProofLab({ onAnchored }: { onAnchored?: () => void }) {
           ) : null}
 
           {error ? (
-            <p className="mt-4 font-mono text-xs text-denied">{error}</p>
+            <div role="alert" className="mt-4 border border-denied/40 bg-denied/[0.06] px-4 py-3">
+              <h3 className="font-mono text-xs uppercase tracking-[0.1em] text-denied">
+                {error.title}
+              </h3>
+              <p className="mt-1 text-[13px] text-muted">{error.message}</p>
+              <p className="mt-1.5 font-mono text-[11px] text-faint">
+                Nothing left this tab, and nothing was anchored — press{' '}
+                <span className="text-muted">Try again</span> to re-run it.
+              </p>
+            </div>
           ) : null}
         </div>
       </HudPanel>
@@ -191,7 +248,7 @@ export function ProofLab({ onAnchored }: { onAnchored?: () => void }) {
                 <svg width="14" height="14" viewBox="0 0 15 15" aria-hidden>
                   <polyline points="2,8 6,12 13,3" fill="none" stroke="#22c55e" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
-                Verified locally · {result.verified ? 'valid' : 'INVALID'}
+                Verified locally · valid
                 <span className="ml-auto text-faint">
                   prove {result.proveMs}ms · verify {result.verifyMs}ms
                 </span>
