@@ -25,9 +25,11 @@ export default function MetricsPage() {
               Usage &amp; feedback
             </h1>
             <p className="mt-3 max-w-[560px] text-[15px] text-muted sm:text-base">
-              Live on-chain usage read straight from the contracts, plus product
-              feedback collected both on-chain and in Postgres. Page views and Web
-              Vitals are tracked with Vercel Analytics.
+              The whole adoption picture in one panel: registry signups, the wallets
+              that actually transacted, and what they did — each labelled with what
+              it measures, and stamped with the network, ledger and time it was read
+              at. Below it, product feedback collected both on-chain and in Postgres.
+              Page views and Web Vitals are tracked with Vercel Analytics.
             </p>
           </div>
           <ConnectButton />
@@ -42,10 +44,19 @@ export default function MetricsPage() {
           <FeedbackSummary refreshSignal={refresh} />
         </div>
 
+        {/*
+          Repeated under the panel because this is the one confusion that would
+          make the numbers above worthless: a reviewer who reads "signups" as
+          "active wallets" has been handed a figure nobody claimed. Neither is
+          derived from the other, and only one of them is proof.
+        */}
         <p className="mt-10 max-w-[680px] font-mono text-xs leading-relaxed text-faint">
-          Distinct wallets and total actions are read live from the Soroban
-          contracts — verifiable proof of real usage. Feedback anchored on-chain
-          links to its transaction on stellar.expert.
+          Signups and on-chain wallets are separate counts. A signup is a row
+          somebody submitted; a wallet in the on-chain count signed a transaction
+          the contracts recorded, which is the only one of the two that proves
+          usage. Distinct wallets stay a lower bound for as long as the contracts
+          hold more entries than one capped read returns. Feedback anchored
+          on-chain links to its transaction on stellar.expert.
         </p>
       </div>
     </main>
