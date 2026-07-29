@@ -372,7 +372,7 @@ already sitting in the database, not by guesswork.
 
 | Requirement | Implementation |
 | --- | --- |
-| Minimum 50 testnet users | [`/join`](https://zentra-docs.vercel.app/join) registry + `users` table; live counter on the page |
+| Minimum 50 testnet users | **Not met — 0 registered.** [`/join`](https://zentra-docs.vercel.app/join) registry + `users` table are built and live; the counter on the page reads what the table holds, which is nothing yet |
 | Real transaction activity | `/metrics` reads distinct wallets and total actions live from the contracts |
 | Active usage proof | every anchored submission links to its transaction on stellar.expert |
 | New features from feedback | the iteration table below, each row with its commit |
@@ -414,6 +414,11 @@ The export is admin-gated because the registry holds names and email addresses,
 and it escapes leading `=`, `+`, `-` and `@` so a submitted value cannot execute
 as a formula when the sheet is opened in Excel. The exported sheet lives at
 [`docs/users/onboarding-responses.csv`](docs/users/onboarding-responses.csv).
+
+As of this commit that sheet is a header row and nothing else: **zero people
+have registered.** The intake paths, the export and the counter all work; the
+registry is empty because nobody has been through it yet, and an empty table is
+the honest thing to publish until they have.
 
 ### Next phase
 
