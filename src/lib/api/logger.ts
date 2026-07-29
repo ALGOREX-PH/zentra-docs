@@ -17,7 +17,7 @@ export interface LogFields {
 
 /** Keys whose values are never safe to write to a log drain. */
 const SENSITIVE_KEY =
-  /(secret|token|password|key|authorization|cookie|database_url|connection)/i;
+  /(secret|token|password|key|authorization|cookie|database_url|connection|email|\bname\b)/i;
 
 /** Placeholder substituted for any value under a sensitive key. */
 const REDACTED = '[redacted]';
@@ -68,18 +68,42 @@ export function newRequestId(): string {
 }
 
 /**
- * Return a shallow copy of `fields` with values under sensitive keys masked.
+ * Return a copy of `fields` with values under sensitive keys masked.
  *
- * Matching is by key name only, so nested objects are left untouched — keep
- * credentials at the top level of the fields you log.
+ * Matching is by key name, applied recursively through plain objects and arrays
+ * so a credential nested inside a request or config payload is masked too.
+ * `Error` values are left for `normalise`, which scrubs them separately.
  */
 export function redact(fields: LogFields): LogFields {
   const out: LogFields = {};
   for (const key of Object.keys(fields)) {
-    out[key] = SENSITIVE_KEY.test(key) ? REDACTED : fields[key];
+    out[key] = SENSITIVE_KEY.test(key) ? REDACTED : redactValue(fields[key]);
   }
   return out;
 }
+
+/** Recurse through plain containers, leaving `Error` and exotic objects alone. */
+function redactValue(value: unknown): unknown {
+  if (value instanceof Error) return value;
+  if (Array.isArray(value)) return value.map(redactValue);
+  if (value !== null && typeof value === 'object' && isPlainObject(value)) {
+    return redact(value as LogFields);
+  }
+  return value;
+}
+
+function isPlainObject(value: object): boolean {
+  const proto = Object.getPrototypeOf(value);
+  return proto === Object.prototype || proto === null;
+}
+
+/**
+ * Credentials embedded in a connection URI, e.g. `postgres://user:password@host`.
+ *
+ * Driver errors routinely quote the whole DSN back in their message and stack,
+ * which would otherwise write the database password straight to the log drain.
+ */
+const EMBEDDED_CREDENTIAL = /\/\/[^\s/@]+:[^\s/@]+@/;
 
 /**
  * Replace `Error` values with a plain `{ name, message }` object (plus `stack`
