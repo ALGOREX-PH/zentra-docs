@@ -37,16 +37,18 @@ export function Hero() {
             PRIVATE POLICY → PUBLIC ENFORCEMENT → VERIFIED RECEIPTS
           </p>
 
-          <div className="mt-8 flex flex-wrap">
+          {/* the pair is a joined block: stacked below sm, side by side above it, so
+              the shared edge moves from the top border to the left one */}
+          <div className="mt-8 flex flex-col sm:flex-row sm:flex-wrap">
             <Link
               href="/docs/quickstart"
-              className="inline-flex items-center gap-2.5 bg-violet px-6 py-3.5 text-sm font-semibold text-white transition-shadow hover:shadow-[0_0_28px_rgba(124,58,237,0.5)]"
+              className="inline-flex items-center justify-center gap-2.5 bg-violet px-6 py-3.5 text-sm font-semibold text-white transition-shadow hover:shadow-[0_0_28px_rgba(124,58,237,0.5)]"
             >
               Start Building <span className="font-mono text-[13px]">→</span>
             </Link>
             <Link
               href="/playground"
-              className="inline-flex items-center border border-l-0 border-fd-border px-6 py-3.5 text-sm font-semibold text-[#e2e8f0] transition-colors hover:border-cyan/60 hover:text-cyan"
+              className="inline-flex items-center justify-center border border-t-0 border-fd-border px-6 py-3.5 text-sm font-semibold text-[#e2e8f0] transition-colors hover:border-cyan/60 hover:text-cyan sm:border-l-0 sm:border-t"
             >
               Playground
             </Link>
