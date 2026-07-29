@@ -5,6 +5,9 @@ import { stellar } from '@/config/stellar';
 import { truncateAddress } from '@/lib/stellar/format';
 import { cn } from '@/lib/cn';
 
+const focusRing =
+  'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan';
+
 const inFlightLabels = {
   building: 'Building transaction…',
   signing: 'Awaiting signature in your wallet…',
@@ -23,7 +26,7 @@ function HashLink({ hash }: { hash: string }) {
       href={stellar.explorerTxUrl(hash)}
       target="_blank"
       rel="noreferrer"
-      className="font-mono text-xs text-cyan underline-offset-2 hover:underline"
+      className={cn('font-mono text-xs text-cyan underline-offset-2 hover:underline', focusRing)}
     >
       Tx {truncateAddress(hash)}
     </a>
