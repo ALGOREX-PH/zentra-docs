@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useId, useState, type ReactNode } from 'react';
+import Link from 'next/link';
 import { useWallet } from '@/components/app/wallet-provider';
 import { getXlmBalance } from '@/lib/stellar/account';
 import { HudPanel, Eyebrow } from '@/components/landing/primitives';
@@ -87,6 +88,29 @@ const STEPS: ReadonlyArray<{ title: string; body: ReactNode }> = [
       </>
     ),
   },
+  {
+    title: 'Record an action on-chain',
+    body: (
+      <>
+        A funded wallet is the prerequisite, not the point.{' '}
+        <Link
+          href="/board"
+          className={cn(
+            'text-cyan underline-offset-4 hover:underline',
+            focusRing,
+          )}
+        >
+          Open the board
+        </Link>
+        , write up to 200 characters and sign: the Action Log contract stores the
+        entry, a cross-contract call bumps your score in the Reputation contract,
+        and a <span className="text-text">recorded</span> event goes out. Done when
+        the form hands back a transaction hash you can open on stellar.expert —
+        your entry heads the live feed the moment the transaction settles, and
+        anyone else watching picks it up on the next six-second poll.
+      </>
+    ),
+  },
 ];
 
 /** The step the on-chain balance answers for. */
@@ -108,11 +132,15 @@ const FUND_POLL_MS = 6000;
  * chain and nothing else, so a read that is pending, failed, or zero leaves the
  * funding step "current" instead of quietly promoting it. With no wallet we know
  * nothing, so every later step renders neutral.
+ *
+ * The recording step never reads as done: nothing on this page can see a write
+ * made on /board, so it stays the current step rather than guessing at one.
  */
 function statusFor(index: number, connected: boolean, funding: Funding): StepStatus {
   if (!connected) return index === 0 ? 'current' : 'pending';
   if (index < FUND_STEP) return 'done';
-  return funding === 'funded' ? 'done' : 'current';
+  if (funding !== 'funded') return index === FUND_STEP ? 'current' : 'pending';
+  return index === FUND_STEP ? 'done' : 'current';
 }
 
 const BADGE: Record<StepStatus, string | null> = {
@@ -136,7 +164,7 @@ const SUMMARY: Record<Funding, { dot: string; text: string }> = {
   },
   funded: {
     dot: 'bg-live',
-    text: 'Wallet connected and funded on testnet.',
+    text: 'Wallet connected and funded on testnet. Next: record an action.',
   },
   unreadable: {
     dot: 'bg-denied',
@@ -177,6 +205,10 @@ function FundingNote({ funding }: { funding: Funding }) {
  * Friendbot funds it. This spells out those steps and marks each one against
  * state that can actually be observed — the wallet connection and the account's
  * balance on chain.
+ *
+ * The list deliberately runs one step past this page. A funded wallet that never
+ * records anything is not activity, so the last step hands the user to /board,
+ * where a write actually lands on-chain.
  *
  * Progressive disclosure: once the account can transact the guide collapses to a
  * one-line confirmation so a returning user's wallet UI stays above the fold,
@@ -266,31 +298,50 @@ export function GetStarted() {
               <span aria-hidden className={cn('size-1.5 shrink-0', summary.dot)} />
               {summary.text}
             </p>
-            <button
-              type="button"
-              onClick={() => setOverride(!expanded)}
-              aria-expanded={expanded}
-              aria-controls={panelId}
-              className={cn(
-                'border border-fd-border px-3 py-1.5 font-mono text-[11px] uppercase tracking-[0.08em] text-muted transition-colors hover:border-cyan/40 hover:text-cyan',
-                focusRing,
-              )}
-            >
-              {expanded ? 'Hide steps' : 'Need help?'}
-            </button>
+            <div className="flex items-center gap-2">
+              {/*
+                Collapsed is the state a returning visitor sees most, so the one
+                thing left to do has to survive the collapse — otherwise the guide
+                folds away and the flow ends on a balance figure.
+              */}
+              {funded ? (
+                <Link
+                  href="/board"
+                  className={cn(
+                    'inline-flex items-center gap-2 bg-violet px-3 py-1.5 font-mono text-[11px] uppercase tracking-[0.08em] text-white transition-colors hover:bg-violet-bright',
+                    focusRing,
+                  )}
+                >
+                  <span aria-hidden className="size-1.5 bg-cyan" />
+                  Record an action
+                </Link>
+              ) : null}
+              <button
+                type="button"
+                onClick={() => setOverride(!expanded)}
+                aria-expanded={expanded}
+                aria-controls={panelId}
+                className={cn(
+                  'border border-fd-border px-3 py-1.5 font-mono text-[11px] uppercase tracking-[0.08em] text-muted transition-colors hover:border-cyan/40 hover:text-cyan',
+                  focusRing,
+                )}
+              >
+                {expanded ? 'Hide steps' : 'Need help?'}
+              </button>
+            </div>
           </div>
         ) : null}
 
         <div id={panelId} hidden={!expanded}>
           <div className={cn(connected && 'mt-6')}>
             <Eyebrow accent={funded ? 'cyan' : 'violet'}>
-              GET STARTED · 3 STEPS
+              GET STARTED · 4 STEPS
             </Eyebrow>
 
             {!connected ? (
               <p className="-mt-2 mb-4 max-w-[560px] text-[13px] leading-relaxed text-muted sm:text-sm">
-                Three things stand between a fresh browser and a signed testnet
-                payment. Roughly a minute, one time.
+                Four things stand between a fresh browser and your first action
+                recorded on-chain. A couple of minutes, one time.
               </p>
             ) : null}
 
