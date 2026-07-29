@@ -81,7 +81,7 @@ console.log(result.status); // released`;
     <section id="developer" ref={wrap} className="border-t border-violet/20 bg-abyss px-5 py-14 sm:px-7 sm:py-20">
       <div className="mx-auto max-w-[1160px]">
         <div className="mb-10 flex items-center gap-3.5">
-          <span className="font-mono text-xs tracking-[0.12em] text-violet">[ 04 ] FOR DEVELOPERS</span>
+          <span className="font-mono text-xs tracking-[0.12em] text-violet-soft">[ 04 ] FOR DEVELOPERS</span>
           <span className="h-px flex-1 bg-violet/25" />
         </div>
 

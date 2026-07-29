@@ -23,7 +23,7 @@ export function TheGap() {
     <section className="border-t border-violet/20 px-5 py-14 sm:px-7 sm:py-20">
       <div className="mx-auto max-w-[920px]">
         <div className="mb-5 flex items-center gap-3.5">
-          <span className="font-mono text-xs tracking-[0.12em] text-violet">[ 01 ] THE TRUST GAP</span>
+          <span className="font-mono text-xs tracking-[0.12em] text-violet-soft">[ 01 ] THE TRUST GAP</span>
           <span className="h-px flex-1 bg-violet/25" />
         </div>
         <h2 className="font-display text-3xl font-bold tracking-[-0.025em] sm:text-[40px]">

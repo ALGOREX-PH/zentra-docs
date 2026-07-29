@@ -50,7 +50,7 @@ export function VerifierMonolith() {
     <section ref={wrap} className="border-t border-violet/20 px-5 py-14 sm:px-7 sm:py-20">
       <div className="mx-auto max-w-[1160px]">
         <div className="mb-[18px] flex items-center gap-3.5">
-          <span className="font-mono text-xs tracking-[0.12em] text-violet">[ 03 ] ON-CHAIN VERIFICATION</span>
+          <span className="font-mono text-xs tracking-[0.12em] text-violet-soft">[ 03 ] ON-CHAIN VERIFICATION</span>
           <span className="h-px flex-1 bg-violet/25" />
         </div>
 

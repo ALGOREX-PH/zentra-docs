@@ -169,7 +169,7 @@ export function ScenarioPanels() {
     <section id="panels" className="border-t border-violet/20 bg-abyss px-5 py-14 sm:px-7 sm:py-20">
       <div className="mx-auto max-w-[1160px]">
         <div className="mb-[18px] flex items-center gap-3.5">
-          <span className="font-mono text-xs tracking-[0.12em] text-violet">[ 02 ] PROOF PLAYGROUND</span>
+          <span className="font-mono text-xs tracking-[0.12em] text-violet-soft">[ 02 ] PROOF PLAYGROUND</span>
           <span className="h-px flex-1 bg-violet/25" />
         </div>
         <h2 className="font-display text-3xl font-bold tracking-[-0.025em] sm:text-[40px]">
