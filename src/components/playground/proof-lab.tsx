@@ -1,5 +1,6 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import { useEffect, useRef, useState } from 'react';
 import { HudPanel, Eyebrow } from '@/components/landing/primitives';
 import {
@@ -10,10 +11,26 @@ import {
   type ProofStage,
 } from '@/lib/zk/prover';
 import { PIPELINE, STAGE_STATUS, type PipelineStep } from '@/lib/zk/education';
-import { ProofAnchor } from '@/components/playground/proof-anchor';
 import { SignalsTable } from '@/components/playground/signals-table';
 import { WhatThisProves } from '@/components/playground/what-this-proves';
 import { cn } from '@/lib/cn';
+
+/**
+ * Anchoring is only reachable once a proof exists and it pulls in the Stellar
+ * SDK, so it loads on demand instead of in the playground's first bundle.
+ */
+const ProofAnchor = dynamic(
+  () => import('@/components/playground/proof-anchor').then((m) => m.ProofAnchor),
+  {
+    loading: () => (
+      <HudPanel accent="violet">
+        <p className="p-5 font-mono text-[11px] text-faint sm:p-6">
+          Loading the on-chain anchor…
+        </p>
+      </HudPanel>
+    ),
+  },
+);
 
 type Phase = 'idle' | 'proving' | 'done' | 'error';
 type StepState = 'pending' | 'active' | 'done' | 'failed';
