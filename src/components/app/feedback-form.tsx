@@ -160,15 +160,25 @@ export function FeedbackForm({ onSubmitted }: { onSubmitted?: () => void }) {
             {inFlight ? 'Sending…' : 'Send feedback'}
           </button>
 
-          {status === 'success' && (
-            <p className="mt-2 font-mono text-xs text-live">
-              Thanks — your feedback was recorded.
-            </p>
-          )}
+          {/*
+            Both outcomes live in regions that are mounted from the first
+            render. A live region created at the same instant as its text is
+            routinely missed, and this form's only feedback is these two lines.
+          */}
+          <p
+            aria-live="polite"
+            aria-atomic="true"
+            className={cn('font-mono text-xs text-live', status === 'success' && 'mt-2')}
+          >
+            {status === 'success' ? 'Thanks — your feedback was recorded.' : ''}
+          </p>
 
-          {status === 'error' && error && (
-            <p className="mt-2 font-mono text-xs text-denied">{error}</p>
-          )}
+          <p
+            role="alert"
+            className={cn('font-mono text-xs text-denied', status === 'error' && error && 'mt-2')}
+          >
+            {status === 'error' && error ? error : ''}
+          </p>
         </form>
       </div>
     </HudPanel>
