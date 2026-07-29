@@ -3,7 +3,7 @@
 import { useEffect, useId, useState, type ReactNode } from 'react';
 import { activeProfile } from '@/config/network';
 import { readApiError } from '@/lib/api/client';
-import { getCount, getRecent } from '@/lib/stellar/action-log';
+import { getCount, getLatestLedger, getRecent } from '@/lib/stellar/action-log';
 import { getFeedbackCount, getFeedbackAuthors } from '@/lib/stellar/feedback';
 import { HudPanel, Eyebrow } from '@/components/landing/primitives';
 import { cn } from '@/lib/cn';
@@ -61,10 +61,23 @@ function isOnboardCount(value: unknown): value is { count: number } {
   return typeof count === 'number' && Number.isFinite(count);
 }
 
+/**
+ * The moment of a read, in UTC to the second.
+ *
+ * Deliberately not locale-formatted. A screenshot of this panel is read by
+ * somebody in another timezone with no way to ask which one rendered it, and an
+ * ambiguous timestamp evidences nothing.
+ */
+function formatReadAt(at: Date): string {
+  return `${at.toISOString().slice(0, 19).replace('T', ' ')} UTC`;
+}
+
 export function MetricsStats({ refreshSignal = 0 }: { refreshSignal?: number }) {
   const [interactions, setInteractions] = useState<number | null>(null);
   const [wallets, setWallets] = useState<number | null>(null);
   const [partial, setPartial] = useState(false);
+  const [ledger, setLedger] = useState<number | null>(null);
+  const [readAt, setReadAt] = useState<Date | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [signups, setSignups] = useState<number | null>(null);
@@ -78,14 +91,20 @@ export function MetricsStats({ refreshSignal = 0 }: { refreshSignal?: number }) 
     setError(null);
     (async () => {
       try {
-        const [actionTotal, actionRecent, feedbackTotal, feedbackAuthors] =
+        const [actionTotal, actionRecent, feedbackTotal, feedbackAuthors, sequence] =
           await Promise.all([
             getCount(),
             getRecent(SAMPLE),
             getFeedbackCount(),
             getFeedbackAuthors(SAMPLE),
+            getLatestLedger(),
           ]);
         if (cancelled) return;
+        // The ledger and the clock are set from the same settled read as the
+        // figures, so the provenance line can never describe a different moment
+        // than the numbers beside it.
+        setLedger(sequence);
+        setReadAt(new Date());
         setInteractions(actionTotal + feedbackTotal);
         setWallets(
           new Set([...actionRecent.map((e) => e.author), ...feedbackAuthors]).size,
@@ -99,6 +118,11 @@ export function MetricsStats({ refreshSignal = 0 }: { refreshSignal?: number }) 
         );
       } catch {
         if (cancelled) return;
+        // Provenance from an earlier successful read is dropped with the figures
+        // it described. A ledger and a read time surviving a failed refresh would
+        // date the panel to a moment its contents no longer come from.
+        setLedger(null);
+        setReadAt(null);
         setError('Could not load on-chain stats.');
       } finally {
         if (!cancelled) setLoading(false);
@@ -164,6 +188,21 @@ export function MetricsStats({ refreshSignal = 0 }: { refreshSignal?: number }) 
       <HudPanel accent="cyan">
         <div className="p-5 sm:p-6">
           <Eyebrow accent="cyan">// ADOPTION · PROOF OF USE</Eyebrow>
+
+          {/*
+            Provenance, so an image of this panel stands on its own: which chain
+            the figures were simulated against, the ledger the chain was at when
+            they were read, and when that was. The ledger is the part a reviewer
+            can independently check — it dates the read to a block, not to a
+            caption. Both are omitted until a read has actually settled rather
+            than shown as pending, because an empty slot cannot be misread as a
+            fact.
+          */}
+          <div className="-mt-2 mb-5 flex flex-wrap items-center gap-x-4 gap-y-1 font-mono text-[11px] text-faint">
+            <span className="text-cyan">{activeProfile.label}</span>
+            {ledger === null ? null : <span>ledger #{ledger.toLocaleString('en-US')}</span>}
+            {readAt === null ? null : <span>chain read {formatReadAt(readAt)}</span>}
+          </div>
 
           {/*
             Progress against the 50-user target, as the count and the shortfall.
@@ -265,6 +304,18 @@ export function MetricsStats({ refreshSignal = 0 }: { refreshSignal?: number }) 
               note="Soroban — every on-chain figure here is simulated against this network on load."
             />
           </div>
+
+          {/*
+            Inside the frame, not under it: the caveats have to travel with the
+            image. Whoever quotes these figures from a screenshot needs the same
+            sentence about where each came from that a reader of the page gets.
+          */}
+          <p className="mt-4 border-t border-violet/15 pt-4 font-mono text-[11px] leading-relaxed text-faint">
+            Signups come from Postgres via GET /api/onboard, which is edge-cached for up to 30
+            seconds; wallets and interactions are read from the contracts on every load. Nothing
+            here is seeded or estimated — a source that cannot be read says so in place of its
+            figure.
+          </p>
         </div>
       </HudPanel>
     </div>
