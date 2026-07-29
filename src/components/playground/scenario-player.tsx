@@ -8,8 +8,13 @@ import { HudPanel } from '@/components/landing/primitives';
 export function ScenarioPlayer({ s }: { s: Scenario }) {
   const [step, setStep] = useState(0);
   const [playing, setPlaying] = useState(false);
+  const [reduced, setReduced] = useState(false);
   const denied = s.outcome !== 'settled';
   const finished = !playing && step >= s.steps.length && step > 0;
+
+  useEffect(() => {
+    setReduced(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false);
+  }, []);
 
   useEffect(() => {
     if (!playing) return;
@@ -22,6 +27,13 @@ export function ScenarioPlayer({ s }: { s: Scenario }) {
   }, [playing, step, s.steps.length]);
 
   function run() {
+    // Under reduced motion there is no staged reveal: the finished scenario —
+    // every phase and its outcome — is shown at once instead.
+    if (reduced) {
+      setPlaying(false);
+      setStep(s.steps.length);
+      return;
+    }
     setStep(0);
     setPlaying(true);
   }
@@ -39,7 +51,7 @@ export function ScenarioPlayer({ s }: { s: Scenario }) {
           return (
             <li
               key={phase}
-              className="flex items-center gap-2.5 font-mono text-xs [animation:zen-check_.4s_ease_both]"
+              className="flex items-center gap-2.5 font-mono text-xs motion-safe:[animation:zen-check_.4s_ease_both]"
               style={{ animationDelay: `${i * 0.04}s` }}
             >
               <span
@@ -57,7 +69,7 @@ export function ScenarioPlayer({ s }: { s: Scenario }) {
       </ul>
 
       {finished && (
-        <div className="border-t border-fd-border pt-4 [animation:zen-check_.4s_ease_both]">
+        <div className="border-t border-fd-border pt-4 motion-safe:[animation:zen-check_.4s_ease_both]">
           <span
             className={cn(
               'inline-flex items-center gap-1.5 font-mono text-xs font-medium',
