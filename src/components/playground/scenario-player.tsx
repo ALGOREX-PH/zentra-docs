@@ -44,7 +44,7 @@ export function ScenarioPlayer({ s }: { s: Scenario }) {
       <h3 className="mt-3 font-display text-lg font-semibold">{s.title}</h3>
       <p className="mt-1 text-sm text-fd-muted-foreground">{s.subtitle}</p>
 
-      <ul className="mt-5 min-h-[112px] space-y-2" aria-live="polite">
+      <ul className="mt-5 min-h-[112px] space-y-2" aria-live="polite" aria-busy={playing}>
         {s.steps.slice(0, step).map((phase, i) => {
           const released = phase === 'released';
           const blocked = phase === 'blocked';
@@ -69,14 +69,17 @@ export function ScenarioPlayer({ s }: { s: Scenario }) {
       </ul>
 
       {finished && (
-        <div className="border-t border-fd-border pt-4 motion-safe:[animation:zen-check_.4s_ease_both]">
+        <div
+          role="status"
+          className="border-t border-fd-border pt-4 motion-safe:[animation:zen-check_.4s_ease_both]"
+        >
           <span
             className={cn(
               'inline-flex items-center gap-1.5 font-mono text-xs font-medium',
               denied ? 'text-denied' : 'text-cyan',
             )}
           >
-            {denied ? '✗' : '✓'} {s.outcomeLabel}
+            <span aria-hidden>{denied ? '✗' : '✓'}</span> {s.outcomeLabel}
           </span>
           <p className="mt-2 text-xs leading-relaxed text-fd-muted-foreground">{s.explanation}</p>
         </div>
