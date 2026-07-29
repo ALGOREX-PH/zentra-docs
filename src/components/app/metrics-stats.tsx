@@ -9,23 +9,6 @@ import { HudPanel, Eyebrow } from '@/components/landing/primitives';
 import { cn } from '@/lib/cn';
 
 /**
- * The adoption panel: registry signups beside live on-chain usage read straight
- * from the Soroban contracts — total interactions across the action-log and
- * feedback contracts, the distinct wallets behind them, and the network.
- *
- * Two sources, two populations, deliberately never merged. The signup registry
- * is a Postgres table read through `GET /api/onboard` and says only that somebody
- * registered; the wallet and interaction figures are contract reads and say that
- * somebody transacted. Nobody proves ownership of the address they typed into a
- * form, so the two numbers are not interchangeable and neither is derived from
- * the other — which is precisely the substitution a reviewer makes if the panel
- * does not label each figure with what it measures.
- *
- * Every figure is a live read. A source that fails renders its own failure rather
- * than a zero or a last-known value: a plausible-looking stand-in inside a panel
- * whose entire purpose is proof is worse than an empty cell.
- */
-/**
  * How many recent entries each contract is asked for when counting distinct
  * wallets.
  *
@@ -72,6 +55,23 @@ function formatReadAt(at: Date): string {
   return `${at.toISOString().slice(0, 19).replace('T', ' ')} UTC`;
 }
 
+/**
+ * The adoption panel: registry signups beside live on-chain usage read straight
+ * from the Soroban contracts — total interactions across the action-log and
+ * feedback contracts, the distinct wallets behind them, and the network.
+ *
+ * Two sources, two populations, deliberately never merged. The signup registry
+ * is a Postgres table read through `GET /api/onboard` and says only that somebody
+ * registered; the wallet and interaction figures are contract reads and say that
+ * somebody transacted. Nobody proves ownership of the address they typed into a
+ * form, so the two numbers are not interchangeable and neither is derived from
+ * the other — which is precisely the substitution a reviewer makes if the panel
+ * does not label each figure with what it measures.
+ *
+ * Every figure is a live read. A source that fails renders its own failure rather
+ * than a zero or a last-known value: a plausible-looking stand-in inside a panel
+ * whose entire purpose is proof is worse than an empty cell.
+ */
 export function MetricsStats({ refreshSignal = 0 }: { refreshSignal?: number }) {
   const [interactions, setInteractions] = useState<number | null>(null);
   const [wallets, setWallets] = useState<number | null>(null);
