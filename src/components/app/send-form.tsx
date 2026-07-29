@@ -10,6 +10,9 @@ import { TxStatus } from '@/components/app/tx-status';
 import type { TxState } from '@/lib/stellar/types';
 import { cn } from '@/lib/cn';
 
+const focusRing =
+  'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan';
+
 export function SendForm({ onPaid }: { onPaid?: () => void }) {
   const { address, signTransaction } = useWallet();
   const [destination, setDestination] = useState('');
@@ -78,7 +81,10 @@ export function SendForm({ onPaid }: { onPaid?: () => void }) {
               aria-describedby={[showDestHint ? 'send-destination-error' : null, 'send-help']
                 .filter(Boolean)
                 .join(' ')}
-              className="w-full border border-fd-border bg-abyss px-3 py-2.5 font-mono text-sm text-text placeholder:text-faint outline-none transition-colors focus:border-violet/60"
+              className={cn(
+                'w-full border border-fd-border bg-abyss px-3 py-2.5 font-mono text-sm text-text placeholder:text-faint transition-colors focus:border-violet/60',
+                focusRing,
+              )}
             />
             {showDestHint ? (
               <p id="send-destination-error" className="mt-1 font-mono text-[11px] text-denied">
@@ -107,7 +113,10 @@ export function SendForm({ onPaid }: { onPaid?: () => void }) {
               aria-describedby={[showAmountHint ? 'send-amount-error' : null, 'send-amount-hint']
                 .filter(Boolean)
                 .join(' ')}
-              className="w-full border border-fd-border bg-abyss px-3 py-2.5 font-mono text-sm text-text placeholder:text-faint outline-none transition-colors focus:border-violet/60"
+              className={cn(
+                'w-full border border-fd-border bg-abyss px-3 py-2.5 font-mono text-sm text-text placeholder:text-faint transition-colors focus:border-violet/60',
+                focusRing,
+              )}
             />
             {showAmountHint ? (
               <p id="send-amount-error" className="mt-1 font-mono text-[11px] text-denied">
@@ -124,6 +133,7 @@ export function SendForm({ onPaid }: { onPaid?: () => void }) {
             disabled={disabled}
             className={cn(
               'w-full bg-violet px-4 py-3 font-mono text-xs uppercase tracking-[0.1em] text-white transition-colors hover:bg-[#8b5cf6] disabled:cursor-not-allowed disabled:opacity-50',
+              focusRing,
             )}
           >
             {inFlight ? 'Sending…' : 'Send XLM'}
