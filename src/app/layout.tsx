@@ -34,6 +34,9 @@ export const metadata: Metadata = {
   referrer: 'strict-origin-when-cross-origin',
   title: { default: title, template: '%s — Zentra Protocol' },
   description,
+  // `./` resolves against the current route, so each page declares itself
+  // canonical rather than pointing every URL at the origin.
+  alternates: { canonical: './' },
   openGraph: {
     title,
     description,
