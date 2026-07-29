@@ -10,9 +10,9 @@ export function Closing() {
           <span aria-hidden className="absolute -bottom-px -left-px h-3.5 w-3.5 border-b-2 border-l-2 border-violet" />
           <span aria-hidden className="absolute -bottom-px -right-px h-3.5 w-3.5 border-b-2 border-r-2 border-violet" />
           <div className="mb-[18px] font-mono text-[11px] tracking-[0.14em] text-[#7d8ea6]">// BOUNDARY</div>
-          <p className="mb-4 font-display text-[22px] font-semibold leading-[1.45] tracking-[-0.01em]">
+          <h2 className="mb-4 font-display text-[22px] font-semibold leading-[1.45] tracking-[-0.01em]">
             Zentra is a proof-of-compliance and settlement layer.
-          </p>
+          </h2>
           <p className="text-base leading-relaxed text-muted">
             It is not an identity system, an oracle, a policy author, a key manager,
             or a full compliance engine. That boundary stays explicit — it makes the
