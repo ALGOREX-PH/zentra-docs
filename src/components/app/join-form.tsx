@@ -43,7 +43,15 @@ const STELLAR_ACCOUNT_ID = /^G[A-Z2-7]{55}$/;
 /** The base32 alphabet a strkey is written in — note the absent 0, 1, 8 and 9. */
 const BASE32 = /^[A-Z2-7]*$/;
 
-type Status = 'idle' | 'sending' | 'success' | 'error';
+/**
+ * `duplicate` is a separate outcome rather than a flavour of `error`.
+ *
+ * A 409 means the email or the wallet is already in the registry — from the
+ * visitor's side that is the goal, already met. Rendering it in the error slot
+ * showed someone red text for having succeeded twice, and sent them away from
+ * the on-chain steps that the programme is actually counted on.
+ */
+type Status = 'idle' | 'sending' | 'success' | 'duplicate' | 'error';
 
 type Field = 'name' | 'email' | 'wallet' | 'note';
 
@@ -281,15 +289,15 @@ function SignupForm() {
         }),
       });
 
-      if (!res.ok) {
-        // A duplicate is a success from the visitor's side — they are on the
-        // list — so it gets its own wording instead of the generic envelope.
-        throw new Error(
-          res.status === 409
-            ? 'You are already registered — thanks.'
-            : await readApiError(res, 'Could not complete signup.'),
-        );
+      // Checked before `res.ok` so a repeat registration never reaches the
+      // error path: they are on the list, which is the only thing this form was
+      // asking for, and the next steps are the same either way.
+      if (res.status === 409) {
+        setStatus('duplicate');
+        return;
       }
+
+      if (!res.ok) throw new Error(await readApiError(res, 'Could not complete signup.'));
 
       setStatus('success');
     } catch (err: unknown) {
@@ -307,22 +315,35 @@ function SignupForm() {
     <p aria-live="polite" aria-atomic="true" className="sr-only">
       {status === 'success'
         ? 'You are on the list. Next: fund your testnet wallet, then record an action on-chain.'
-        : ''}
+        : status === 'duplicate'
+          ? 'You are already registered. Next: fund your testnet wallet, then record an action on-chain.'
+          : ''}
     </p>
   );
 
-  if (status === 'success') {
+  if (status === 'success' || status === 'duplicate') {
     return (
       <>
         {announcement}
         <HudPanel accent="cyan">
           <div className="p-5 sm:p-6">
             <Eyebrow accent="cyan">YOU ARE ON THE LIST</Eyebrow>
-            <p className="max-w-[520px] text-[15px] leading-relaxed text-text">
-              Registered{' '}
-              <span className="font-mono text-cyan">{truncateAddress(wallet, 6, 6)}</span>. We
-              will email you about the testnet programme — nothing else.
-            </p>
+            {status === 'duplicate' ? (
+              // Which of the two collided is deliberately not reported by the
+              // API — saying would turn the endpoint into a lookup oracle for
+              // whether a given address is registered — so neither is claimed
+              // back, and no wallet is echoed as "yours".
+              <p className="max-w-[520px] text-[15px] leading-relaxed text-text">
+                This email or wallet is already registered, so there is nothing left
+                to fill in here.
+              </p>
+            ) : (
+              <p className="max-w-[520px] text-[15px] leading-relaxed text-text">
+                Registered{' '}
+                <span className="font-mono text-cyan">{truncateAddress(wallet, 6, 6)}</span>. We
+                will email you about the testnet programme — nothing else.
+              </p>
+            )}
 
             {/*
               The panel used to end at that thank-you, which is exactly where
@@ -332,7 +353,7 @@ function SignupForm() {
               just registered is still connected and still in front of them.
             */}
             <p className="mt-5 font-mono text-[11px] uppercase tracking-[0.08em] text-faint">
-              Nothing is on-chain yet · these two steps are it
+              Signing up is not the on-chain part · these two steps are
             </p>
             <ol className="mt-2 divide-y divide-fd-border border border-fd-border">
               {NEXT_STEPS.map((step, i) => (
