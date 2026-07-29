@@ -108,15 +108,22 @@ const EMBEDDED_CREDENTIAL = /\/\/[^\s/@]+:[^\s/@]+@/;
 /**
  * Replace `Error` values with a plain `{ name, message }` object (plus `stack`
  * outside production) so `JSON.stringify` does not silently drop them.
+ *
+ * A message carrying an embedded credential is masked entirely and its stack is
+ * dropped, since the same URI is usually repeated in every frame.
  */
 function normalise(fields: LogFields): LogFields {
   const out: LogFields = {};
   for (const key of Object.keys(fields)) {
     const value = fields[key];
     if (value instanceof Error) {
-      out[key] = isProduction()
-        ? { name: value.name, message: value.message }
-        : { name: value.name, message: value.message, stack: value.stack };
+      if (EMBEDDED_CREDENTIAL.test(value.message) || EMBEDDED_CREDENTIAL.test(value.stack ?? '')) {
+        out[key] = { name: value.name, message: REDACTED };
+      } else {
+        out[key] = isProduction()
+          ? { name: value.name, message: value.message }
+          : { name: value.name, message: value.message, stack: value.stack };
+      }
     } else {
       out[key] = value;
     }
