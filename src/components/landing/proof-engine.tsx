@@ -122,7 +122,7 @@ export function ProofEngine() {
       <div className="flex items-center justify-between border-b border-fd-border bg-[#0a0c12] px-4 py-3">
         <div className="flex items-center gap-2.5">
           <span className="size-2 bg-violet" />
-          <span className="font-mono text-[11px] tracking-[0.12em] text-muted">PROOF ENGINE // SUBMIT AN ACTION</span>
+          <h2 className="font-mono text-[11px] tracking-[0.12em] text-muted">PROOF ENGINE // SUBMIT AN ACTION</h2>
         </div>
         <span data-z-pill className="border border-violet/40 px-2.5 py-0.5 font-mono text-[11px] font-bold tracking-[0.1em] text-violet-soft" style={{ background: 'rgba(124,58,237,0.12)' }}>COMPOSING</span>
       </div>
