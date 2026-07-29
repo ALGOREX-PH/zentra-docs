@@ -54,7 +54,7 @@ export function ProofEngine() {
     const activate = (i: number, c: string) => { const r = rect(i); if (r) { r.style.stroke = c; r.style.fill = c + '26'; r.style.filter = `drop-shadow(0 0 6px ${c})`; } };
     const advance = (i: number, c?: string) => { fill.style.strokeDashoffset = String(len * (1 - cum[i] / total)); if (c) fill.style.stroke = c; };
     const reset = () => {
-      for (let i = 0; i < 7; i++) { const r = rect(i); if (r) { r.style.stroke = 'rgba(148,163,184,0.4)'; r.style.fill = '#0d111a'; r.style.filter = 'none'; } }
+      for (let i = 0; i < 7; i++) { const r = rect(i); if (r) { r.style.stroke = 'rgba(148,163,184,0.6)'; r.style.fill = '#0d111a'; r.style.filter = 'none'; } }
       fill.style.strokeDashoffset = String(len); fill.style.stroke = 'url(#zgrad)';
       cap.style.transform = `translate(${NODES[0][0]}px,${NODES[0][1]}px)`; cap.style.opacity = '0';
       seal.style.transition = 'none'; seal.style.opacity = '0'; seal.style.transform = 'scale(0.5)';
@@ -137,7 +137,7 @@ export function ProofEngine() {
           <line data-z-burn x1="0" y1="0" x2="0" y2="0" stroke="#ef4444" strokeWidth="6" strokeLinecap="square" opacity="0" style={{ filter: 'drop-shadow(0 0 5px rgba(239,68,68,0.8))' }} />
           {RECTS.map(([x, y], i) => (
             <g data-z-node="" data-i={i} key={i}>
-              <rect x={x} y={y} width="18" height="18" fill="#0d111a" stroke="rgba(148,163,184,0.4)" strokeWidth="2" style={{ transition: 'all .3s' }} />
+              <rect x={x} y={y} width="18" height="18" fill="#0d111a" stroke="rgba(148,163,184,0.6)" strokeWidth="2" style={{ transition: 'all .3s' }} />
             </g>
           ))}
           <g data-z-seal style={{ transformBox: 'view-box', transformOrigin: '430px 270px', transform: 'scale(0.5)', opacity: 0 }}>
