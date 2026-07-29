@@ -89,7 +89,7 @@ function Panel({ cfg }: { cfg: Cfg }) {
     <div ref={wrap} className="flex flex-col bg-panel p-6">
       <div className="mb-[18px] flex items-center justify-between">
         <span className="font-mono text-[11px] tracking-[0.1em]" style={{ color: cfg.accent }}>{cfg.label}</span>
-        <span className="flex size-6 items-center justify-center font-display text-[13px] font-bold" style={{ color: cfg.accent, background: cfg.accent + '24' }}>{cfg.letter}</span>
+        <span className="flex size-6 items-center justify-center font-display text-[13px] font-bold" style={{ color: cfg.accent, background: cfg.accent + '18' }}>{cfg.letter}</span>
       </div>
       <h3 className="mb-3 font-display text-lg font-semibold">{cfg.title}</h3>
       <div className="mb-[22px] flex flex-wrap gap-1.5">
