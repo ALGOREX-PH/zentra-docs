@@ -77,10 +77,22 @@ export function FeedbackForm({ onSubmitted }: { onSubmitted?: () => void }) {
         </p>
 
         <form onSubmit={handleSubmit} className="mt-4">
-          <span className="mb-1.5 block font-mono text-[11px] uppercase tracking-[0.08em] text-faint">
+          <span
+            id="feedback-rating-label"
+            className="mb-1.5 block font-mono text-[11px] uppercase tracking-[0.08em] text-faint"
+          >
             Rating
           </span>
-          <div className="flex items-center gap-1">
+          {/*
+            A group rather than a radiogroup: these stay ordinary buttons, so
+            every star keeps its own tab stop and Enter/Space, and the filled
+            state is carried by aria-pressed instead of a glyph nobody hears.
+          */}
+          <div
+            role="group"
+            aria-labelledby="feedback-rating-label"
+            className="flex items-center gap-1"
+          >
             {[1, 2, 3, 4, 5].map((value) => {
               const filled = value <= rating;
               return (
@@ -88,6 +100,7 @@ export function FeedbackForm({ onSubmitted }: { onSubmitted?: () => void }) {
                   key={value}
                   type="button"
                   aria-label={`Rate ${value} of 5`}
+                  aria-pressed={filled}
                   onClick={() => setRating(value)}
                   className={cn(
                     'text-2xl leading-none transition-colors',
