@@ -8,6 +8,13 @@ interface OnboardCount {
   count: number;
 }
 
+/** Whether `value` is shaped like the `/api/onboard` counter. */
+function isOnboardCount(value: unknown): value is OnboardCount {
+  if (typeof value !== 'object' || value === null) return false;
+  const { count } = value as { count?: unknown };
+  return typeof count === 'number' && Number.isFinite(count);
+}
+
 /**
  * The public signup counter for the growth campaign.
  *
@@ -27,7 +34,11 @@ export function JoinProgress({ goal = 50 }: { goal?: number }) {
     fetch('/api/onboard')
       .then(async (res) => {
         if (!res.ok) throw new Error(await readApiError(res, 'Could not load the signup count.'));
-        return (await res.json()) as OnboardCount;
+        // Asserting the shape would let an edge error page through as a count
+        // of `undefined`, which the bar would then render as a NaN width.
+        const body: unknown = await res.json();
+        if (!isOnboardCount(body)) throw new Error('Could not load the signup count.');
+        return body;
       })
       .then((json) => {
         if (!cancelled) setCount(json.count);
