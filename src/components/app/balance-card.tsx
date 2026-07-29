@@ -82,6 +82,21 @@ export function BalanceCard({ refreshSignal }: BalanceCardProps) {
           </p>
         ) : loading ? (
           <p className="mt-4 font-mono text-sm text-muted">Loading balance…</p>
+        ) : error && balance === null ? (
+          // `getXlmBalance` only answers null for an account Horizon has never
+          // seen; a thrown error means the read itself failed, so it must not
+          // be reported as "this account isn't funded".
+          <div className="mt-4 space-y-4">
+            <p className="font-mono text-sm text-denied">{error}</p>
+            <button
+              type="button"
+              onClick={refresh}
+              disabled={funding}
+              className={buttonClass}
+            >
+              Retry
+            </button>
+          </div>
         ) : balance === null ? (
           <div className="mt-4 space-y-4">
             <p className="font-mono text-sm text-muted">
@@ -135,7 +150,7 @@ export function BalanceCard({ refreshSignal }: BalanceCardProps) {
           </div>
         )}
 
-        {error ? (
+        {error && balance !== null ? (
           <p className="mt-4 font-mono text-xs text-denied">{error}</p>
         ) : null}
       </div>
