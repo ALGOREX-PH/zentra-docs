@@ -14,7 +14,8 @@ const MSG: Record<string, string[]> = {
   overspend: ['composing action', 'checking private policy', 'generating proof', 'binding to authority state'],
 };
 const PILLS = ['COMPOSING', 'POLICY', 'PROVING', 'BINDING', 'VERIFYING', 'SETTLING', 'RELEASED'];
-const V = '#7c3aed', C = '#00e5ff', G = '#22c55e', R = '#ef4444';
+// V/C/G/R tint the rail and nodes; VS is the readable violet used for pill text.
+const V = '#7c3aed', C = '#00e5ff', G = '#22c55e', R = '#ef4444', VS = '#a78bfa';
 
 export function ProofEngine() {
   const root = useRef<HTMLDivElement>(null);
@@ -58,7 +59,7 @@ export function ProofEngine() {
       cap.style.transform = `translate(${NODES[0][0]}px,${NODES[0][1]}px)`; cap.style.opacity = '0';
       seal.style.transition = 'none'; seal.style.opacity = '0'; seal.style.transform = 'scale(0.5)';
       burn.style.opacity = '0';
-      setPill('COMPOSING', V); setStatus('composing action'); setOutput('awaiting submission');
+      setPill('COMPOSING', VS); setStatus('composing action'); setOutput('awaiting submission');
     };
     const burnAt = (i: number) => {
       const [x, y] = NODES[i];
