@@ -16,6 +16,24 @@ import { log, newRequestId } from './logger';
 /** Longest inbound `x-request-id` we will echo; anything larger is replaced. */
 const MAX_INBOUND_REQUEST_ID = 200;
 
+/**
+ * The alphabet an inbound `x-request-id` must be drawn from to be echoed.
+ *
+ * Wide enough for every id format anything upstream of us actually emits — a
+ * UUID, a hex trace id, a `service:instance:counter`, a base64 span id — and
+ * nothing else.
+ *
+ * The point is that this value is reflected, three ways: into a response
+ * header, into every log line the request produces, and into the body of
+ * `/api/health`. Each of those has its own escaping and each of them currently
+ * holds, but they hold for three different reasons and none of them is stated
+ * here. Constraining the id to an identifier at the one place it enters the
+ * system makes all three safe by construction instead, and costs a caller
+ * nothing: a value outside this set is discarded and a fresh id minted, so the
+ * request is still traceable — under our id rather than theirs.
+ */
+const REQUEST_ID_ALPHABET = /^[A-Za-z0-9_.:@+/=-]+$/;
+
 /** Per-request values the wrapper hands down to the handler it wraps. */
 export interface RouteContext {
   requestId: string;
@@ -109,11 +127,19 @@ export function json<T>(
  * Reuse the caller's `x-request-id` when it is present and sane, else mint one.
  *
  * Echoing the inbound id keeps a trace intact across services; the length cap
- * stops an unbounded header from being copied into every log line.
+ * stops an unbounded header from being copied into every log line, and the
+ * alphabet check stops the value being anything but an identifier — see
+ * `REQUEST_ID_ALPHABET` for what that prevents.
  */
 function resolveRequestId(request: Request): string {
   const inbound = request.headers.get('x-request-id')?.trim();
-  if (inbound && inbound.length <= MAX_INBOUND_REQUEST_ID) return inbound;
+  if (
+    inbound &&
+    inbound.length <= MAX_INBOUND_REQUEST_ID &&
+    REQUEST_ID_ALPHABET.test(inbound)
+  ) {
+    return inbound;
+  }
   return newRequestId();
 }
 
