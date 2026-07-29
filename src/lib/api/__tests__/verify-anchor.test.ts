@@ -203,6 +203,35 @@ describe('verifyAnchor', () => {
   });
 });
 
+describe('verifyAnchor input guard', () => {
+  it('never reaches the network for a hash that is not 64 hex characters', async () => {
+    for (const hash of ['', 'not-a-hash', 'ab'.repeat(31), 'ab'.repeat(33), `${HASH}z`]) {
+      const verdict = await verifyAnchor(hash, WALLET);
+
+      expect(verdict).toEqual({ verified: false, reason: 'not_found' });
+    }
+
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('refuses a hash that would escape the transactions path', async () => {
+    // Pasted into a URL path unchecked, this addresses a different Horizon
+    // endpoint whose response would then be read as though it were a
+    // transaction.
+    const verdict = await verifyAnchor(`../accounts/${WALLET}`, null);
+
+    expect(verdict).toEqual({ verified: false, reason: 'not_found' });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('still verifies a well-formed hash', async () => {
+    fetchMock.mockResolvedValue(horizonOk({ successful: true, source_account: WALLET }));
+
+    expect(await verifyAnchor(HASH, WALLET)).toEqual({ verified: true, sourceAccount: WALLET });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe('ANCHOR_TIMEOUT_MS', () => {
   it('is a short, positive budget so a slow Horizon cannot stall the route', () => {
     expect(ANCHOR_TIMEOUT_MS).toBe(3000);
