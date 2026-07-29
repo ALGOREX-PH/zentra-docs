@@ -145,7 +145,7 @@ no upgrade path in the contracts as written (§11).
 | --- | --- | --- |
 | Hardware wallet (Ledger) holding the admin account | Key never exists in software | The `stellar` CLI path may not support it directly; verify before relying on it, and plan to sign built XDR externally if not |
 | Stellar multisig — raise the account's thresholds and add signers | No single person can act alone | Every admin action becomes a coordination exercise |
-| `contracts/zentra-multisig` as the admin address | N-of-M in a contract we control | Unaudited, uncovered by CI, and not deployed — gate 1 would have to cover it too |
+| `contracts/zentra-multisig` as the admin address | N-of-M in a contract we control | Covered by CI, but unaudited and not deployed — gate 1 would have to cover it too |
 | Secrets manager, single key | Simple, auditable access log | One compromised operator account is the whole loss |
 
 This runbook does not choose for you. §11 records that the choice is open.
