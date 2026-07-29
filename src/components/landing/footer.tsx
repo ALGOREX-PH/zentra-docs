@@ -13,7 +13,7 @@ export function Footer() {
           <span className="font-display text-sm font-bold tracking-[0.04em]">ZENTRA PROTOCOL</span>
         </div>
         <span className="font-mono text-xs tracking-[0.08em] text-[#7d8ea6]">NO PROOF · NO PAYMENT</span>
-        <div className="flex gap-6 font-mono text-xs text-muted">
+        <div className="flex flex-wrap gap-x-6 gap-y-2 font-mono text-xs text-muted">
           <Link href="/docs" className="transition-colors hover:text-cyan">DOCS</Link>
           <a href={repoUrl} target="_blank" rel="noreferrer" className="transition-colors hover:text-cyan">GITHUB</a>
           <a href={protocolRepoUrl} target="_blank" rel="noreferrer" className="transition-colors hover:text-cyan">PROTOCOL</a>
