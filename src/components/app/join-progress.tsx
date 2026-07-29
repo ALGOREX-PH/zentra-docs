@@ -60,6 +60,12 @@ export function JoinProgress({ goal = 50 }: { goal?: number }) {
           <p className="font-mono text-xs text-faint">
             Signup count is unavailable right now — the form below still works.
           </p>
+        ) : count === 0 ? (
+          // An empty bar next to "0 of 50" reads as a stalled programme. Saying
+          // it plainly turns the same fact into the reason to be the first.
+          <p className="font-mono text-sm text-muted">
+            No signups yet — be the first on the list.
+          </p>
         ) : (
           <>
             <p id={labelId} className="font-mono text-sm text-muted">
