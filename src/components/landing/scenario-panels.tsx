@@ -69,6 +69,12 @@ function Panel({ cfg }: { cfg: Cfg }) {
 
   useEffect(() => {
     const el = wrap.current; if (!el) return;
+    // reduced motion drops both the stagger and the scroll trigger — `run` waits for
+    // nothing, so the panel paints its finished outcome instead of an idle rail.
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false) {
+      run();
+      return () => { cancel.current = true; };
+    }
     let fired = false;
     const io = new IntersectionObserver((entries) => {
       for (const e of entries) {
@@ -119,7 +125,7 @@ function Panel({ cfg }: { cfg: Cfg }) {
 
       <div className="mb-1.5 flex h-[92px] items-center justify-center">
         {outcome === 'a' && (
-          <svg width="70" height="70" viewBox="0 0 70 70" className="[animation:zen-seal-pulse_1.3s_ease-out]" aria-hidden>
+          <svg width="70" height="70" viewBox="0 0 70 70" className="motion-safe:[animation:zen-seal-pulse_1.3s_ease-out]" aria-hidden>
             <polygon points="35,5 60,20 60,50 35,65 10,50 10,20" fill="rgba(34,197,94,0.06)" stroke="#22c55e" strokeWidth="2" />
             <polyline points="27,35 32,41 45,27" fill="none" stroke="#22c55e" strokeWidth="2.6" strokeLinecap="square" strokeLinejoin="miter" />
           </svg>
@@ -135,7 +141,7 @@ function Panel({ cfg }: { cfg: Cfg }) {
           </div>
         )}
         {outcome === 'c' && (
-          <div className="grid h-[92px] w-full grid-cols-2 border border-denied/30 [animation:zen-flare_1s_ease-in-out_2]">
+          <div className="grid h-[92px] w-full grid-cols-2 border border-denied/30 motion-safe:[animation:zen-flare_1s_ease-in-out_2]">
             <div className="border-r border-denied/30 p-2.5">
               <div className="mb-1.5 font-mono text-[8px] tracking-[0.08em] text-[#7d8ea6]">CLAIMED</div>
               <div className="font-mono text-[11px] text-denied">prev_spent=0</div>
