@@ -11,6 +11,9 @@ import { cn } from '@/lib/cn';
 
 const MAX = 200;
 
+const focusRing =
+  'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan';
+
 export function RecordForm({ onRecorded }: { onRecorded?: () => void }) {
   const { address, signTransaction } = useWallet();
   const [message, setMessage] = useState('');
@@ -93,7 +96,10 @@ export function RecordForm({ onRecorded }: { onRecorded?: () => void }) {
             ]
               .filter(Boolean)
               .join(' ')}
-            className="w-full resize-none border border-fd-border bg-abyss px-3 py-2.5 font-mono text-sm text-text placeholder:text-faint outline-none transition-colors focus:border-violet/60"
+            className={cn(
+              'w-full resize-none border border-fd-border bg-abyss px-3 py-2.5 font-mono text-sm text-text placeholder:text-faint transition-colors focus:border-violet/60',
+              focusRing,
+            )}
           />
 
           <div className="mt-1 flex items-start justify-between gap-3 font-mono text-[11px]">
@@ -115,7 +121,10 @@ export function RecordForm({ onRecorded }: { onRecorded?: () => void }) {
           <button
             type="submit"
             disabled={inFlight || !address || !valid}
-            className="mt-4 w-full bg-violet px-4 py-3 font-mono text-xs uppercase tracking-[0.1em] text-white transition-colors hover:bg-[#8b5cf6] disabled:cursor-not-allowed disabled:opacity-50"
+            className={cn(
+              'mt-4 w-full bg-violet px-4 py-3 font-mono text-xs uppercase tracking-[0.1em] text-white transition-colors hover:bg-[#8b5cf6] disabled:cursor-not-allowed disabled:opacity-50',
+              focusRing,
+            )}
           >
             {inFlight ? 'Recording…' : 'Record on-chain'}
           </button>
