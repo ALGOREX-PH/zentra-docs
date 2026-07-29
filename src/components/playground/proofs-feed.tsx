@@ -101,7 +101,7 @@ export function ProofsFeed({ refreshSignal = 0 }: { refreshSignal?: number }) {
           >
             {proofs.map((proof) => (
               <li key={proof.index} className="px-4 py-3">
-                <div className="flex justify-between font-mono text-[11px] text-faint">
+                <div className="flex flex-wrap justify-between gap-x-3 gap-y-0.5 font-mono text-[11px] text-faint">
                   <a
                     href={stellar.explorerAccountUrl(proof.prover)}
                     target="_blank"
