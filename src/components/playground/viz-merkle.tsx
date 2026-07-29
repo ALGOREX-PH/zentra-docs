@@ -45,11 +45,29 @@ const FILL: Record<Cat, string> = {
   dim: '#0d111a',
 };
 
+// The diagram appears once per page, so fixed ids keep it a server component.
+const TITLE_ID = 'viz-merkle-title';
+const DESC_ID = 'viz-merkle-desc';
+
 /** Visualizes how a recipient's membership is proven against the Merkle root. */
 export function VizMerkle() {
   return (
     <div>
-      <svg viewBox="0 0 660 300" className="w-full" role="img" aria-label="Merkle tree membership proof">
+      <svg
+        viewBox="0 0 660 300"
+        className="w-full"
+        role="img"
+        aria-labelledby={TITLE_ID}
+        aria-describedby={DESC_ID}
+      >
+        <title id={TITLE_ID}>Merkle membership proof for one recipient</title>
+        <desc id={DESC_ID}>
+          A depth-3 binary tree of eight leaves. The recipient&apos;s leaf, its
+          parent, its grandparent and the public root form the path to the root.
+          Three sibling hashes beside that path are the Merkle proof: the circuit
+          recomputes the root from the recipient and those siblings alone, so the
+          rest of the approved-vendor list is never revealed.
+        </desc>
         {EDGES.map(([a, b]) => {
           const na = byId(a);
           const nb = byId(b);
@@ -94,10 +112,10 @@ export function VizMerkle() {
 
       <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 font-mono text-[11px] text-faint">
         <span className="flex items-center gap-1.5">
-          <span className="size-2.5 rounded-full bg-cyan" /> path to the root
+          <span aria-hidden className="size-2.5 rounded-full bg-cyan" /> path to the root
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="size-2.5 rounded-full bg-violet-soft" /> proof · sibling hashes
+          <span aria-hidden className="size-2.5 rounded-full bg-violet-soft" /> proof · sibling hashes
         </span>
       </div>
       <p className="mt-2 text-[12px] text-muted">
