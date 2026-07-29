@@ -8,7 +8,8 @@ export function Footer() {
     <footer className="border-t border-violet/20 bg-abyss px-5 py-6 sm:px-7 sm:py-8">
       <div className="mx-auto flex max-w-[1160px] flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-2.5">
-          <ZentraMark size={22} title="Zentra Protocol" />
+          {/* the wordmark beside it already carries the name, so the mark is decorative */}
+          <ZentraMark size={22} />
           <span className="font-display text-sm font-bold tracking-[0.04em]">ZENTRA PROTOCOL</span>
         </div>
         <span className="font-mono text-xs tracking-[0.08em] text-[#7d8ea6]">NO PROOF · NO PAYMENT</span>
