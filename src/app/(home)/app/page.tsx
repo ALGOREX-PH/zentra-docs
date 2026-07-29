@@ -26,9 +26,9 @@ export default function AppPage() {
               Stellar testnet wallet
             </h1>
             <p className="mt-3 max-w-[520px] text-[15px] text-muted sm:text-base">
-              Connect Freighter, fund your account, and send XLM on the Stellar
-              testnet. This is the White-Belt foundation the full Zentra proof
-              layer builds on.
+              Connect a Stellar wallet, fund it from Friendbot, and send XLM on
+              the Stellar testnet. This is the White-Belt foundation the full
+              Zentra proof layer builds on.
             </p>
           </div>
           <div className="flex flex-col items-start gap-3 sm:items-end">
