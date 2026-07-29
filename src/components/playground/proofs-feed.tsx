@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { getProofCount, getRecentProofs } from '@/lib/stellar/proofs';
 import { truncateAddress } from '@/lib/stellar/format';
 import { stellar } from '@/config/stellar';
@@ -13,29 +13,35 @@ export function ProofsFeed({ refreshSignal = 0 }: { refreshSignal?: number }) {
   const [proofs, setProofs] = useState<ProofEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const request = useRef(0);
 
-  useEffect(() => {
-    let cancelled = false;
+  const load = useCallback(async () => {
+    const id = ++request.current;
     setLoading(true);
     setError(null);
-    Promise.all([getProofCount(), getRecentProofs(20)])
-      .then(([nextCount, nextProofs]) => {
-        if (cancelled) return;
-        setCount(nextCount);
-        setProofs(nextProofs);
-      })
-      .catch(() => {
-        if (cancelled) return;
-        setError('Could not load the proof registry.');
-      })
-      .finally(() => {
-        if (cancelled) return;
-        setLoading(false);
-      });
+    try {
+      const [nextCount, nextProofs] = await Promise.all([
+        getProofCount(),
+        getRecentProofs(20),
+      ]);
+      if (id !== request.current) return;
+      setCount(nextCount);
+      setProofs(nextProofs);
+    } catch {
+      if (id !== request.current) return;
+      setError('Could not load the proof registry.');
+    } finally {
+      if (id === request.current) setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void load();
+    // Bumping the id drops a reply that lands after this feed is gone.
     return () => {
-      cancelled = true;
+      request.current += 1;
     };
-  }, [refreshSignal]);
+  }, [load, refreshSignal]);
 
   return (
     <HudPanel accent="cyan">
@@ -56,14 +62,31 @@ export function ProofsFeed({ refreshSignal = 0 }: { refreshSignal?: number }) {
           </a>
         </div>
 
+        {error ? (
+          <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2 border border-denied/40 bg-denied/[0.06] px-3 py-2">
+            <p className="font-mono text-[11px] text-denied">
+              {error}
+              {proofs.length > 0 ? ' Showing the last list that loaded.' : ''}
+            </p>
+            <button
+              type="button"
+              onClick={() => void load()}
+              disabled={loading}
+              className="ml-auto border border-violet/50 px-3 py-1 font-mono text-[11px] tracking-wide text-violet-soft transition-colors hover:bg-violet/10 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {loading ? 'retrying…' : 'retry'}
+            </button>
+          </div>
+        ) : null}
+
         {loading && proofs.length === 0 ? (
-          <p className="mt-4 font-mono text-xs text-muted">Loading…</p>
-        ) : error && proofs.length === 0 ? (
-          <p className="mt-4 font-mono text-xs text-denied">{error}</p>
+          <p className="mt-4 font-mono text-xs text-muted">Loading the proof registry…</p>
         ) : proofs.length === 0 ? (
-          <p className="mt-4 font-mono text-xs text-muted">
-            No proofs anchored yet — generate one and anchor it.
-          </p>
+          error ? null : (
+            <p className="mt-4 font-mono text-xs text-muted">
+              No proofs anchored yet — generate one and anchor it.
+            </p>
+          )
         ) : (
           <ul className="mt-4 divide-y divide-fd-border border border-fd-border">
             {proofs.map((proof) => (
