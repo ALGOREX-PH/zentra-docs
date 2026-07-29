@@ -31,7 +31,17 @@ export default async function Page(props: Params) {
   const eyebrow = section ? (SECTION_LABEL[section] ?? 'Docs') : 'Docs';
 
   return (
-    <DocsPage toc={page.data.toc} full={page.data.full}>
+    // Fumadocs renders the page body as an `<article>` and the docs shell has no
+    // `<main>` of its own, so the article carries the main landmark and the id
+    // the site-wide skip link points at.
+    <DocsPage
+      toc={page.data.toc}
+      full={page.data.full}
+      id="content"
+      role="main"
+      tabIndex={-1}
+      className="focus:outline-none"
+    >
       <span className="mb-5 inline-flex w-fit items-center gap-2 border border-violet/40 bg-violet/[0.07] px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.12em] text-violet-soft">
         <span className="size-1.5 bg-cyan" />
         {eyebrow}
