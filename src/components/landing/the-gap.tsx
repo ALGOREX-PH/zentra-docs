@@ -45,7 +45,9 @@ export function TheGap() {
                 {r.n}
               </span>
               <span className="flex w-9 shrink-0 items-center justify-center">
+                {/* solved vs unsolved is carried by the tick alone, so name it in text */}
                 {r.ok ? <Check /> : <Cross />}
+                <span className="sr-only">{r.ok ? 'Solved' : 'Unsolved'}</span>
               </span>
               <div className="flex flex-1 flex-wrap items-center gap-x-3 gap-y-1 py-5 pr-5">
                 <span className="w-[96px] shrink-0 font-display font-semibold sm:w-[120px]">{r.label}</span>
