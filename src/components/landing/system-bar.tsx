@@ -18,7 +18,7 @@ export function SystemBar() {
     <div className="flex h-[30px] items-center overflow-x-auto border-b border-fd-border bg-abyss">
       <div className="flex items-center whitespace-nowrap font-mono text-[10px] tracking-[0.06em]">
         {CELLS.map((c) => (
-          <span key={c.k} className="border-r border-fd-border px-4 text-faint">
+          <span key={c.k} className="border-r border-fd-border px-4 text-[#7d8ea6]">
             {c.k} <span className={cn('ml-1', c.tone ?? 'text-muted')}>{c.v}</span>
           </span>
         ))}

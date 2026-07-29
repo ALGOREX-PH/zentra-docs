@@ -49,7 +49,7 @@ export function ProofEngine() {
     const sleep = (ms: number) => new Promise<void>((res) => { const t = window.setTimeout(res, reduced ? 0 : ms); timers.push(t); });
     const setPill = (t: string, c: string) => { const p = q('[data-z-pill]'); if (p) { p.textContent = t; p.style.color = c; p.style.borderColor = c; p.style.background = c + '1f'; } };
     const setStatus = (t: string, c?: string) => { const s = q('[data-z-status]'); if (s) { s.textContent = t; s.style.color = c || '#e2e8f0'; } };
-    const setOutput = (t: string, c?: string) => { const o = q('[data-z-output]'); if (o) { o.textContent = t; o.style.color = c || '#64748b'; } };
+    const setOutput = (t: string, c?: string) => { const o = q('[data-z-output]'); if (o) { o.textContent = t; o.style.color = c || '#7d8ea6'; } };
     const activate = (i: number, c: string) => { const r = rect(i); if (r) { r.style.stroke = c; r.style.fill = c + '26'; r.style.filter = `drop-shadow(0 0 6px ${c})`; } };
     const advance = (i: number, c?: string) => { fill.style.strokeDashoffset = String(len * (1 - cum[i] / total)); if (c) fill.style.stroke = c; };
     const reset = () => {
@@ -147,8 +147,8 @@ export function ProofEngine() {
             <rect x="-23" y="-12" width="46" height="24" fill="url(#zgrad)" style={{ filter: 'drop-shadow(0 0 10px rgba(0,229,255,0.6))' }} />
             <text x="0" y="4" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="11" fontWeight="700" fill="#06070d">ZK</text>
           </g>
-          <text x="90" y="48" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="11" letterSpacing="1" fill="#64748b">INTENT</text>
-          <text x="430" y="320" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="11" letterSpacing="1" fill="#64748b">RECEIPT</text>
+          <text x="90" y="48" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="11" letterSpacing="1" fill="#7d8ea6">INTENT</text>
+          <text x="430" y="320" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="11" letterSpacing="1" fill="#7d8ea6">RECEIPT</text>
         </svg>
       </div>
 
@@ -164,7 +164,7 @@ export function ProofEngine() {
           <span data-z-status className="font-mono text-[13px] text-[#e2e8f0]">composing action</span>
           <span className="h-3.5 w-2 bg-cyan [animation:zen-blink_1.1s_step-end_infinite]" />
         </div>
-        <div data-z-output className="mt-2 font-mono text-[11px] tracking-[0.02em] text-faint">awaiting submission</div>
+        <div data-z-output className="mt-2 font-mono text-[11px] tracking-[0.02em] text-[#7d8ea6]">awaiting submission</div>
       </div>
     </div>
   );

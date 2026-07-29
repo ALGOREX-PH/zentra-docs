@@ -34,7 +34,7 @@ function Panel({ cfg }: { cfg: Cfg }) {
   const [active, setActive] = useState(-1);
   const [failed, setFailed] = useState(false);
   const [outcome, setOutcome] = useState<'' | Id>('');
-  const [stat, setStat] = useState<{ t: string; c: string }>({ t: 'IDLE', c: '#64748b' });
+  const [stat, setStat] = useState<{ t: string; c: string }>({ t: 'IDLE', c: '#7d8ea6' });
   const wrap = useRef<HTMLDivElement>(null);
   const cancel = useRef(false);
   const busy = useRef(false);
@@ -59,10 +59,10 @@ function Panel({ cfg }: { cfg: Cfg }) {
       setOutcome('a'); setStat({ t: 'RECEIPT EMITTED', c: G });
     } else if (cfg.id === 'b') {
       setStat({ t: 'RECIPIENT NOT IN SET', c: R }); await sleep(420);
-      setOutcome('b'); await sleep(700); setStat({ t: 'NO PAYMENT MOVED', c: '#64748b' });
+      setOutcome('b'); await sleep(700); setStat({ t: 'NO PAYMENT MOVED', c: '#7d8ea6' });
     } else {
       setStat({ t: 'STATEMISMATCH', c: R }); setOutcome('c'); await sleep(1100);
-      setStat({ t: 'NO PAYMENT MOVED', c: '#64748b' });
+      setStat({ t: 'NO PAYMENT MOVED', c: '#7d8ea6' });
     }
     busy.current = false;
   }, [cfg]);
@@ -137,12 +137,12 @@ function Panel({ cfg }: { cfg: Cfg }) {
         {outcome === 'c' && (
           <div className="grid h-[92px] w-full grid-cols-2 border border-denied/30 [animation:zen-flare_1s_ease-in-out_2]">
             <div className="border-r border-denied/30 p-2.5">
-              <div className="mb-1.5 font-mono text-[8px] tracking-[0.08em] text-faint">CLAIMED</div>
+              <div className="mb-1.5 font-mono text-[8px] tracking-[0.08em] text-[#7d8ea6]">CLAIMED</div>
               <div className="font-mono text-[11px] text-denied">prev_spent=0</div>
               <div className="mt-0.5 font-mono text-[11px] text-[#cbd5e1]">count=2</div>
             </div>
             <div className="p-2.5">
-              <div className="mb-1.5 font-mono text-[8px] tracking-[0.08em] text-faint">CHAIN</div>
+              <div className="mb-1.5 font-mono text-[8px] tracking-[0.08em] text-[#7d8ea6]">CHAIN</div>
               <div className="font-mono text-[11px] text-denied">spent=500</div>
               <div className="mt-0.5 font-mono text-[11px] text-[#cbd5e1]">count=2</div>
             </div>
@@ -185,7 +185,7 @@ export function ScenarioPanels() {
             <Panel key={p.id} cfg={p} />
           ))}
         </div>
-        <p className="mt-7 text-center font-mono text-[13px] tracking-[0.1em] text-faint">// NO PAYMENT MOVED</p>
+        <p className="mt-7 text-center font-mono text-[13px] tracking-[0.1em] text-[#7d8ea6]">// NO PAYMENT MOVED</p>
       </div>
     </section>
   );

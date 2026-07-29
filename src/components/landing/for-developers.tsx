@@ -18,7 +18,7 @@ const kw = { color: '#c4b5fd' };
 const str = { color: '#67e8f9' };
 const fn = { color: '#a78bfa' };
 const num = { color: '#86efac' };
-const com = { color: '#64748b' };
+const com = { color: '#7d8ea6' };
 
 export function ForDevelopers() {
   const [revealed, setRevealed] = useState(0);

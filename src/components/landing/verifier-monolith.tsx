@@ -109,11 +109,11 @@ export function VerifierMonolith() {
               <div className="absolute inset-x-[30px] top-[172px] flex h-[30px] items-center border border-fd-border bg-void px-1">
                 <div className="h-2 w-full transition-all duration-500" style={{ background: dropped ? '#00e5ff' : 'rgba(148,163,184,0.18)', boxShadow: dropped ? '0 0 14px rgba(0,229,255,0.7)' : 'none' }} />
               </div>
-              <span className="absolute left-[30px] top-[208px] font-mono text-[9px] tracking-[0.06em] text-faint">PROOF SLOT · BN254</span>
+              <span className="absolute left-[30px] top-[208px] font-mono text-[9px] tracking-[0.06em] text-[#7d8ea6]">PROOF SLOT · BN254</span>
 
               <div className="absolute inset-x-0 bottom-0 flex items-center justify-between border-t border-fd-border px-3.5 py-3">
                 <span className="font-mono text-[10px] text-violet-soft">{shortId(protocol.contractId)}</span>
-                <span className="font-mono text-[10px] tracking-[0.08em] transition-colors" style={{ color: accepted ? '#22c55e' : '#64748b' }}>
+                <span className="font-mono text-[10px] tracking-[0.08em] transition-colors" style={{ color: accepted ? '#22c55e' : '#7d8ea6' }}>
                   {accepted ? 'ACCEPTED' : 'AWAITING'}
                 </span>
               </div>

@@ -41,7 +41,7 @@ export function TheGap() {
               className="flex items-stretch border-b border-fd-border last:border-b-0"
               style={r.ok ? undefined : { background: 'rgba(239,68,68,0.04)' }}
             >
-              <span className="flex w-12 shrink-0 items-center justify-center border-r border-fd-border bg-[#0a0c12] font-mono text-xs text-faint">
+              <span className="flex w-12 shrink-0 items-center justify-center border-r border-fd-border bg-[#0a0c12] font-mono text-xs text-[#7d8ea6]">
                 {r.n}
               </span>
               <span className="flex w-9 shrink-0 items-center justify-center">
@@ -51,7 +51,7 @@ export function TheGap() {
                 <span className="w-[96px] shrink-0 font-display font-semibold sm:w-[120px]">{r.label}</span>
                 <span className="text-[15px] text-[#cbd5e1]">
                   {r.ok ? r.desc : <>Did this action obey the rule <span className="font-semibold text-white">right now</span>?</>}
-                  {r.tag && <span className="ml-2 font-mono text-xs text-faint">{r.tag}</span>}
+                  {r.tag && <span className="ml-2 font-mono text-xs text-[#7d8ea6]">{r.tag}</span>}
                 </span>
               </div>
             </div>
