@@ -2,9 +2,11 @@
 
 import { useEffect, useId, useState } from 'react';
 import Link from 'next/link';
+import { ConnectButton } from '@/components/app/connect-button';
 import { WalletProvider, useWallet } from '@/components/app/wallet-provider';
 import { readApiError } from '@/lib/api/client';
 import { HudPanel, Eyebrow } from '@/components/landing/primitives';
+import { truncateAddress } from '@/lib/stellar/format';
 import { cn } from '@/lib/cn';
 
 const focusRing =
@@ -273,6 +275,40 @@ function SignupForm() {
             <label htmlFor={`${ids}-wallet`} className={cn(labelClass, 'mt-4')}>
               Stellar wallet
             </label>
+            {/*
+              The connected path put in front of the field instead of described
+              underneath it. The hint here used to say "connect a wallet
+              anywhere on the site" — but /join has no wallet UI of its own and
+              the provider is mounted in this component, so the only visitors
+              who ever got an autofill were the ones arriving with a session
+              from /app or /board. Everyone else was quietly asked to hand-type
+              56 base32 characters, which is the worst step in this funnel.
+            */}
+            {address === null ? (
+              <div className="mb-2 flex flex-wrap items-center gap-x-4 gap-y-2.5 border border-violet/30 bg-violet/[0.06] p-3">
+                <ConnectButton />
+                <p className="font-mono text-[11px] leading-relaxed text-muted">
+                  Fills the address in for you — nothing to sign, nothing to type.
+                </p>
+              </div>
+            ) : wallet !== address ? (
+              // A way back to the connected account, because the alternative
+              // after a stray keystroke is retyping the whole address.
+              <button
+                type="button"
+                onClick={() => {
+                  setWalletEdited(false);
+                  setWallet(address);
+                }}
+                className={cn(
+                  'mb-2 inline-flex items-center gap-2 border border-fd-border px-3 py-1.5 font-mono text-[11px] text-muted transition-colors hover:border-cyan/40 hover:text-cyan',
+                  focusRing,
+                )}
+              >
+                <span aria-hidden className="size-1.5 bg-live" />
+                Use connected wallet {truncateAddress(address, 6, 6)}
+              </button>
+            ) : null}
             <input
               id={`${ids}-wallet`}
               name="wallet"
@@ -301,7 +337,9 @@ function SignupForm() {
             <p id={`${ids}-wallet-hint`} className="mt-1 font-mono text-[11px] text-faint">
               {prefilled
                 ? 'From your connected wallet — edit it if you want to register a different account.'
-                : 'Connect a wallet anywhere on the site to autofill this, or paste a testnet account id.'}
+                : address === null
+                  ? 'Connect above to fill this in, or paste a testnet account id.'
+                  : 'Paste a testnet account id, or use the connected account above.'}
             </p>
 
             <span id={`${ids}-rating-label`} className={cn(labelClass, 'mt-4')}>
