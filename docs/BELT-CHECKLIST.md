@@ -155,7 +155,7 @@ Legend: ✅ done · ⬜ pending (you) · 🔄 in progress
       import path, admin-gated CSV export
 - [x] Documentation updated (README, `docs/ARCHITECTURE.md`, `docs/API.md`,
       `docs/users/README.md`)
-- [x] 20+ meaningful commits — 100+ on this branch
+- [x] 20+ meaningful commits — 153 on this branch
 - [ ] 50+ testnet users onboarded — real people you bring (I won't fabricate users)
 - [ ] Real transaction activity at that scale — follows from the above
 
