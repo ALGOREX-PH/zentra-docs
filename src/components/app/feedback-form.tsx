@@ -72,7 +72,7 @@ export function FeedbackForm({ onSubmitted }: { onSubmitted?: () => void }) {
     <HudPanel accent="violet">
       <div className="p-5 sm:p-6">
         <Eyebrow>LEAVE FEEDBACK</Eyebrow>
-        <p className="mt-2 font-mono text-[11px] text-muted">
+        <p id="feedback-comment-help" className="mt-2 font-mono text-[11px] text-muted">
           Connect a wallet to anchor your feedback on-chain — otherwise it&apos;s saved off-chain.
         </p>
 
@@ -125,11 +125,29 @@ export function FeedbackForm({ onSubmitted }: { onSubmitted?: () => void }) {
             value={comment}
             onChange={(event) => setComment(event.target.value)}
             placeholder="What worked, what didn't…"
+            aria-invalid={over}
+            aria-describedby={[
+              'feedback-comment-help',
+              'feedback-comment-count',
+              over ? 'feedback-comment-error' : null,
+            ]
+              .filter(Boolean)
+              .join(' ')}
             className="w-full resize-none border border-fd-border bg-abyss px-3 py-2.5 font-mono text-sm text-text placeholder:text-faint outline-none transition-colors focus:border-violet/60"
           />
 
-          <div className="mt-1 flex justify-end font-mono text-[11px]">
-            <span className={cn('text-faint', over && 'text-denied')}>
+          <div className="mt-1 flex items-start justify-between gap-3 font-mono text-[11px]">
+            {over ? (
+              <p id="feedback-comment-error" className="text-denied">
+                Comment must be {MAX} characters or fewer.
+              </p>
+            ) : (
+              <span />
+            )}
+            <span
+              id="feedback-comment-count"
+              className={cn('shrink-0 text-faint', over && 'text-denied')}
+            >
               {comment.length}/280
             </span>
           </div>
