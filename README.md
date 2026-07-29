@@ -380,7 +380,7 @@ already sitting in the database, not by guesswork.
 | Optimise onboarding | 3-step Freighter → testnet → funding guide that collapses once connected |
 | Professional pitch deck | [`/pitch`](https://zentra-docs.vercel.app/pitch), content in [`src/lib/pitch.ts`](src/lib/pitch.ts) |
 | Product walkthrough demo | [youtu.be/JQapGdfgZJw](https://youtu.be/JQapGdfgZJw) |
-| 20+ meaningful commits | 100+ on this branch |
+| 20+ meaningful commits | 153 on this branch |
 | Updated documentation | this README + [`ARCHITECTURE`](docs/ARCHITECTURE.md) + [`API`](docs/API.md) |
 
 ### User feedback → what we changed
