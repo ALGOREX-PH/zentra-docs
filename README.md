@@ -188,7 +188,7 @@ live feed driven by contract events.
 
 ```bash
 cd contracts/zentra-action-log
-cargo test                 # 4 unit tests
+cargo test                 # 8 unit tests
 stellar contract build     # optimized wasm (wasm32v1-none)
 stellar contract deploy \
   --wasm target/wasm32v1-none/release/zentra_action_log.wasm \
@@ -242,7 +242,7 @@ passes only when the Action Log is the caller.
 | Contract deployment workflow | `contracts/deploy.sh` — build → deploy → wire both contracts |
 | Mobile responsive frontend | `/board` grid stacks on small screens |
 | Error handling & loading states | `errors.ts`, `tx-status.tsx`, feed loading / empty / error states |
-| Tests (contract + frontend) | 30 Rust tests across five contracts; 255 Vitest tests across 12 files (`bun run test`) |
+| Tests (contract + frontend) | 38 Rust tests across five contracts; 324 Vitest tests across 15 files (`bun run test`) |
 | Production architecture | typed libs, single-source config, CI, size-optimized wasm |
 
 ### Build, test, deploy
@@ -310,7 +310,7 @@ both queryable and independently verifiable.
 | Proof of wallet interactions | `/metrics` reads distinct wallets + total actions live from chain |
 | Backend architecture | layered API in [`src/lib/api/`](src/lib/api) — see below |
 | Database design | [`db/schema.sql`](db/schema.sql) + [`db/migrations/`](db/migrations) — named constraints, 4 indexes |
-| Testing | 255 Vitest tests across 12 files + 30 Rust tests across five contracts; CI runs typecheck → tests → build |
+| Testing | 324 Vitest tests across 15 files + 38 Rust tests across five contracts; CI runs typecheck → tests → build |
 | Documentation | this README + [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) + [`docs/API.md`](docs/API.md) + [`docs/BELT-CHECKLIST.md`](docs/BELT-CHECKLIST.md) |
 
 ### Backend, in production terms
@@ -439,7 +439,7 @@ and the network is now a single config switch.
 
 | Feature | Where | What it does |
 | --- | --- | --- |
-| **Multi-signature logic** | [`contracts/zentra-multisig`](contracts/zentra-multisig) | An N-of-M proposal/approval Soroban contract. Approving twice is rejected, execution is check-effects-interactions ordered, and every rejection is a typed `#[contracterror]`. 14 tests. |
+| **Multi-signature logic** | [`contracts/zentra-multisig`](contracts/zentra-multisig) | An N-of-M proposal/approval Soroban contract. Approving twice is rejected, execution is check-effects-interactions ordered, and every rejection is a typed `#[contracterror]`. 16 tests. |
 | **Fee sponsorship (gasless)** | [`src/lib/api/sponsor.ts`](src/lib/api/sponsor.ts), [`/api/sponsor`](https://zentra-docs.vercel.app/api/sponsor) | A zero-balance wallet signs an inner transaction; a sponsor account wraps it in a fee-bump and pays. Refuses anything that is not an invocation of our own contracts, so it can't be drained as an open faucet. |
 
 ### Security review
