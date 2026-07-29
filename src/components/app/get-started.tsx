@@ -13,10 +13,12 @@ type StepStatus = 'done' | 'current' | 'pending';
 
 const STEPS: ReadonlyArray<{ title: string; body: ReactNode }> = [
   {
-    title: 'Install Freighter',
+    title: 'Install a Stellar wallet',
     body: (
       <>
-        Zentra signs with{' '}
+        Signing goes through the Stellar Wallets Kit, so Freighter, xBull, Albedo,
+        LOBSTR, Hana Wallet and Rabet all work — the picker lists whichever of
+        them this browser has. With none of them installed,{' '}
         <a
           href="https://www.freighter.app/"
           target="_blank"
@@ -27,30 +29,41 @@ const STEPS: ReadonlyArray<{ title: string; body: ReactNode }> = [
           )}
         >
           Freighter
-        </a>
-        , a browser extension wallet for Stellar. Install it, create or import an
-        account, then reload this page.
+        </a>{' '}
+        is the shortest route: add the extension, create or import an account,
+        then reload this page. Done when your wallet appears as{' '}
+        <span className="text-text">Detected</span> — not{' '}
+        <span className="text-text">Install</span> — under{' '}
+        <span className="text-text">Connect Wallet</span>.
       </>
     ),
   },
   {
-    title: 'Switch Freighter to Testnet',
+    title: 'Switch it to Test Net, then connect',
     body: (
       <>
-        Open Freighter, use the network selector, and pick{' '}
-        <span className="text-text">Test Net</span>. This dApp runs on the Stellar
-        testnet only — no real funds are involved. Then use{' '}
-        <span className="text-text">Connect Wallet</span> above.
+        Every contract behind this page lives on the Stellar testnet, and a wallet
+        left on Mainnet cannot sign for it — no real funds are involved either
+        way. Pick <span className="text-text">Test Net</span> in the wallet
+        (Freighter keeps that selector at the top of its window), then press{' '}
+        <span className="text-text">Connect Wallet</span> above and approve.
+        Done when the button becomes your{' '}
+        <span className="text-text">G…</span> address. If the picker says it could
+        not connect instead, the wallet is locked or still on Mainnet.
       </>
     ),
   },
   {
-    title: 'Get free test XLM',
+    title: 'Fund the account from Friendbot',
     body: (
       <>
-        A new testnet account holds nothing until Friendbot seeds it. Use{' '}
+        A fresh testnet account holds nothing, and an account with no XLM cannot
+        pay a transaction fee — nothing here can be signed until that is cleared.
+        One action clears it:{' '}
         <span className="text-text">Fund with Friendbot</span> in the Testnet
-        balance panel below — it funds the connected account in one call.
+        balance panel below. Done when that panel stops saying the account
+        isn&apos;t funded and shows an XLM figure; if Friendbot is unreachable it
+        states the error and offers <span className="text-text">Retry</span>.
       </>
     ),
   },
