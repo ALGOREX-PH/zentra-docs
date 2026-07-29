@@ -61,14 +61,11 @@ interface Summary {
 }
 
 export const GET = route('feedback.list', async (request) => {
-  const headers = enforceRateLimit(request, 'feedback:read', READ_LIMIT);
+  countRequest(request, 'feedback:read', READ_LIMIT);
 
   const { summary, recent } = await readFeedback();
 
-  return json(
-    { ...summary, recent },
-    { headers: { ...headers, 'cache-control': READ_CACHE_CONTROL } },
-  );
+  return json({ ...summary, recent }, { headers: { 'cache-control': READ_CACHE_CONTROL } });
 });
 
 export const POST = route('feedback.create', async (request, { requestId }) => {
@@ -160,6 +157,21 @@ function enforceRateLimit(
   const result = rateLimit(clientKey(request, scope), options);
   if (!result.ok) throw rateLimited(result.retryAfterSeconds);
   return rateLimitHeaders(result);
+}
+
+/**
+ * Count one request without reporting the budget back.
+ *
+ * The read response is `public` and cached at the edge, and `X-RateLimit-*`
+ * describes one caller — so attaching them here would store one visitor's
+ * remaining allowance in a shared cache and hand it to every visitor served
+ * from that entry until it expired. Counters that describe nobody are worse
+ * than no counters, and the response they belong on is the 429, which the
+ * wrapper marks `no-store` and which still carries `Retry-After`.
+ */
+function countRequest(request: Request, scope: string, options: RateLimitOptions): void {
+  const result = rateLimit(clientKey(request, scope), options);
+  if (!result.ok) throw rateLimited(result.retryAfterSeconds);
 }
 
 /**
