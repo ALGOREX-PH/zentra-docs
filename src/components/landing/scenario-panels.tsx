@@ -109,7 +109,7 @@ function Panel({ cfg }: { cfg: Cfg }) {
             const on = i <= active;
             const col = nodeColor(cfg, i, failed);
             return (
-              <span key={i} className="flex size-[18px] items-center justify-center border-2 bg-panel transition-all" style={{ borderColor: on ? col : 'rgba(148,163,184,0.3)', boxShadow: on ? `0 0 12px ${col}aa` : 'none' }}>
+              <span key={i} className="flex size-[18px] items-center justify-center border-2 bg-panel transition-all" style={{ borderColor: on ? col : 'rgba(148,163,184,0.6)', boxShadow: on ? `0 0 12px ${col}aa` : 'none' }}>
                 <span className="size-[5px] transition-opacity" style={{ background: on ? col : '#94a3b8', opacity: on ? 1 : 0 }} />
               </span>
             );
