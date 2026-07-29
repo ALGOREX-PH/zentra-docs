@@ -340,7 +340,6 @@ function SignupForm() {
   const errors = validate({ name, email, wallet, note });
   const walletState = inspectWallet(wallet);
   const inFlight = status === 'sending';
-  const disabled = inFlight || Object.keys(errors).length > 0;
   const prefilled = !walletEdited && address !== null && wallet === address;
   const noteOver = note.trim().length > MAX_NOTE;
 
@@ -357,7 +356,14 @@ function SignupForm() {
     event.preventDefault();
 
     if (Object.keys(errors).length > 0) {
+      // Reachable now that the button is no longer disabled while the form is
+      // incomplete, and this is what the trade buys: one press reveals every
+      // outstanding field error at once and announces that it did, instead of a
+      // dead control whose reason for being dead the visitor has to guess at.
+      // No request goes out, so none of the three write attempts is spent.
       setTouched({ name: true, email: true, wallet: true, note: true });
+      setStatus('error');
+      setError('Check the fields marked above.');
       return;
     }
 
@@ -720,9 +726,15 @@ function SignupForm() {
               </span>
             </div>
 
+            {/*
+              Disabled only while the request is in flight, never for an
+              incomplete form. A submit button that greys itself out is the last
+              step of a funnel refusing to say what is wrong — the press has to
+              be allowed for the answer to arrive.
+            */}
             <button
               type="submit"
-              disabled={disabled}
+              disabled={inFlight}
               className={cn(
                 'mt-4 w-full bg-violet px-4 py-3 font-mono text-xs uppercase tracking-[0.1em] text-white transition-colors hover:bg-violet-bright disabled:cursor-not-allowed disabled:opacity-50',
                 focusRing,
