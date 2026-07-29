@@ -47,7 +47,7 @@ export function ProofEngine() {
     fill.style.strokeDashoffset = String(len);
     cap.style.transition = 'transform .55s cubic-bezier(.45,0,.3,1), opacity .3s';
 
-    const sleep = (ms: number) => new Promise<void>((res) => { const t = window.setTimeout(res, reduced ? 0 : ms); timers.push(t); });
+    const sleep = (ms: number) => new Promise<void>((res) => { const t = window.setTimeout(res, ms); timers.push(t); });
     const setPill = (t: string, c: string) => { const p = q('[data-z-pill]'); if (p) { p.textContent = t; p.style.color = c; p.style.borderColor = c; p.style.background = c + '1f'; } };
     const setStatus = (t: string, c?: string) => { const s = q('[data-z-status]'); if (s) { s.textContent = t; s.style.color = c || '#e2e8f0'; } };
     const setOutput = (t: string, c?: string) => { const o = q('[data-z-output]'); if (o) { o.textContent = t; o.style.color = c || '#7d8ea6'; } };
@@ -68,8 +68,12 @@ export function ProofEngine() {
       burn.style.opacity = '1'; cap.style.opacity = '0';
     };
 
+    // Under reduced motion every wait is skipped, so the whole run resolves inside one
+    // frame and only its end state is ever painted — a still, not a fast-forward.
     async function run(scenario: string) {
-      if (busy) return; busy = true; reset(); await sleep(150); cap.style.opacity = '1';
+      if (busy) return; busy = true; reset();
+      if (!reduced) await sleep(150);
+      cap.style.opacity = '1';
       const stop = scenario === 'valid' ? 6 : scenario === 'injection' ? 1 : 3;
       for (let i = 0; i <= stop; i++) {
         if (!alive) { busy = false; return; }
@@ -80,7 +84,7 @@ export function ProofEngine() {
         const m = MSG[scenario][i];
         if (m) setStatus(m, fail ? R : '#e2e8f0');
         setPill(fail ? 'BLOCKED' : PILLS[i], fail ? R : i === 6 ? G : '#c4b5fd');
-        await sleep(640);
+        if (!reduced) await sleep(640);
       }
       if (scenario === 'valid') {
         cap.style.opacity = '0'; seal.style.transition = 'none'; seal.style.opacity = '1'; seal.style.transform = 'scale(1)';
@@ -97,9 +101,8 @@ export function ProofEngine() {
 
     reset();
     if (reduced) {
-      for (let i = 0; i < 7; i++) activate(i, i >= 4 ? C : V);
-      advance(6); cap.style.opacity = '0'; seal.style.opacity = '1'; seal.style.transform = 'scale(1)';
-      setPill('RELEASED', G); setStatus('receipt emitted', G); setOutput('proof verified · payment released', G);
+      // no idle loop: settle on the released receipt and leave the tabs to redraw it
+      void run('valid');
       return () => { alive = false; timers.forEach(clearTimeout); };
     }
     void (async () => {
