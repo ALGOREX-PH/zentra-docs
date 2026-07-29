@@ -17,7 +17,8 @@ export function Logo({
 }: LogoProps) {
   return (
     <span className={cn('inline-flex items-center gap-2', className)}>
-      <ZentraMark size={size} tone={tone} title="Zentra Protocol" />
+      {/* the wordmark beside it already carries the name, so the mark is decorative */}
+      <ZentraMark size={size} tone={tone} />
       <span className="font-display text-[15px] font-bold tracking-[0.04em] text-fd-foreground">
         ZENTRA
       </span>
