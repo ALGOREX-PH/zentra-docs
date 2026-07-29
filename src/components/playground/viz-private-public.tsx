@@ -1,5 +1,3 @@
-import { cn } from '@/lib/cn';
-
 type RedactedItem = {
   label: string;
   width: number;
@@ -79,9 +77,7 @@ export function VizPrivatePublic() {
                 className="flex items-center justify-between gap-3"
               >
                 <span className="text-[11px] text-faint">{item.label}</span>
-                <span className={cn('font-mono text-[11px] text-cyan')}>
-                  {item.value}
-                </span>
+                <span className="font-mono text-[11px] text-cyan">{item.value}</span>
               </div>
             ))}
           </div>
