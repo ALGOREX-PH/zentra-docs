@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useId, useState, type ReactNode } from 'react';
 import { activeProfile } from '@/config/network';
 import { readApiError } from '@/lib/api/client';
 import { getCount, getRecent } from '@/lib/stellar/action-log';
@@ -38,6 +38,17 @@ import { cn } from '@/lib/cn';
 const SAMPLE = 20;
 
 /**
+ * The onboarding target this panel reports progress against — 50 testnet users
+ * (`docs/users/README.md`).
+ *
+ * A module constant rather than a prop: it is a fixed external requirement, not a
+ * display option, and a caller able to lower it could make any count look like it
+ * had arrived. The goal is a target, not a ceiling — the bar tops out while the
+ * count keeps climbing past it.
+ */
+const SIGNUP_GOAL = 50;
+
+/**
  * Whether `value` is shaped like the `/api/onboard` counter.
  *
  * Asserted rather than trusted: an edge error page or a cold-start response would
@@ -59,6 +70,7 @@ export function MetricsStats({ refreshSignal = 0 }: { refreshSignal?: number }) 
   const [signups, setSignups] = useState<number | null>(null);
   const [signupsLoading, setSignupsLoading] = useState(true);
   const [signupsError, setSignupsError] = useState<string | null>(null);
+  const goalLabelId = useId();
 
   useEffect(() => {
     let cancelled = false;
@@ -152,6 +164,50 @@ export function MetricsStats({ refreshSignal = 0 }: { refreshSignal?: number }) 
       <HudPanel accent="cyan">
         <div className="p-5 sm:p-6">
           <Eyebrow accent="cyan">// ADOPTION · PROOF OF USE</Eyebrow>
+
+          {/*
+            Progress against the 50-user target, as the count and the shortfall.
+            Whatever the registry holds is what appears here — a zero renders as a
+            zero, and the remainder is computed from it rather than stated. The
+            panel is only worth screenshotting if the unflattering readings show
+            up in it too.
+          */}
+          <div className="mb-5">
+            {signupsLoading ? (
+              <p className="font-mono text-xs text-muted">Reading the signup registry…</p>
+            ) : signups === null ? (
+              <p className="font-mono text-xs text-denied">
+                {signupsError ?? 'Could not load the signup count.'}
+              </p>
+            ) : (
+              <>
+                <p id={goalLabelId} className="font-mono text-sm text-muted">
+                  <span className="font-display text-4xl font-bold text-text">{signups}</span> of{' '}
+                  {SIGNUP_GOAL} registry signups
+                  <span className="text-faint">
+                    {' · '}
+                    {signups >= SIGNUP_GOAL
+                      ? 'target met'
+                      : `${SIGNUP_GOAL - signups} remaining`}
+                  </span>
+                </p>
+                <div
+                  role="progressbar"
+                  aria-valuenow={signups}
+                  aria-valuemin={0}
+                  aria-valuemax={SIGNUP_GOAL}
+                  aria-labelledby={goalLabelId}
+                  className="mt-3 h-2 w-full border border-fd-border bg-abyss"
+                >
+                  <span
+                    aria-hidden
+                    className="block h-full bg-gradient-to-r from-violet to-cyan transition-[width] duration-500"
+                    style={{ width: `${Math.min(100, (signups / SIGNUP_GOAL) * 100)}%` }}
+                  />
+                </div>
+              </>
+            )}
+          </div>
 
           {/*
             The readouts fall back to an em dash whenever a figure is missing,
