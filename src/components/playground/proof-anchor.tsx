@@ -35,7 +35,7 @@ export function ProofAnchor({
   const [error, setError] = useState<string | null>(null);
 
   async function anchor() {
-    if (!address) return;
+    if (!address || !result.verified) return;
     setPhase('anchoring');
     setStep('commit');
     setError(null);
@@ -57,6 +57,22 @@ export function ProofAnchor({
   }
 
   const anchoring = phase === 'anchoring';
+
+  // Whatever the caller hands over, a proof that failed local verification is
+  // never worth a transaction — the contract would only reject it.
+  if (!result.verified) {
+    return (
+      <HudPanel accent="violet">
+        <div className="p-5 sm:p-6">
+          <Eyebrow>ANCHOR ON-CHAIN</Eyebrow>
+          <p role="alert" className="max-w-[560px] text-sm text-denied">
+            This proof failed local verification, so there is nothing to anchor.
+            Generate a new proof and try again.
+          </p>
+        </div>
+      </HudPanel>
+    );
+  }
 
   return (
     <HudPanel accent="violet">
