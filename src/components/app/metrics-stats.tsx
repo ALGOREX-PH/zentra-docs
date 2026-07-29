@@ -118,9 +118,14 @@ export function MetricsStats({ refreshSignal = 0 }: { refreshSignal?: number }) 
         );
       } catch {
         if (cancelled) return;
-        // Provenance from an earlier successful read is dropped with the figures
-        // it described. A ledger and a read time surviving a failed refresh would
-        // date the panel to a moment its contents no longer come from.
+        // Everything the failed read was meant to produce is cleared, provenance
+        // included. Figures from an earlier load surviving beside a fresh error
+        // are presented as current when they are not, and a ledger and read time
+        // left behind would date the panel to a moment its contents no longer
+        // come from. The em dashes and the error line are the honest reading.
+        setInteractions(null);
+        setWallets(null);
+        setPartial(false);
         setLedger(null);
         setReadAt(null);
         setError('Could not load on-chain stats.');
