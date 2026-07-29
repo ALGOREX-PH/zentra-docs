@@ -49,7 +49,7 @@ console.log(result.status); // released`;
 
   const reveal = useCallback(async () => {
     for (let i = 1; i <= CHECKS.length; i++) {
-      await new Promise((r) => setTimeout(r, 260));
+      await new Promise<void>((r) => setTimeout(r, 260));
       setRevealed(i);
     }
   }, []);
