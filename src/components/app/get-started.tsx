@@ -29,8 +29,8 @@ const STEPS: ReadonlyArray<{ title: string; body: ReactNode }> = [
     body: (
       <>
         Signing goes through the Stellar Wallets Kit, so Freighter, xBull, Albedo,
-        LOBSTR, Hana Wallet and Rabet all work — the picker lists whichever of
-        them this browser has. With none of them installed,{' '}
+        LOBSTR, Hana Wallet and Rabet all work — the picker lists all six and
+        flags which of them this browser has. With none of them installed,{' '}
         <a
           href="https://www.freighter.app/"
           target="_blank"
