@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useId, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import Link from 'next/link';
 import { ConnectButton } from '@/components/app/connect-button';
 import { WalletProvider, useWallet } from '@/components/app/wallet-provider';
@@ -211,6 +211,96 @@ function validate({ name, email, wallet, note }: Values): FieldErrors {
 }
 
 /**
+ * A copyable link back to /join, shown to the person who has just used it.
+ *
+ * Fifty registrations have to come from somewhere, and the cheapest source is a
+ * visitor who already finished the form. Plain clipboard and a selectable field —
+ * no share SDK, no third-party script, nothing that reports who was invited.
+ */
+function InviteLink() {
+  const [url, setUrl] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+  const [manual, setManual] = useState(false);
+  const field = useRef<HTMLInputElement>(null);
+
+  /*
+   * The origin is read from the live document, not from `@/lib/site`. That
+   * module falls back to a placeholder domain in the browser — the Vercel
+   * production URL it prefers is not a `NEXT_PUBLIC_` variable, so it is simply
+   * absent client-side — and a share link nobody can open is worse than no
+   * share link. Reading `location` also keeps preview deployments shareable.
+   * In an effect rather than an initialiser because `location` does not exist
+   * during prerender, and a value that differed would be a hydration mismatch.
+   */
+  useEffect(() => {
+    setUrl(new URL('/join', window.location.origin).toString());
+  }, []);
+
+  useEffect(() => {
+    if (!copied) return;
+    const timer = window.setTimeout(() => setCopied(false), 2000);
+    return () => window.clearTimeout(timer);
+  }, [copied]);
+
+  async function copy() {
+    if (url === null) return;
+    try {
+      await navigator.clipboard.writeText(url);
+      setManual(false);
+      setCopied(true);
+    } catch {
+      // Denied permissions, an insecure origin, or a browser without the API.
+      // The link is already on screen, so the recovery is to select it for them
+      // rather than to report a failure they can do nothing about.
+      setManual(true);
+      field.current?.select();
+    }
+  }
+
+  if (url === null) return null;
+
+  return (
+    <div className="mt-5 border-t border-fd-border pt-5">
+      <p className="font-mono text-[11px] uppercase tracking-[0.08em] text-faint">
+        Bring one more
+      </p>
+      <p className="mt-2 max-w-[520px] text-[13px] leading-relaxed text-muted">
+        The programme is fifty people. Send this to one person building with agents
+        on Stellar.
+      </p>
+      <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+        <input
+          ref={field}
+          type="text"
+          readOnly
+          value={url}
+          aria-label="Invite link to the Zentra testnet programme"
+          // Selected on focus so a keyboard or a long-press can copy it without
+          // dragging across 30-odd characters of URL.
+          onFocus={(event) => event.currentTarget.select()}
+          className={cn(fieldClass, 'sm:flex-1')}
+        />
+        <button type="button" onClick={() => void copy()} className={secondaryAction}>
+          {copied ? 'Copied' : 'Copy link'}
+        </button>
+      </div>
+      {/* Mounted from the first render so the outcome is spoken rather than
+          created and filled in one tick, which screen readers routinely miss. */}
+      <p
+        role="status"
+        className={cn('font-mono text-[11px] text-faint', (copied || manual) && 'mt-2')}
+      >
+        {manual
+          ? 'Clipboard is blocked here — the link is selected, copy it with your keyboard.'
+          : copied
+            ? 'Link copied.'
+            : ''}
+      </p>
+    </div>
+  );
+}
+
+/**
  * Public signup for the testnet programme.
  *
  * The wallet context is mounted here rather than in a route layout: /join is a
@@ -390,6 +480,8 @@ function SignupForm() {
               </Link>
               .
             </p>
+
+            <InviteLink />
           </div>
         </HudPanel>
       </>
