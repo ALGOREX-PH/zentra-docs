@@ -171,7 +171,7 @@ export function ProofEngine() {
         <div className="flex items-center gap-2">
           <span className="font-mono text-[13px] text-cyan">&gt;</span>
           <span data-z-status className="font-mono text-[13px] text-[#e2e8f0]">composing action</span>
-          <span className="h-3.5 w-2 bg-cyan [animation:zen-blink_1.1s_step-end_infinite]" />
+          <span className="h-3.5 w-2 bg-cyan motion-safe:[animation:zen-blink_1.1s_step-end_infinite]" />
         </div>
         <div data-z-output className="mt-2 font-mono text-[11px] tracking-[0.02em] text-[#7d8ea6]">awaiting submission</div>
       </div>
