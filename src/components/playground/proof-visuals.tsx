@@ -14,13 +14,17 @@ export function ProofVisuals() {
           <h3 className="font-display text-lg font-bold tracking-tight sm:text-xl">
             How a proof is made
           </h3>
-          <p className="mt-2 max-w-[680px] text-sm text-muted">
-            Private and public inputs run through the circuit; out comes a tiny
-            proof anyone can verify in milliseconds.
-          </p>
-          <div className="mt-5">
-            <VizFlow />
-          </div>
+          {/* Each diagram is a figure, so its explanation is also its
+              accessible name rather than a paragraph that happens to sit above. */}
+          <figure>
+            <figcaption className="mt-2 max-w-[680px] text-sm text-muted">
+              Private and public inputs run through the circuit; out comes a tiny
+              proof anyone can verify in milliseconds.
+            </figcaption>
+            <div className="mt-5">
+              <VizFlow />
+            </div>
+          </figure>
         </div>
       </HudPanel>
 
@@ -28,23 +32,27 @@ export function ProofVisuals() {
         <HudPanel>
           <div className="p-5 sm:p-6">
             <Eyebrow>HIDDEN VS REVEALED</Eyebrow>
-            <p className="mt-2 text-sm text-muted">
-              What stays secret, and what the proof exposes.
-            </p>
-            <div className="mt-4">
-              <VizPrivatePublic />
-            </div>
+            <figure>
+              <figcaption className="mt-2 text-sm text-muted">
+                What stays secret, and what the proof exposes.
+              </figcaption>
+              <div className="mt-4">
+                <VizPrivatePublic />
+              </div>
+            </figure>
           </div>
         </HudPanel>
         <HudPanel>
           <div className="p-5 sm:p-6">
             <Eyebrow>THE COMMITMENT</Eyebrow>
-            <p className="mt-2 text-sm text-muted">
-              A one-way hash locks in the secret policy.
-            </p>
-            <div className="mt-4">
-              <VizCommitment />
-            </div>
+            <figure>
+              <figcaption className="mt-2 text-sm text-muted">
+                A one-way hash locks in the secret policy.
+              </figcaption>
+              <div className="mt-4">
+                <VizCommitment />
+              </div>
+            </figure>
           </div>
         </HudPanel>
       </div>
@@ -52,13 +60,15 @@ export function ProofVisuals() {
       <HudPanel>
         <div className="p-5 sm:p-6">
           <Eyebrow>MEMBERSHIP · THE MERKLE TREE</Eyebrow>
-          <p className="mt-2 max-w-[680px] text-sm text-muted">
-            How &quot;the recipient is approved&quot; is proven against a single
-            root, without revealing the list.
-          </p>
-          <div className="mt-5">
-            <VizMerkle />
-          </div>
+          <figure>
+            <figcaption className="mt-2 max-w-[680px] text-sm text-muted">
+              How &quot;the recipient is approved&quot; is proven against a single
+              root, without revealing the list.
+            </figcaption>
+            <div className="mt-5">
+              <VizMerkle />
+            </div>
+          </figure>
         </div>
       </HudPanel>
     </div>
