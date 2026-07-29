@@ -145,36 +145,55 @@ Legend: ✅ done · ⬜ pending (you) · 🔄 in progress
 
 **Requirements**
 - [x] Product improvements driven by real feedback — see the iteration table in
-      the README, every row carrying its commit link
+      the README, every row carrying its commit link. That table holds only
+      changes a user actually asked for; nothing else is filed under it
 - [x] Improved UX/UI and stability (moderation, error boundaries, 404, loading
       skeleton, verified on-chain claims)
+- [x] Audit- and security-driven hardening — a **separate** table in the README,
+      deliberately not counted as user feedback because no user reported any of
+      it: negative-authorisation tests on all five contracts, a Postgres daily
+      sponsor spend ledger (ZEN-20), the ZEN-12 origin and rate-limit-key fixes,
+      `/api/search` inside the route wrapper, a schema-verifying `/api/health`,
+      recursive log redaction, WCAG AA contrast, `prefers-reduced-motion`
+      fallbacks, real proof-pipeline progress, and a 1335 KB → 1033 KB first
+      load on `/playground`
 - [x] Optimised onboarding (3-step guide; collapses once a wallet is connected)
-- [x] Professional pitch deck — `/pitch`, keyboard-navigable, print-to-PDF,
-      content in `src/lib/pitch.ts`
+- [x] Professional pitch deck — `/pitch`, 11 slides, keyboard-navigable,
+      print-to-PDF, content in `src/lib/pitch.ts`
 - [x] Onboarding data collection — `users` table, `/join` signup, Google Form
-      import path, admin-gated CSV export
+      import path, admin-gated CSV export. The mechanism is built and live; the
+      table itself is empty
 - [x] Documentation updated (README, `docs/ARCHITECTURE.md`, `docs/API.md`,
       `docs/users/README.md`)
 - [x] 20+ meaningful commits — 153 on this branch
-- [ ] 50+ testnet users onboarded — real people you bring (I won't fabricate users)
-- [ ] Real transaction activity at that scale — follows from the above
+- [ ] 50+ testnet users onboarded — **0 registered.** Real people you bring
+      (I won't fabricate users)
+- [ ] Real transaction activity at that scale — **not started**, and it cannot
+      start before the line above does
 
 **Submission**
 - [x] Public repo · live app · updated README
 - [x] Pitch deck — [`/pitch`](https://zentra-docs.vercel.app/pitch)
 - [x] Demo video — **[youtu.be/JQapGdfgZJw](https://youtu.be/JQapGdfgZJw)**
 - [x] User feedback iteration summary — README, with commit links
-- [x] Exported responses sheet — [`docs/users/onboarding-responses.csv`](users/onboarding-responses.csv)
-- [ ] Proof of 50+ users — auto-counts on `/join` and `/metrics` as people sign up
-- [ ] Screenshots of analytics / transaction activity at 50 users
+- [x] Exported responses sheet — [`docs/users/onboarding-responses.csv`](users/onboarding-responses.csv);
+      the export path works, and what it currently exports is a header row and
+      **zero responses**
+- [ ] Proof of 50+ users — **0 so far.** Auto-counts on `/join` and `/metrics` as
+      people sign up
+- [ ] Screenshots of analytics / transaction activity at 50 users — nothing to
+      screenshot yet
 
-> Everything buildable is built. The two open items need real people: send them to
-> `/join`, and the counter, the registry and `/metrics` fill in on their own.
+> Everything buildable is built, and 153 commits of audit- and security-driven
+> hardening landed on top of it. The two open requirements are not partially
+> done: **nobody has registered.** They need real people — send them to `/join`,
+> and the counter, the registry and `/metrics` fill in on their own.
 >
 > **First real moderation action:** one abusive submission of 14 is withheld from
 > the public feed (retained in the database, reversible via
 > `PATCH /api/admin/feedback`). Published feedback: 13 submissions, 12 distinct
-> wallets, average 5.00.
+> wallets, average 5.00. Those are feedback rows, not registry rows — the two
+> counts are separate and neither implies the other.
 
 ---
 
