@@ -73,7 +73,7 @@ checklist in §5 says so for that reason.
 | ZEN-03 | The documented registry export writes personal data into a git-tracked file | Medium | `docs/users` | Open |
 | ZEN-04 | Admin gate is one static secret, unthrottled, guarding a personal-data export | Medium | `src/lib/api/auth.ts`, admin routes | Mitigated |
 | ZEN-05 | ZK artefacts have no integrity pinning; the in-browser verification is circular | Medium | `public/zk-worker.js`, `public/zk/*` | Open |
-| ZEN-20 | The fee sponsor drains via unlimited legitimate-shaped calls, not the case the allowlist stops | Medium | `src/lib/api/sponsor.ts`, `src/app/api/sponsor/route.ts` | Open |
+| ZEN-20 | The fee sponsor drains via unlimited legitimate-shaped calls, not the case the allowlist stops | Medium | `src/lib/api/sponsor.ts`, `src/app/api/sponsor/route.ts` | Fixed |
 | ZEN-07 | Anchored commitments are neither verified nor unique | Low | `zentra-proof-registry` | Accepted |
 | ZEN-08 | Signup conflict response is an email-membership oracle | Low | `src/app/api/onboard/route.ts` | Open |
 | ZEN-09 | Off-chain feedback attributes an unproven wallet on the public feed | Low | `src/app/api/feedback/route.ts` | Accepted |
