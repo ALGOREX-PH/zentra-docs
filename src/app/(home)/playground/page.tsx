@@ -6,7 +6,6 @@ import { ZkIntro } from '@/components/playground/zk-intro';
 import { ProofVisuals } from '@/components/playground/proof-visuals';
 import { ZkGlossary } from '@/components/playground/zk-glossary';
 import { Eyebrow } from '@/components/landing/primitives';
-import { Footer } from '@/components/landing/footer';
 
 export const metadata: Metadata = {
   title: 'Playground',
@@ -64,7 +63,6 @@ export default function PlaygroundPage() {
           <ZkGlossary />
         </div>
       </section>
-      <Footer />
     </>
   );
 }

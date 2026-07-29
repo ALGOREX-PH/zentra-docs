@@ -1,6 +1,5 @@
 import type { Metadata } from 'next';
 import { Eyebrow } from '@/components/landing/primitives';
-import { Footer } from '@/components/landing/footer';
 import { gitConfig, repoUrl } from '@/lib/shared';
 
 export const metadata: Metadata = {
@@ -81,7 +80,6 @@ export default function BlogPage() {
           </div>
         </div>
       </section>
-      <Footer />
     </>
   );
 }

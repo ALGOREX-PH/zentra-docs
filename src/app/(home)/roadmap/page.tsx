@@ -1,7 +1,6 @@
 import type { Metadata } from 'next';
 import { cn } from '@/lib/cn';
 import { Eyebrow } from '@/components/landing/primitives';
-import { Footer } from '@/components/landing/footer';
 
 export const metadata: Metadata = {
   title: 'Roadmap',
@@ -99,7 +98,6 @@ export default function RoadmapPage() {
           </p>
         </div>
       </section>
-      <Footer />
     </>
   );
 }

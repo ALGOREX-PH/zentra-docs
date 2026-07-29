@@ -6,7 +6,6 @@ import { ScenarioPanels } from '@/components/landing/scenario-panels';
 import { VerifierMonolith } from '@/components/landing/verifier-monolith';
 import { ForDevelopers } from '@/components/landing/for-developers';
 import { Closing } from '@/components/landing/closing';
-import { Footer } from '@/components/landing/footer';
 
 export default function HomePage() {
   return (
@@ -19,7 +18,6 @@ export default function HomePage() {
       <VerifierMonolith />
       <ForDevelopers />
       <Closing />
-      <Footer />
     </>
   );
 }
