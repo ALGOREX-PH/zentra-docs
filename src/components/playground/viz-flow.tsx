@@ -31,33 +31,35 @@ const text: Record<Accent, string> = {
 /** The proof pipeline as an animated flow: inputs → circuit → proof → verify. */
 export function VizFlow() {
   return (
-    <div className="flex flex-col items-stretch gap-2 md:flex-row md:items-center md:gap-0">
+    <ol className="flex flex-col items-stretch gap-2 md:flex-row md:items-center md:gap-0">
       {STAGES.map((s, i) => (
         <Fragment key={s.title}>
-          <div
+          <li
             className={cn(
               'relative border bg-panel px-4 py-5 text-center md:flex-1',
               border[s.accent],
             )}
           >
-            <div className="font-display text-2xl leading-none">{s.glyph}</div>
+            <span aria-hidden className="block font-display text-2xl leading-none">
+              {s.glyph}
+            </span>
             <div className={cn('mt-2 font-mono text-[11px] uppercase tracking-[0.1em]', text[s.accent])}>
               {s.title}
             </div>
             <div className="mt-1 text-[11px] leading-snug text-faint">{s.sub}</div>
-          </div>
+          </li>
 
           {i < STAGES.length - 1 ? (
-            <div
+            <li
               aria-hidden
               className="relative mx-auto flex h-5 w-px items-center justify-center overflow-hidden md:h-px md:w-12"
             >
               <span className="absolute inset-0 bg-fd-border" />
               <span className="absolute left-0 hidden size-1.5 rounded-full bg-cyan motion-safe:md:block motion-safe:md:[animation:zen-flow_1.8s_linear_infinite]" />
-            </div>
+            </li>
           ) : null}
         </Fragment>
       ))}
-    </div>
+    </ol>
   );
 }
