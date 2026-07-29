@@ -16,13 +16,17 @@ const CELLS: Array<{ k: string; v: string; tone?: string }> = [
 export function SystemBar() {
   return (
     <div className="flex h-[30px] items-center overflow-x-auto border-b border-fd-border bg-abyss">
-      <div className="flex items-center whitespace-nowrap font-mono text-[10px] tracking-[0.06em]">
+      <dl
+        aria-label="Protocol status"
+        className="flex items-center whitespace-nowrap font-mono text-[10px] tracking-[0.06em]"
+      >
         {CELLS.map((c) => (
-          <span key={c.k} className="border-r border-fd-border px-4 text-[#7d8ea6]">
-            {c.k} <span className={cn('ml-1', c.tone ?? 'text-muted')}>{c.v}</span>
-          </span>
+          <div key={c.k} className="flex items-center gap-2.5 border-r border-fd-border px-4">
+            <dt className="text-[#7d8ea6]">{c.k}</dt>
+            <dd className={cn(c.tone ?? 'text-muted')}>{c.v}</dd>
+          </div>
         ))}
-      </div>
+      </dl>
     </div>
   );
 }
