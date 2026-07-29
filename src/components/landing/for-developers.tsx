@@ -48,8 +48,6 @@ const result = await zentra
 console.log(result.status); // released`;
 
   const reveal = useCallback(async () => {
-    const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
-    if (reduced) { setRevealed(CHECKS.length); return; }
     for (let i = 1; i <= CHECKS.length; i++) {
       await new Promise((r) => setTimeout(r, 260));
       setRevealed(i);
@@ -58,6 +56,11 @@ console.log(result.status); // released`;
 
   useEffect(() => {
     const el = wrap.current; if (!el) return;
+    // reduced motion shows the full checklist up front instead of staggering it in
+    // behind a scroll trigger, which would otherwise leave the list blank.
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false) {
+      ran.current = true; setRevealed(CHECKS.length); return;
+    }
     const io = new IntersectionObserver((entries) => {
       for (const e of entries) {
         if (e.isIntersecting && !ran.current) { ran.current = true; reveal(); io.disconnect(); }
