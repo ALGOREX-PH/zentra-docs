@@ -64,7 +64,7 @@ export default function BlogPage() {
               <div className="flex items-center gap-3 font-mono text-xs text-fd-muted-foreground">
                 <span className="text-violet-soft">{p.cat}</span>
                 <span>·</span>
-                <time>{p.date}</time>
+                <time dateTime={p.date}>{p.date}</time>
               </div>
               <h2 className="mt-3 font-display text-xl font-semibold">{p.title}</h2>
               <p className="mt-2 leading-relaxed text-fd-muted-foreground">{p.body}</p>
