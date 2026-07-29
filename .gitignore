@@ -35,3 +35,6 @@ next-env.d.ts
 
 # knowledge graph output
 /graphify-out/
+
+# orchestration state
+/.claude-octopus/
