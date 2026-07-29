@@ -7,6 +7,9 @@ import { stellar } from '@/config/stellar';
 import { HudPanel, Eyebrow } from '@/components/landing/primitives';
 import { cn } from '@/lib/cn';
 
+const focusRing =
+  'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan';
+
 interface FeedbackItem {
   rating: number;
   comment: string;
@@ -109,7 +112,7 @@ export function FeedbackSummary({ refreshSignal = 0 }: { refreshSignal?: number 
                           href={stellar.explorerAccountUrl(item.wallet)}
                           target="_blank"
                           rel="noreferrer"
-                          className="hover:text-cyan"
+                          className={cn('hover:text-cyan', focusRing)}
                         >
                           {truncateAddress(item.wallet)}
                         </a>
@@ -119,7 +122,10 @@ export function FeedbackSummary({ refreshSignal = 0 }: { refreshSignal?: number 
                           href={stellar.explorerTxUrl(item.txHash)}
                           target="_blank"
                           rel="noreferrer"
-                          className={cn('border border-live/40 px-1.5 py-0.5 text-live hover:text-cyan')}
+                          className={cn(
+                            'border border-live/40 px-1.5 py-0.5 text-live hover:text-cyan',
+                            focusRing,
+                          )}
                         >
                           on-chain
                         </a>
