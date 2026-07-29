@@ -22,19 +22,30 @@ analysis never has to reconcile two formats.
 
 ### The Google Form
 
-For reaching people who will not visit the site first. Five questions, matching
-the table exactly so an import needs no transformation:
+For reaching people who will not visit the site first. Five questions, mapped to
+the same columns the on-site path writes. The **Accepted** column is what
+`parseUserInput` in [`src/lib/api/validation.ts`](../../src/lib/api/validation.ts)
+enforces on `/join`, backed by the matching `CHECK` constraints in
+[`db/schema.sql`](../../db/schema.sql) — an imported row that does not satisfy it
+is rejected by Postgres, not quietly coerced:
 
-| # | Question | Type | Required | Maps to |
-| --- | --- | --- | --- | --- |
-| 1 | Your name | Short answer | yes | `name` (1–80 chars) |
-| 2 | Email address | Short answer | yes | `email` |
-| 3 | Stellar wallet address (starts with `G`) | Short answer | yes | `wallet` (`^G[A-Z2-7]{55}$`) |
-| 4 | How would you rate Zentra? | Linear scale 1–5 | no | `rating` |
-| 5 | What should we improve? | Paragraph | no | `note` (≤500 chars) |
+| # | Question | Type | Required | Column | Accepted |
+| --- | --- | --- | --- | --- | --- |
+| 1 | Your name | Short answer | yes | `name` | 1–80 chars after whitespace is collapsed and control characters are stripped |
+| 2 | Email address | Short answer | yes | `email` | ≤254 chars, `something@something.something`; **trimmed and lowercased before insert** |
+| 3 | Stellar wallet address (starts with `G`) | Short answer | yes | `wallet` | `^G[A-Z2-7]{55}$` |
+| 4 | How would you rate Zentra? | Linear scale 1–5 | no | `rating` | an integer 1–5, or `NULL` when blank |
+| 5 | What should we improve? | Paragraph | no | `note` | 1–500 chars, or `NULL` when blank |
 
 Set the form's response destination to a Google Sheet, then **File → Download →
 Comma-separated values** to export.
+
+An import needs exactly one transformation: **lowercase the email column.** The
+site path lowercases on the way in and the unique index is on `lower(email)`, so
+importing an address as typed stores a row that is inconsistent with every row
+`/join` wrote, and a later on-site signup by the same person then collides inside
+Postgres rather than being caught as a duplicate. Nothing else needs changing —
+the other four columns are stored as the form supplies them.
 
 A form response is self-reported: nobody proves they control the wallet they
 typed. An on-site signup is no stronger — only an anchored transaction proves
