@@ -2,53 +2,90 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { HudPanel, Eyebrow } from '@/components/landing/primitives';
-import { generateProof, loadExampleInput, type ProofResult } from '@/lib/zk/prover';
+import {
+  generateProof,
+  loadExampleInput,
+  type ProofResult,
+  type ProofStage,
+} from '@/lib/zk/prover';
+import { PIPELINE, STAGE_STATUS, type PipelineStep } from '@/lib/zk/education';
 import { ProofAnchor } from '@/components/playground/proof-anchor';
 import { SignalsTable } from '@/components/playground/signals-table';
 import { WhatThisProves } from '@/components/playground/what-this-proves';
 import { cn } from '@/lib/cn';
 
 type Phase = 'idle' | 'proving' | 'done' | 'error';
+type StepState = 'pending' | 'active' | 'done';
 
-const STAGES = ['Load circuit', 'Compute witness', 'Generate proof', 'Verify'] as const;
+const STEP_CLASS: Record<StepState, string> = {
+  pending: 'border-fd-border text-faint',
+  active: 'border-cyan/50 text-cyan',
+  done: 'border-live/40 text-live',
+};
 
 function short(value: string, head = 10, tail = 6) {
   if (value.length <= head + tail) return value;
   return `${value.slice(0, head)}…${value.slice(-tail)}`;
 }
 
+/** Where a step sits relative to the phase the run has actually reached. */
+function stepState(step: PipelineStep, phase: Phase, stage: ProofStage): StepState {
+  if (phase === 'done') return 'done';
+  if (phase !== 'proving') return 'pending';
+  if (step.stage === stage) return 'active';
+  return stage === 'proving' && step.stage === 'circuit' ? 'done' : 'pending';
+}
+
 export function ProofLab({ onAnchored }: { onAnchored?: () => void }) {
   const [phase, setPhase] = useState<Phase>('idle');
-  const [stage, setStage] = useState(0);
+  const [stage, setStage] = useState<ProofStage>('circuit');
+  const [percent, setPercent] = useState(0);
+  const [elapsed, setElapsed] = useState(0);
   const [result, setResult] = useState<ProofResult | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const timer = useRef<ReturnType<typeof setInterval> | null>(null);
+  const run = useRef<AbortController | null>(null);
 
+  // Tear the worker down if the user leaves mid-proof.
+  useEffect(() => () => run.current?.abort(), []);
+
+  // A real elapsed clock for the worker leg, which reports no progress of its own.
   useEffect(() => {
-    return () => {
-      if (timer.current) clearInterval(timer.current);
-    };
-  }, []);
+    if (phase !== 'proving' || stage !== 'proving') return;
+    const started = performance.now();
+    setElapsed(0);
+    const id = setInterval(() => setElapsed(performance.now() - started), 200);
+    return () => clearInterval(id);
+  }, [phase, stage]);
 
-  async function run() {
+  async function prove() {
+    run.current?.abort();
+    const controller = new AbortController();
+    run.current = controller;
     setPhase('proving');
+    setStage('circuit');
+    setPercent(0);
+    setElapsed(0);
     setResult(null);
     setError(null);
-    setStage(0);
-    // Advance the stage indicator while the worker proves (real work, no faked result).
-    timer.current = setInterval(
-      () => setStage((s) => Math.min(s + 1, STAGES.length - 2)),
-      900,
-    );
     try {
       const input = await loadExampleInput();
-      const res = await generateProof(input);
-      if (timer.current) clearInterval(timer.current);
-      setStage(STAGES.length - 1);
+      const res = await generateProof(input, {
+        signal: controller.signal,
+        // Same-value updates bail out in React, so per-chunk calls are cheap.
+        onProgress: (progress) => {
+          setStage(progress.stage);
+          if (progress.stage === 'circuit') {
+            setPercent(
+              progress.total > 0 ? Math.round((progress.loaded / progress.total) * 100) : 0,
+            );
+          }
+        },
+      });
+      if (controller.signal.aborted) return;
       setResult(res);
       setPhase('done');
     } catch (err) {
-      if (timer.current) clearInterval(timer.current);
+      if (controller.signal.aborted) return;
       setError(err instanceof Error ? err.message : 'Proof generation failed.');
       setPhase('error');
     }
@@ -72,8 +109,9 @@ export function ProofLab({ onAnchored }: { onAnchored?: () => void }) {
 
           <button
             type="button"
-            onClick={run}
+            onClick={prove}
             disabled={proving}
+            aria-busy={proving}
             className="mt-5 inline-flex items-center gap-2 bg-violet px-5 py-3 font-mono text-xs uppercase tracking-[0.1em] text-white transition-colors hover:bg-[#8b5cf6] disabled:cursor-not-allowed disabled:opacity-50"
           >
             <span aria-hidden className="size-1.5 bg-cyan" />
@@ -81,30 +119,56 @@ export function ProofLab({ onAnchored }: { onAnchored?: () => void }) {
           </button>
 
           <ol className="mt-6 grid gap-3 sm:grid-cols-4">
-            {STAGES.map((label, i) => {
-              const active = proving && i === stage;
-              const complete = phase === 'done' || (proving && i < stage);
+            {PIPELINE.map((step, i) => {
+              const state = stepState(step, phase, stage);
               return (
                 <li
-                  key={label}
+                  key={step.label}
+                  aria-current={state === 'active' ? 'step' : undefined}
                   className={cn(
                     'relative overflow-hidden border px-3 py-3 font-mono text-[11px] tracking-[0.06em] transition-colors',
-                    complete
-                      ? 'border-live/40 text-live'
-                      : active
-                        ? 'border-cyan/50 text-cyan'
-                        : 'border-fd-border text-faint',
+                    STEP_CLASS[state],
                   )}
                 >
                   <span className="text-muted">{String(i + 1).padStart(2, '0')}</span>{' '}
-                  {label}
-                  {active ? (
-                    <span className="absolute inset-x-0 bottom-0 h-px animate-pulse bg-cyan" />
+                  {step.label}
+                  {state === 'active' ? (
+                    <span aria-hidden className="absolute inset-x-0 bottom-0 h-px animate-pulse bg-cyan" />
                   ) : null}
                 </li>
               );
             })}
           </ol>
+
+          {proving ? (
+            <div className="mt-4">
+              <div className="flex items-baseline justify-between gap-3">
+                <p role="status" className="font-mono text-[11px] text-muted">
+                  {STAGE_STATUS[stage]}
+                </p>
+                <span aria-hidden className="shrink-0 font-mono text-[11px] text-faint">
+                  {stage === 'circuit'
+                    ? `${percent}%`
+                    : `${(elapsed / 1000).toFixed(1)}s`}
+                </span>
+              </div>
+              {stage === 'circuit' ? (
+                <div
+                  role="progressbar"
+                  aria-label="Circuit download"
+                  aria-valuenow={percent}
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  className="mt-2 h-px w-full bg-fd-border"
+                >
+                  <span
+                    className="block h-full bg-cyan transition-[width] duration-200"
+                    style={{ width: `${percent}%` }}
+                  />
+                </div>
+              ) : null}
+            </div>
+          ) : null}
 
           {error ? (
             <p className="mt-4 font-mono text-xs text-denied">{error}</p>
