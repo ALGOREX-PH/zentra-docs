@@ -31,6 +31,7 @@ const description =
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
+  referrer: 'strict-origin-when-cross-origin',
   title: { default: title, template: '%s — Zentra Protocol' },
   description,
   openGraph: {
