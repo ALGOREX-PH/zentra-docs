@@ -20,6 +20,16 @@ const fieldClass = cn(
 const labelClass =
   'mb-1.5 block font-mono text-[11px] uppercase tracking-[0.08em] text-faint';
 
+const primaryAction = cn(
+  'inline-flex shrink-0 items-center gap-2 bg-violet px-4 py-2.5 font-mono text-xs uppercase tracking-[0.1em] text-white transition-colors hover:bg-violet-bright',
+  focusRing,
+);
+
+const secondaryAction = cn(
+  'inline-flex shrink-0 items-center gap-2 border border-fd-border px-4 py-2.5 font-mono text-xs uppercase tracking-[0.1em] text-muted transition-colors hover:border-cyan/40 hover:text-cyan',
+  focusRing,
+);
+
 const MAX_NAME = 80;
 const MAX_NOTE = 500;
 
@@ -111,6 +121,35 @@ function inspectWallet(value: string): WalletState {
     ? { kind: 'valid' }
     : { kind: 'invalid', reason: `Enter a Stellar account id — G followed by ${WALLET_LENGTH - 1} characters.` };
 }
+
+/**
+ * The two transactions that turn a registration into actual activity.
+ *
+ * Order is load-bearing, not presentational: a Soroban write pays a network fee,
+ * so an account Friendbot has not funded yet cannot do the second one. Both run
+ * on the same testnet the signup registered a wallet for.
+ */
+const NEXT_STEPS: ReadonlyArray<{
+  href: string;
+  cta: string;
+  title: string;
+  body: string;
+}> = [
+  {
+    href: '/app',
+    cta: 'Fund the wallet',
+    title: 'Fund your testnet wallet',
+    body:
+      'Friendbot seeds the account you just registered with free test XLM. Do this first — the next step pays a network fee, and a fresh account has nothing to pay it with.',
+  },
+  {
+    href: '/board',
+    cta: 'Record an action',
+    title: 'Record an action on-chain',
+    body:
+      'Write a message to the Action Log contract. Your wallet signs it, a cross-contract call bumps your reputation score, and the settled transaction hash links to stellar.expert so anyone can verify it.',
+  },
+];
 
 /** The reason a wallet state cannot be submitted, or null when it can. */
 function walletMessage(state: WalletState): string | null {
@@ -267,7 +306,7 @@ function SignupForm() {
   const announcement = (
     <p aria-live="polite" aria-atomic="true" className="sr-only">
       {status === 'success'
-        ? 'You are on the list. We will email you about the testnet programme.'
+        ? 'You are on the list. Next: fund your testnet wallet, then record an action on-chain.'
         : ''}
     </p>
   );
@@ -280,34 +319,56 @@ function SignupForm() {
           <div className="p-5 sm:p-6">
             <Eyebrow accent="cyan">YOU ARE ON THE LIST</Eyebrow>
             <p className="max-w-[520px] text-[15px] leading-relaxed text-text">
-              Thanks for joining. We will email you about the testnet programme —
-              nothing else.
+              Registered{' '}
+              <span className="font-mono text-cyan">{truncateAddress(wallet, 6, 6)}</span>. We
+              will email you about the testnet programme — nothing else.
             </p>
-            <p className="mt-3 max-w-[520px] text-[13px] leading-relaxed text-muted">
-              You do not have to wait for us. Everything is live on Stellar testnet
-              right now.
+
+            {/*
+              The panel used to end at that thank-you, which is exactly where
+              this funnel leaked. A signup is a row in a table; what the
+              programme is measured on is on-chain activity. So the panel now
+              hands over the next two transactions while the wallet that was
+              just registered is still connected and still in front of them.
+            */}
+            <p className="mt-5 font-mono text-[11px] uppercase tracking-[0.08em] text-faint">
+              Nothing is on-chain yet · these two steps are it
             </p>
-            <div className="mt-5 flex flex-wrap gap-3">
-              <Link
-                href="/app"
-                className={cn(
-                  'inline-flex items-center gap-2 bg-violet px-4 py-2.5 font-mono text-xs uppercase tracking-[0.1em] text-white transition-colors hover:bg-violet-bright',
-                  focusRing,
-                )}
-              >
-                <span aria-hidden className="size-1.5 bg-cyan" />
-                Open the testnet app
-              </Link>
+            <ol className="mt-2 divide-y divide-fd-border border border-fd-border">
+              {NEXT_STEPS.map((step, i) => (
+                <li
+                  key={step.href}
+                  className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between sm:gap-5"
+                >
+                  <div className="min-w-0">
+                    <p className="font-mono text-[13px] tracking-[0.01em] text-text">
+                      <span aria-hidden className="text-cyan">
+                        {i + 1} ·{' '}
+                      </span>
+                      {step.title}
+                    </p>
+                    <p className="mt-1.5 max-w-[420px] text-[13px] leading-relaxed text-muted">
+                      {step.body}
+                    </p>
+                  </div>
+                  <Link href={step.href} className={i === 0 ? primaryAction : secondaryAction}>
+                    {i === 0 ? <span aria-hidden className="size-1.5 bg-cyan" /> : null}
+                    {step.cta}
+                  </Link>
+                </li>
+              ))}
+            </ol>
+
+            <p className="mt-4 max-w-[520px] text-[13px] leading-relaxed text-muted">
+              Or generate a real Groth16 proof in your own browser in the{' '}
               <Link
                 href="/playground"
-                className={cn(
-                  'inline-flex items-center border border-fd-border px-4 py-2.5 font-mono text-xs uppercase tracking-[0.1em] text-muted transition-colors hover:border-cyan/40 hover:text-cyan',
-                  focusRing,
-                )}
+                className={cn('text-cyan underline-offset-4 hover:underline', focusRing)}
               >
-                Try the playground
+                proof playground
               </Link>
-            </div>
+              .
+            </p>
           </div>
         </HudPanel>
       </>
