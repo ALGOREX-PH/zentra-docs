@@ -18,7 +18,11 @@ const STORAGE_KEY = 'zentra:wallet';
 interface WalletContextValue {
   address: string | null;
   connecting: boolean;
-  connect: () => Promise<void>;
+  /**
+   * Connect the given wallet, or fall back to the kit's own picker when the
+   * caller has not chosen one.
+   */
+  connect: (walletId?: string) => Promise<void>;
   disconnect: () => void;
   signTransaction: (xdr: string) => Promise<string>;
 }
@@ -49,6 +53,19 @@ function readPersisted(raw: string): PersistedWallet | null {
 }
 
 /**
+ * Which module the kit ended up on, so a reconnect reaches for the wallet the
+ * user actually picked rather than assuming Freighter. `selectedModule` throws
+ * when nothing is selected, hence the guard.
+ */
+function selectedWalletId(): string {
+  try {
+    return getKit().selectedModule.productId;
+  } catch {
+    return FREIGHTER_ID;
+  }
+}
+
+/**
  * Holds the single source of truth for "is a wallet connected, and which one".
  *
  * The connection survives a refresh: the selected wallet id + address are
@@ -72,14 +89,20 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const connect = useCallback(async () => {
+  const connect = useCallback(async (walletId?: string) => {
     setConnecting(true);
     try {
-      const { address: addr } = await getKit().authModal();
+      const kit = getKit();
+      // A wallet id means the caller already ran its own picker, so the kit's
+      // modal is skipped and the chosen module is asked for the address direct.
+      if (walletId) kit.setWallet(walletId);
+      const { address: addr } = walletId
+        ? await kit.fetchAddress()
+        : await kit.authModal();
       setAddress(addr);
       window.localStorage.setItem(
         STORAGE_KEY,
-        JSON.stringify({ walletId: FREIGHTER_ID, address: addr }),
+        JSON.stringify({ walletId: selectedWalletId(), address: addr }),
       );
     } catch {
       // user dismissed the modal or declined — stay disconnected
