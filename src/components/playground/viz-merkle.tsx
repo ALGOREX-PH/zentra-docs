@@ -53,62 +53,66 @@ const DESC_ID = 'viz-merkle-desc';
 export function VizMerkle() {
   return (
     <div>
-      <svg
-        viewBox="0 0 660 300"
-        className="w-full"
-        role="img"
-        aria-labelledby={TITLE_ID}
-        aria-describedby={DESC_ID}
-      >
-        <title id={TITLE_ID}>Merkle membership proof for one recipient</title>
-        <desc id={DESC_ID}>
-          A depth-3 binary tree of eight leaves. The recipient&apos;s leaf, its
-          parent, its grandparent and the public root form the path to the root.
-          Three sibling hashes beside that path are the Merkle proof: the circuit
-          recomputes the root from the recipient and those siblings alone, so the
-          rest of the approved-vendor list is never revealed.
-        </desc>
-        {EDGES.map(([a, b]) => {
-          const na = byId(a);
-          const nb = byId(b);
-          const hot = PATH.has(a) && PATH.has(b);
-          return (
-            <line
-              key={a + b}
-              x1={na.x}
-              y1={na.y}
-              x2={nb.x}
-              y2={nb.y}
-              stroke={hot ? '#00e5ff' : '#1a2130'}
-              strokeWidth={hot ? 2 : 1}
-            />
-          );
-        })}
-        {NODES.map((n) => (
-          <g key={n.id}>
-            <circle
-              cx={n.x}
-              cy={n.y}
-              r={n.cat === 'dim' ? 7 : 11}
-              fill={FILL[n.cat]}
-              stroke={n.cat === 'dim' ? '#334155' : 'none'}
-              strokeWidth={1.5}
-            />
-            {n.label ? (
-              <text
-                x={n.x}
-                y={n.cat === 'path' && n.id === 'L2' ? n.y + 26 : n.y - 18}
-                textAnchor="middle"
-                fontSize="12"
-                fill={n.cat === 'path' ? '#00e5ff' : '#a78bfa'}
-                style={{ fontFamily: 'var(--font-mono)' }}
-              >
-                {n.label}
-              </text>
-            ) : null}
-          </g>
-        ))}
-      </svg>
+      {/* Below ~560px the node labels would render too small to read, so the
+          diagram keeps its size and the frame scrolls instead. */}
+      <div role="region" aria-label="Merkle tree diagram" tabIndex={0} className="overflow-x-auto">
+        <svg
+          viewBox="0 0 660 300"
+          className="w-full min-w-[560px]"
+          role="img"
+          aria-labelledby={TITLE_ID}
+          aria-describedby={DESC_ID}
+        >
+          <title id={TITLE_ID}>Merkle membership proof for one recipient</title>
+          <desc id={DESC_ID}>
+            A depth-3 binary tree of eight leaves. The recipient&apos;s leaf, its
+            parent, its grandparent and the public root form the path to the root.
+            Three sibling hashes beside that path are the Merkle proof: the circuit
+            recomputes the root from the recipient and those siblings alone, so the
+            rest of the approved-vendor list is never revealed.
+          </desc>
+          {EDGES.map(([a, b]) => {
+            const na = byId(a);
+            const nb = byId(b);
+            const hot = PATH.has(a) && PATH.has(b);
+            return (
+              <line
+                key={a + b}
+                x1={na.x}
+                y1={na.y}
+                x2={nb.x}
+                y2={nb.y}
+                stroke={hot ? '#00e5ff' : '#1a2130'}
+                strokeWidth={hot ? 2 : 1}
+              />
+            );
+          })}
+          {NODES.map((n) => (
+            <g key={n.id}>
+              <circle
+                cx={n.x}
+                cy={n.y}
+                r={n.cat === 'dim' ? 7 : 11}
+                fill={FILL[n.cat]}
+                stroke={n.cat === 'dim' ? '#334155' : 'none'}
+                strokeWidth={1.5}
+              />
+              {n.label ? (
+                <text
+                  x={n.x}
+                  y={n.cat === 'path' && n.id === 'L2' ? n.y + 26 : n.y - 18}
+                  textAnchor="middle"
+                  fontSize="12"
+                  fill={n.cat === 'path' ? '#00e5ff' : '#a78bfa'}
+                  style={{ fontFamily: 'var(--font-mono)' }}
+                >
+                  {n.label}
+                </text>
+              ) : null}
+            </g>
+          ))}
+        </svg>
+      </div>
 
       <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 font-mono text-[11px] text-faint">
         <span className="flex items-center gap-1.5">
