@@ -16,6 +16,7 @@
 import { conflict, rateLimited, upstreamUnavailable } from '@/lib/api/errors';
 import { log } from '@/lib/api/logger';
 import { moderateComment } from '@/lib/api/moderation';
+import { requireSameOrigin } from '@/lib/api/origin';
 import {
   clientKey,
   rateLimit,
@@ -71,6 +72,11 @@ export const GET = route('feedback.list', async (request) => {
 });
 
 export const POST = route('feedback.create', async (request, { requestId }) => {
+  // Before the budget is spent and before the body is read: a submission driven
+  // from someone else's page is refused outright rather than being counted
+  // against the visitor whose browser was borrowed to send it.
+  requireSameOrigin(request, requestId);
+
   const headers = enforceRateLimit(request, 'feedback:write', WRITE_LIMIT);
 
   const claimed = parseFeedbackInput(await readJsonBody(request));
