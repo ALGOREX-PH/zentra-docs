@@ -6,7 +6,6 @@ import { truncateAddress } from '@/lib/stellar/format';
 import { stellar } from '@/config/stellar';
 import { actionLog } from '@/config/contract';
 import { HudPanel, Eyebrow } from '@/components/landing/primitives';
-import { cn } from '@/lib/cn';
 import type { ProofEntry } from '@/lib/stellar/types';
 
 export function ProofsFeed({ refreshSignal = 0 }: { refreshSignal?: number }) {
