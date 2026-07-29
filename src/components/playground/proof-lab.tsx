@@ -166,7 +166,7 @@ export function ProofLab({ onAnchored }: { onAnchored?: () => void }) {
             </p>
           ) : null}
 
-          <ol className="mt-6 grid gap-3 sm:grid-cols-4">
+          <ol className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {PIPELINE.map((step, i) => {
               const state = stepState(step, phase, stage, error?.stage ?? null);
               return (
@@ -244,7 +244,7 @@ export function ProofLab({ onAnchored }: { onAnchored?: () => void }) {
                 <Point label="π_b (G2)" values={result.proof.pi_b.flat()} />
                 <Point label="π_c (G1)" values={result.proof.pi_c} />
               </dl>
-              <div className="mt-4 flex items-center gap-2 border border-live/40 bg-live/[0.06] px-3 py-2 font-mono text-xs text-live">
+              <div className="mt-4 flex flex-wrap items-center gap-x-2 gap-y-1 border border-live/40 bg-live/[0.06] px-3 py-2 font-mono text-xs text-live">
                 <svg width="14" height="14" viewBox="0 0 15 15" aria-hidden>
                   <polyline points="2,8 6,12 13,3" fill="none" stroke="#22c55e" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
