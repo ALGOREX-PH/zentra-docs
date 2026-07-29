@@ -84,9 +84,9 @@ These are the same steps `.github/workflows/ci.yml` runs. Run them locally on
 the release commit anyway — CI proves the tree builds, running it yourself
 proves you are looking at the tree you think you are.
 
-> `contracts/zentra-multisig` exists in the tree but is **not** in CI, **not** in
+> `contracts/zentra-multisig` exists in the tree and is tested in CI, but is **not** in
 > `src/config/contract.ts`, and **not** deployed anywhere. It is out of scope for
-> this runbook. If it is ever to ship, it needs its own CI job and its own row in
+> this runbook. If it is ever to ship, it needs an audit and its own row in
 > §11.
 
 ---
