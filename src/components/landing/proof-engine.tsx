@@ -8,7 +8,9 @@ const NODES: [number, number][] = [
 const RECTS: [number, number][] = [
   [81, 61], [251, 61], [421, 61], [251, 161], [81, 261], [251, 261], [421, 261],
 ];
-const MSG: Record<string, string[]> = {
+type Scenario = 'valid' | 'injection' | 'overspend';
+
+const MSG: Record<Scenario, string[]> = {
   valid: ['composing action', 'checking private policy', 'generating proof', 'binding to authority state', 'verifying on-chain', 'settling on Stellar', 'receipt emitted'],
   injection: ['composing action', 'checking private policy'],
   overspend: ['composing action', 'checking private policy', 'generating proof', 'binding to authority state'],
@@ -19,7 +21,7 @@ const V = '#7c3aed', C = '#00e5ff', G = '#22c55e', R = '#ef4444', VS = '#a78bfa'
 
 export function ProofEngine() {
   const root = useRef<HTMLDivElement>(null);
-  const play = useRef<(s: string) => void>(() => {});
+  const play = useRef<(s: Scenario) => void>(() => {});
 
   useEffect(() => {
     const el = root.current;
@@ -27,12 +29,12 @@ export function ProofEngine() {
     let alive = true, loop = true, busy = false;
     const timers: number[] = [];
     const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
-    const q = (s: string) => el.querySelector(s) as HTMLElement | null;
-    const rect = (i: number) => el.querySelector(`[data-i="${i}"] rect`) as SVGRectElement | null;
-    const fill = q('[data-z-fill]') as unknown as SVGPathElement;
-    const cap = q('[data-z-capsule]') as unknown as SVGGElement;
-    const seal = q('[data-z-seal]') as unknown as SVGGElement;
-    const burn = q('[data-z-burn]') as unknown as SVGLineElement;
+    const q = (s: string) => el.querySelector<HTMLElement>(s);
+    const rect = (i: number) => el.querySelector<SVGRectElement>(`[data-i="${i}"] rect`);
+    const fill = el.querySelector<SVGPathElement>('[data-z-fill]');
+    const cap = el.querySelector<SVGGElement>('[data-z-capsule]');
+    const seal = el.querySelector<SVGGElement>('[data-z-seal]');
+    const burn = el.querySelector<SVGLineElement>('[data-z-burn]');
     if (!fill || !cap || !seal || !burn) return;
 
     const cum = [0];
@@ -70,7 +72,7 @@ export function ProofEngine() {
 
     // Under reduced motion every wait is skipped, so the whole run resolves inside one
     // frame and only its end state is ever painted — a still, not a fast-forward.
-    async function run(scenario: string) {
+    const run = async (scenario: Scenario) => {
       if (busy) return; busy = true; reset();
       if (!reduced) await sleep(150);
       cap.style.opacity = '1';
@@ -96,8 +98,8 @@ export function ProofEngine() {
         burnAt(3); setStatus('state mismatch', R); setOutput('claimed prev_spent=0  ≠  chain spent=500  ·  no payment moved', R);
       }
       busy = false;
-    }
-    play.current = (s: string) => { loop = false; void run(s); };
+    };
+    play.current = (s: Scenario) => { loop = false; void run(s); };
 
     reset();
     if (reduced) {
