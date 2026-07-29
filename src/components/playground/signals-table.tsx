@@ -1,12 +1,28 @@
 'use client';
 
 import { Fragment, useId, useState } from 'react';
-import { SIGNALS } from '@/lib/zk/education';
+import { SIGNALS, type SignalKind } from '@/lib/zk/education';
 import { HudPanel, Eyebrow } from '@/components/landing/primitives';
 import { cn } from '@/lib/cn';
 
 function shorten(v: string): string {
   return v.length > 14 ? `${v.slice(0, 8)}…${v.slice(-4)}` : v;
+}
+
+/** Rendered in its own column, and again beside the label once that column is
+ *  dropped for narrow screens. */
+function KindBadge({ kind, className }: { kind: SignalKind; className?: string }) {
+  return kind === 'hash' ? (
+    <span className={cn('border border-cyan/40 px-1 font-mono text-[9px] text-cyan', className)}>
+      hash
+    </span>
+  ) : (
+    <span
+      className={cn('border border-violet/40 px-1 font-mono text-[9px] text-violet-soft', className)}
+    >
+      value
+    </span>
+  );
 }
 
 export function SignalsTable({ publicSignals }: { publicSignals: string[] }) {
@@ -28,16 +44,16 @@ export function SignalsTable({ publicSignals }: { publicSignals: string[] }) {
           </caption>
           <thead>
             <tr className="border-b border-fd-border font-mono text-[10px] uppercase tracking-[0.1em] text-faint">
-              <th scope="col" className="px-4 py-2 font-normal">
+              <th scope="col" className="hidden px-4 py-2 font-normal sm:table-cell">
                 #
               </th>
-              <th scope="col" className="px-4 py-2 font-normal">
+              <th scope="col" className="px-2 py-2 font-normal sm:px-4">
                 Signal
               </th>
-              <th scope="col" className="px-4 py-2 font-normal">
+              <th scope="col" className="hidden px-4 py-2 font-normal sm:table-cell">
                 Kind
               </th>
-              <th scope="col" className="px-4 py-2 text-right font-normal">
+              <th scope="col" className="px-2 py-2 text-right font-normal sm:px-4">
                 Value
               </th>
             </tr>
@@ -53,7 +69,7 @@ export function SignalsTable({ publicSignals }: { publicSignals: string[] }) {
               return (
                 <Fragment key={i}>
                   <tr className="border-t border-fd-border align-top">
-                    <td className="px-4 py-2.5 font-mono text-[11px] text-faint">
+                    <td className="hidden px-4 py-2.5 font-mono text-[11px] text-faint sm:table-cell">
                       {String(i).padStart(2, '0')}
                     </td>
                     <th scope="row" className="p-0 font-normal">
@@ -62,13 +78,14 @@ export function SignalsTable({ publicSignals }: { publicSignals: string[] }) {
                         aria-expanded={isOpen}
                         aria-controls={descId}
                         onClick={() => setOpen(isOpen ? null : i)}
-                        className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-text transition-colors hover:bg-abyss"
+                        className="flex w-full items-center gap-2 px-2 py-2.5 text-left text-sm text-text transition-colors hover:bg-abyss sm:px-4"
                       >
                         {label}
+                        <KindBadge kind={kind} className="sm:hidden" />
                         <span
                           aria-hidden
                           className={cn(
-                            'font-mono text-[11px] text-faint transition-transform',
+                            'ml-auto font-mono text-[11px] text-faint transition-transform',
                             isOpen ? 'rotate-180 text-violet-soft' : '',
                           )}
                         >
@@ -76,20 +93,12 @@ export function SignalsTable({ publicSignals }: { publicSignals: string[] }) {
                         </span>
                       </button>
                     </th>
-                    <td className="px-4 py-2.5">
-                      {kind === 'hash' ? (
-                        <span className="border border-cyan/40 px-1 font-mono text-[9px] text-cyan">
-                          hash
-                        </span>
-                      ) : (
-                        <span className="border border-violet/40 px-1 font-mono text-[9px] text-violet-soft">
-                          value
-                        </span>
-                      )}
+                    <td className="hidden px-4 py-2.5 sm:table-cell">
+                      <KindBadge kind={kind} />
                     </td>
                     <td
                       className={cn(
-                        'px-4 py-2.5 text-right font-mono text-[11px]',
+                        'px-2 py-2.5 text-right font-mono text-[11px] sm:px-4',
                         kind === 'hash' ? 'text-violet-soft' : 'text-text',
                       )}
                     >
@@ -97,7 +106,7 @@ export function SignalsTable({ publicSignals }: { publicSignals: string[] }) {
                     </td>
                   </tr>
                   <tr id={descId} hidden={!isOpen}>
-                    <td colSpan={4} className="px-4 pb-3 text-[12px] text-muted">
+                    <td colSpan={4} className="px-2 pb-3 text-[12px] text-muted sm:px-4">
                       {info ? info.desc : 'Raw public signal emitted by the proof.'}
                     </td>
                   </tr>
