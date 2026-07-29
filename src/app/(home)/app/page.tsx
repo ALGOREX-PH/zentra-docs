@@ -1,11 +1,12 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { ConnectButton } from '@/components/app/connect-button';
 import { GetStarted } from '@/components/app/get-started';
 import { BalanceCard } from '@/components/app/balance-card';
 import { SendForm } from '@/components/app/send-form';
-import { Eyebrow } from '@/components/landing/primitives';
+import { HudPanel, Eyebrow } from '@/components/landing/primitives';
 
 export default function AppPage() {
   // Bumped after a successful send so the balance card re-fetches.
@@ -57,6 +58,42 @@ export default function AppPage() {
             <BalanceCard refreshSignal={refreshSignal} />
           </div>
           <SendForm onPaid={() => setRefreshSignal((s) => s + 1)} />
+        </div>
+
+        {/*
+          A balance is where this page's job ends, and on its own it is where the
+          user stops too. The next move sits directly under the wallet panels
+          rather than in the nav, so funding leads somewhere instead of leaving a
+          number on screen. Stated unconditionally: this page cannot see whether
+          the account is funded — the balance card owns that read — and a CTA that
+          guessed would be worse than one that is simply always the next step.
+        */}
+        <div className="mt-5">
+          <HudPanel>
+            <div className="flex flex-col gap-5 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
+              <div>
+                <Eyebrow>// NEXT · RECORD ON-CHAIN</Eyebrow>
+                <h2 className="font-display text-xl font-bold tracking-[-0.02em] sm:text-2xl">
+                  A funded wallet proves nothing on its own
+                </h2>
+                <p className="mt-2.5 max-w-[560px] text-[13px] leading-relaxed text-muted sm:text-sm">
+                  Recording an action is the first thing here that leaves a
+                  permanent trace. The Action Log contract stores your message, a
+                  cross-contract call bumps your score in the Reputation contract,
+                  and the entry heads the live feed as soon as the transaction
+                  settles — inside about six seconds for anyone else watching. The
+                  invoke pays its own fee from the account above, so fund it first.
+                </p>
+              </div>
+              <Link
+                href="/board"
+                className="inline-flex shrink-0 items-center gap-2 self-start bg-violet px-4 py-2.5 font-mono text-xs uppercase tracking-[0.1em] text-white transition-colors hover:bg-violet-bright focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan sm:self-auto"
+              >
+                <span aria-hidden className="size-1.5 bg-cyan" />
+                Record an action
+              </Link>
+            </div>
+          </HudPanel>
         </div>
 
         <p className="mt-10 max-w-[640px] font-mono text-xs leading-relaxed text-faint">
