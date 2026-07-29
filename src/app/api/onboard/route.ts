@@ -17,6 +17,7 @@
 
 import { conflict, rateLimited, upstreamUnavailable } from '@/lib/api/errors';
 import { log } from '@/lib/api/logger';
+import { requireSameOrigin } from '@/lib/api/origin';
 import {
   clientKey,
   rateLimit,
@@ -63,6 +64,11 @@ export const GET = route('onboard.count', async (request) => {
 });
 
 export const POST = route('onboard.create', async (request, { requestId }) => {
+  // Before the budget is spent and before the body is read. This registry holds
+  // personal data, so a row written from a page we do not control is worse than
+  // junk: it is somebody's name and address arriving without their intent.
+  requireSameOrigin(request, requestId);
+
   const headers = enforceRateLimit(request, 'onboard:write', WRITE_LIMIT);
 
   const input = parseUserInput(await readJsonBody(request));
