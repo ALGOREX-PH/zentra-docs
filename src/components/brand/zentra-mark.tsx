@@ -1,4 +1,4 @@
-import type { CSSProperties } from 'react';
+import type { CSSProperties, SVGProps } from 'react';
 
 export type ZentraTone = 'primary' | 'violet' | 'mono' | 'onlight';
 
@@ -40,9 +40,9 @@ export function ZentraMark({
   style,
 }: ZentraMarkProps) {
   const c = TONES[tone];
-  const a11y = title
-    ? ({ role: 'img', 'aria-label': title } as const)
-    : ({ 'aria-hidden': true } as const);
+  const a11y: Pick<SVGProps<SVGSVGElement>, 'role' | 'aria-label' | 'aria-hidden'> = title
+    ? { role: 'img', 'aria-label': title }
+    : { 'aria-hidden': true };
 
   return (
     <svg
@@ -50,6 +50,7 @@ export function ZentraMark({
       height={size}
       viewBox="0 0 64 64"
       fill="none"
+      focusable="false"
       className={className}
       style={style}
       {...a11y}
