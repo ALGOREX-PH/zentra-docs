@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import type { ApiError } from '@/lib/api/errors';
 import {
+  JSON_MEDIA_TYPE,
   MAX_BODY_BYTES,
   MAX_COMMENT_LENGTH,
   isStellarAccountId,
@@ -12,6 +13,18 @@ import {
 const VALID_WALLET = `G${'A'.repeat(55)}`;
 const VALID_TX_HASH = 'ab12'.repeat(16);
 const FEEDBACK_KEYS = ['comment', 'onChain', 'rating', 'txHash', 'wallet'];
+
+/**
+ * Build a POST carrying `body` labelled as JSON, which is what every legitimate
+ * caller sends. `headers` overrides that label so a test can send a bad one.
+ */
+function jsonRequest(body: unknown, headers: Record<string, string> = {}): Request {
+  return new Request('https://x.test', {
+    method: 'POST',
+    body: typeof body === 'string' ? body : JSON.stringify(body),
+    headers: { 'content-type': JSON_MEDIA_TYPE, ...headers },
+  });
+}
 
 /** Await a promise expected to reject and hand back the `ApiError` it threw. */
 async function rejection(promise: Promise<unknown>): Promise<ApiError> {
@@ -368,36 +381,28 @@ describe('parseFeedbackInput', () => {
 
 describe('readJsonBody', () => {
   it('resolves a valid JSON body to the parsed object', async () => {
-    const request = new Request('https://x.test', {
-      method: 'POST',
-      body: JSON.stringify({ rating: 5, comment: 'Good.' }),
+    expect(await readJsonBody(jsonRequest({ rating: 5, comment: 'Good.' }))).toEqual({
+      rating: 5,
+      comment: 'Good.',
     });
-
-    expect(await readJsonBody(request)).toEqual({ rating: 5, comment: 'Good.' });
   });
 
   it('rejects an empty body with a 400', async () => {
-    const request = new Request('https://x.test', { method: 'POST', body: '' });
-    const err = await rejection(readJsonBody(request));
+    const err = await rejection(readJsonBody(jsonRequest('')));
 
     expect(err.status).toBe(400);
     expect(err.code).toBe('bad_request');
   });
 
   it('rejects a whitespace-only body with a 400', async () => {
-    const request = new Request('https://x.test', { method: 'POST', body: '   \n ' });
-    const err = await rejection(readJsonBody(request));
+    const err = await rejection(readJsonBody(jsonRequest('   \n ')));
 
     expect(err.status).toBe(400);
     expect(err.code).toBe('bad_request');
   });
 
   it('rejects malformed JSON with a 400', async () => {
-    const request = new Request('https://x.test', {
-      method: 'POST',
-      body: '{"rating": 5,',
-    });
-    const err = await rejection(readJsonBody(request));
+    const err = await rejection(readJsonBody(jsonRequest('{"rating": 5,')));
 
     expect(err.status).toBe(400);
     expect(err.code).toBe('bad_request');
@@ -405,11 +410,7 @@ describe('readJsonBody', () => {
 
   it('rejects an oversized body declared by content-length with a 413', async () => {
     const body = 'x'.repeat(5000);
-    const request = new Request('https://x.test', {
-      method: 'POST',
-      body,
-      headers: { 'content-length': String(body.length) },
-    });
+    const request = jsonRequest(body, { 'content-length': String(body.length) });
 
     expect(request.headers.get('content-length')).toBe('5000');
     expect(body.length).toBeGreaterThan(MAX_BODY_BYTES);
@@ -420,10 +421,7 @@ describe('readJsonBody', () => {
   });
 
   it('rejects an oversized body with no content-length header with a 413', async () => {
-    const request = new Request('https://x.test', {
-      method: 'POST',
-      body: 'x'.repeat(5000),
-    });
+    const request = jsonRequest('x'.repeat(5000));
 
     expect(request.headers.get('content-length')).toBeNull();
 
@@ -434,11 +432,60 @@ describe('readJsonBody', () => {
 
   it('accepts a body sitting just under the byte ceiling', async () => {
     const comment = 'a'.repeat(MAX_BODY_BYTES - 100);
-    const request = new Request('https://x.test', {
-      method: 'POST',
-      body: JSON.stringify({ comment }),
-    });
 
-    expect(await readJsonBody(request)).toEqual({ comment });
+    expect(await readJsonBody(jsonRequest({ comment }))).toEqual({ comment });
+  });
+
+  it('rejects a body with no content-type at all with a 415', async () => {
+    const request = new Request('https://x.test', { method: 'POST', body: '{}' });
+    request.headers.delete('content-type');
+
+    const err = await rejection(readJsonBody(request));
+    expect(err.status).toBe(415);
+    expect(err.code).toBe('unsupported_media_type');
+  });
+
+  it('rejects the cross-origin simple-request media types with a 415', async () => {
+    // The three types a browser sends without a preflight. Refusing them is
+    // what forces a preflight the attacker's page cannot satisfy (ZEN-12).
+    for (const type of [
+      'text/plain',
+      'text/plain;charset=UTF-8',
+      'application/x-www-form-urlencoded',
+      'multipart/form-data; boundary=x',
+    ]) {
+      const err = await rejection(readJsonBody(jsonRequest('{}', { 'content-type': type })));
+      expect(err.status).toBe(415);
+      expect(err.code).toBe('unsupported_media_type');
+    }
+  });
+
+  it('refuses a media type that merely contains the word json', async () => {
+    for (const type of ['text/json', 'application/jsonish', 'application/json-patch']) {
+      const err = await rejection(readJsonBody(jsonRequest('{}', { 'content-type': type })));
+      expect(err.status).toBe(415);
+    }
+  });
+
+  it('accepts application/json with parameters and the +json suffix', async () => {
+    for (const type of [
+      'application/json',
+      'application/json; charset=utf-8',
+      'APPLICATION/JSON',
+      'application/merge-patch+json',
+    ]) {
+      const request = jsonRequest('{"ok":true}', { 'content-type': type });
+      expect(await readJsonBody(request)).toEqual({ ok: true });
+    }
+  });
+
+  it('reports the media type it wants without echoing the one it got', async () => {
+    const err = await rejection(
+      readJsonBody(jsonRequest('{}', { 'content-type': 'text/plain; secret=abc' })),
+    );
+
+    expect(err.message).toContain(JSON_MEDIA_TYPE);
+    expect(err.message).not.toContain('secret');
+    expect(err.message).not.toContain('text/plain');
   });
 });

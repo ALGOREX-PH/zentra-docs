@@ -7,7 +7,12 @@
  * caller-supplied extra ever reaches the database.
  */
 
-import { badRequest, payloadTooLarge, validationFailed } from '@/lib/api/errors';
+import {
+  badRequest,
+  payloadTooLarge,
+  unsupportedMediaType,
+  validationFailed,
+} from '@/lib/api/errors';
 
 /** Longest comment we store, in characters, after whitespace normalisation. */
 export const MAX_COMMENT_LENGTH = 280;
@@ -20,6 +25,18 @@ export const MAX_NOTE_LENGTH = 500;
 
 /** Largest request body we will read, in bytes. */
 export const MAX_BODY_BYTES = 4096;
+
+/** The media type a JSON body must be labelled with, as told to the caller. */
+export const JSON_MEDIA_TYPE = 'application/json';
+
+/**
+ * The media types `readJsonBody` will parse.
+ *
+ * `application/json` plus the `+json` structured suffix, with any parameters
+ * (`; charset=utf-8`) allowed after them. Everything else is refused, and that
+ * refusal is load-bearing rather than pedantic — see `readJsonBody`.
+ */
+const JSON_CONTENT_TYPE = /^application\/(?:[\w.-]+\+)?json\s*(?:;|$)/i;
 
 /** A feedback submission after validation — exactly the fields we persist. */
 export interface FeedbackInput {
@@ -209,11 +226,25 @@ export function parseUserInput(raw: unknown): UserInput {
 /**
  * Read and JSON-decode a request body, refusing anything over the byte ceiling.
  *
- * The `content-length` header is checked first so an oversized upload is
+ * The `content-type` is checked before anything is read. That check is a
+ * security control, not a formality: `application/json` is not on the CORS
+ * safelist, so demanding it forces a browser to send a preflight the attacker's
+ * page cannot satisfy, and closes the cross-site *simple request* path — an
+ * HTML form posting `enctype="text/plain"`, or a `fetch` with
+ * `content-type: text/plain` — that would otherwise land a write here with no
+ * preflight at all (ZEN-12). It is checked first so a body sent that way is
+ * refused before we spend anything reading it.
+ *
+ * The `content-length` header is checked next so an oversized upload is
  * rejected before the stream is touched, then the decoded text is measured
  * again in case that header was absent or lying.
  */
 export async function readJsonBody(request: Request): Promise<unknown> {
+  const contentType = request.headers.get('content-type');
+  if (contentType === null || !JSON_CONTENT_TYPE.test(contentType.trim())) {
+    throw unsupportedMediaType(JSON_MEDIA_TYPE);
+  }
+
   const declared = Number(request.headers.get('content-length'));
   if (Number.isFinite(declared) && declared > MAX_BODY_BYTES) {
     throw payloadTooLarge(MAX_BODY_BYTES);
