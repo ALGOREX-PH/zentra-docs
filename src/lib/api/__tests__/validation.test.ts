@@ -4,9 +4,13 @@ import {
   JSON_MEDIA_TYPE,
   MAX_BODY_BYTES,
   MAX_COMMENT_LENGTH,
+  MAX_QUERY_LENGTH,
+  MAX_RESULT_LIMIT,
+  MAX_TAGS,
   isStellarAccountId,
   isTxHash,
   parseFeedbackInput,
+  parseSearchQuery,
   readJsonBody,
 } from '@/lib/api/validation';
 
@@ -487,5 +491,117 @@ describe('readJsonBody', () => {
     expect(err.message).toContain(JSON_MEDIA_TYPE);
     expect(err.message).not.toContain('secret');
     expect(err.message).not.toContain('text/plain');
+  });
+});
+describe('parseSearchQuery', () => {
+  /** Build the parameters as they arrive on the URL. */
+  function params(entries: Record<string, string>): URLSearchParams {
+    return new URLSearchParams(entries);
+  }
+
+  /** Run the parser on parameters expected to be refused, returning the error. */
+  function refusal(entries: Record<string, string>): ApiError {
+    try {
+      parseSearchQuery(params(entries));
+    } catch (error) {
+      return error as ApiError;
+    }
+    throw new Error('Expected parseSearchQuery to throw, but it returned.');
+  }
+
+  it('reads a bare query and leaves every option unset', () => {
+    expect(parseSearchQuery(params({ query: 'soroban' }))).toEqual({
+      query: 'soroban',
+      locale: undefined,
+      tag: undefined,
+      limit: undefined,
+    });
+  });
+
+  it('treats an absent or blank query as an empty search rather than an error', () => {
+    expect(parseSearchQuery(params({})).query).toBe('');
+    expect(parseSearchQuery(params({ query: '   ' })).query).toBe('');
+  });
+
+  it('trims the query', () => {
+    expect(parseSearchQuery(params({ query: '  wallet  ' })).query).toBe('wallet');
+  });
+
+  it('accepts a query sitting exactly on the length ceiling', () => {
+    const query = 'a'.repeat(MAX_QUERY_LENGTH);
+
+    expect(parseSearchQuery(params({ query })).query).toBe(query);
+  });
+
+  it('refuses a query past the length ceiling with a 422', () => {
+    const err = refusal({ query: 'a'.repeat(MAX_QUERY_LENGTH + 1) });
+
+    expect(err.status).toBe(422);
+    expect(err.code).toBe('validation_failed');
+    expect(err.details?.query).toBeDefined();
+  });
+
+  it('splits a comma-separated tag list and trims each entry', () => {
+    expect(parseSearchQuery(params({ query: 'x', tag: ' guide , api ' })).tag).toEqual([
+      'guide',
+      'api',
+    ]);
+  });
+
+  it('leaves tag unset when it is blank', () => {
+    expect(parseSearchQuery(params({ query: 'x', tag: '  ' })).tag).toBeUndefined();
+  });
+
+  it('refuses more tags than the ceiling allows', () => {
+    const tag = Array.from({ length: MAX_TAGS + 1 }, (_v, i) => 'tag' + i).join(',');
+
+    expect(refusal({ query: 'x', tag }).details?.tag).toBeDefined();
+  });
+
+  it('refuses a tag outside the identifier alphabet', () => {
+    for (const tag of ['has space', 'quote"', 'semi;colon', 'star*']) {
+      expect(refusal({ query: 'x', tag }).status).toBe(422);
+    }
+  });
+
+  it('accepts an integer limit inside the ceiling', () => {
+    expect(parseSearchQuery(params({ query: 'x', limit: '10' })).limit).toBe(10);
+    expect(parseSearchQuery(params({ query: 'x', limit: String(MAX_RESULT_LIMIT) })).limit).toBe(
+      MAX_RESULT_LIMIT,
+    );
+  });
+
+  it('refuses a limit that would allocate an unbounded result set', () => {
+    // The handler this replaced accepted any integer, so a caller could ask the
+    // index to materialise a million entries on our heap.
+    for (const limit of ['1000000', '0', '-5', '1e9', 'many', '2.5', 'Infinity', 'NaN']) {
+      expect(refusal({ query: 'x', limit }).details?.limit).toBeDefined();
+    }
+  });
+
+  it('accepts a locale that is a short identifier', () => {
+    expect(parseSearchQuery(params({ query: 'x', locale: 'en-GB' })).locale).toBe('en-GB');
+  });
+
+  it('refuses a locale outside the identifier alphabet or over length', () => {
+    expect(refusal({ query: 'x', locale: 'en GB' }).status).toBe(422);
+    expect(refusal({ query: 'x', locale: 'e'.repeat(65) }).status).toBe(422);
+  });
+
+  it('reports every bad parameter in one response', () => {
+    const err = refusal({
+      query: 'a'.repeat(MAX_QUERY_LENGTH + 1),
+      limit: '999999',
+      tag: 'bad tag',
+      locale: 'bad locale',
+    });
+
+    expect(Object.keys(err.details ?? {}).sort()).toEqual(['limit', 'locale', 'query', 'tag']);
+  });
+
+  it('ignores parameters it does not know about', () => {
+    const parsed = parseSearchQuery(params({ query: 'x', mode: 'vector', extra: 'dropped' }));
+
+    expect(Object.keys(parsed).sort()).toEqual(['limit', 'locale', 'query', 'tag']);
   });
 });
