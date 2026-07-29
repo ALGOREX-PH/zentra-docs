@@ -70,8 +70,21 @@ export function MetricsStats({ refreshSignal = 0 }: { refreshSignal?: number }) 
   const labelClass = 'font-mono text-[10px] uppercase tracking-[0.12em] text-faint';
 
   return (
-    <div className={cn('flex flex-col gap-2', loading && 'opacity-95')}>
-      {error ? <p className="font-mono text-xs text-denied">{error}</p> : null}
+    <div aria-busy={loading} className={cn('flex flex-col gap-2', loading && 'opacity-95')}>
+      {/*
+        The tiles fall back to an em dash whenever a figure is missing, which
+        reads the same whether the contracts are still being queried, refused to
+        answer, or genuinely hold nothing. One line above them says which.
+      */}
+      {loading ? (
+        <p className="font-mono text-xs text-muted">Reading the contracts…</p>
+      ) : error ? (
+        <p className="font-mono text-xs text-denied">{error}</p>
+      ) : interactions === 0 ? (
+        <p className="font-mono text-xs text-muted">
+          No on-chain activity yet — record an action or leave feedback to start these counters.
+        </p>
+      ) : null}
       <div className="grid gap-4 sm:grid-cols-3">
         <HudPanel>
           <div className="p-5">
