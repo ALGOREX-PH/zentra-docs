@@ -23,9 +23,15 @@ const labelClass =
 const MAX_NAME = 80;
 const MAX_NOTE = 500;
 
+/** Every Stellar account id is exactly this long — `G` plus 55 base32 digits. */
+const WALLET_LENGTH = 56;
+
 /** Same shapes the API validates against, so the form fails before the fetch. */
 const EMAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 const STELLAR_ACCOUNT_ID = /^G[A-Z2-7]{55}$/;
+
+/** The base32 alphabet a strkey is written in — note the absent 0, 1, 8 and 9. */
+const BASE32 = /^[A-Z2-7]*$/;
 
 type Status = 'idle' | 'sending' | 'success' | 'error';
 
@@ -38,6 +44,99 @@ interface Values {
   email: string;
   wallet: string;
   note: string;
+}
+
+/**
+ * What can honestly be said about a wallet value mid-entry.
+ *
+ * `typing` is the state that earns this type its keep: an address on its way to
+ * 56 characters is not wrong yet, and a field that shouts "invalid" on the third
+ * keystroke is how a form teaches people to stop reading it.
+ */
+type WalletState =
+  | { kind: 'empty' }
+  | { kind: 'typing'; length: number }
+  | { kind: 'invalid'; reason: string }
+  | { kind: 'valid' };
+
+/**
+ * Grade a wallet value the way the person entering it needs it graded.
+ *
+ * The wrong-prefix cases get their own wording because they are the two ways
+ * this field actually gets filled in wrong, and both are one move from fixed
+ * once named: `S` is somebody about to paste a secret key into a registry, and
+ * `C` is a contract id copied off the explorer. Everything else is either
+ * unfinished or a character that cannot appear in a strkey at all.
+ */
+function inspectWallet(value: string): WalletState {
+  if (value.length === 0) return { kind: 'empty' };
+
+  if (value.startsWith('S')) {
+    return {
+      kind: 'invalid',
+      reason:
+        'That looks like a secret key — do not paste it anywhere. Your account id is the public one, starting with G.',
+    };
+  }
+
+  if (!value.startsWith('G')) {
+    return {
+      kind: 'invalid',
+      reason: value.startsWith('C')
+        ? 'That is a contract id. Paste your own account id — it starts with G.'
+        : 'A Stellar account id starts with G.',
+    };
+  }
+
+  if (!BASE32.test(value.slice(1))) {
+    return {
+      kind: 'invalid',
+      reason: 'An account id only holds letters A–Z and digits 2–7 — something else got copied in.',
+    };
+  }
+
+  if (value.length > WALLET_LENGTH) {
+    return {
+      kind: 'invalid',
+      reason: `That is ${value.length} characters. An account id is exactly ${WALLET_LENGTH}.`,
+    };
+  }
+
+  if (value.length < WALLET_LENGTH) return { kind: 'typing', length: value.length };
+
+  // Prefix, alphabet and length all hold, so this should be unreachable — but
+  // the server judges the value against this exact pattern, so the form does too
+  // rather than inferring validity from three checks that happen to agree.
+  return STELLAR_ACCOUNT_ID.test(value)
+    ? { kind: 'valid' }
+    : { kind: 'invalid', reason: `Enter a Stellar account id — G followed by ${WALLET_LENGTH - 1} characters.` };
+}
+
+/** The reason a wallet state cannot be submitted, or null when it can. */
+function walletMessage(state: WalletState): string | null {
+  switch (state.kind) {
+    case 'valid':
+      return null;
+    case 'empty':
+      return 'Enter your Stellar testnet account id.';
+    case 'typing':
+      return `${state.length} of ${WALLET_LENGTH} characters — paste the whole address.`;
+    case 'invalid':
+      return state.reason;
+  }
+}
+
+/**
+ * Whitespace and case removed so a paste survives wherever it came from.
+ *
+ * A 56-character address gets copied out of wallet UIs, chat messages and
+ * wrapped emails, and arrives with newlines or spaces in the middle of it more
+ * often than not. A strkey has no lowercase letters and no interior whitespace,
+ * so neither can be anything but transport damage — dropping them recovers the
+ * paste instead of rejecting it and making someone find the stray character.
+ */
+function normaliseWallet(value: string): string {
+  return value.replace(/\s+/g, '').toUpperCase();
 }
 
 /**
@@ -56,9 +155,8 @@ function validate({ name, email, wallet, note }: Values): FieldErrors {
 
   if (!EMAIL.test(email.trim())) errors.email = 'Enter a valid email address.';
 
-  if (!STELLAR_ACCOUNT_ID.test(wallet.trim())) {
-    errors.wallet = 'Enter a Stellar account id — G followed by 55 characters.';
-  }
+  const walletProblem = walletMessage(inspectWallet(wallet.trim()));
+  if (walletProblem !== null) errors.wallet = walletProblem;
 
   if (note.trim().length > MAX_NOTE) errors.note = `Note must be ${MAX_NOTE} characters or fewer.`;
 
@@ -103,6 +201,7 @@ function SignupForm() {
   }, [address, walletEdited]);
 
   const errors = validate({ name, email, wallet, note });
+  const walletState = inspectWallet(wallet);
   const inFlight = status === 'sending';
   const disabled = inFlight || Object.keys(errors).length > 0;
   const prefilled = !walletEdited && address !== null && wallet === address;
@@ -217,8 +316,32 @@ function SignupForm() {
 
   const nameError = errorFor('name');
   const emailError = errorFor('email');
-  const walletError = errorFor('wallet');
   const noteError = errorFor('note');
+
+  /**
+   * The wallet field reports itself as it is typed, not on blur like the others.
+   *
+   * A bad paste and a half-finished paste are the only two ways 56 characters go
+   * wrong, and both are visible the instant they happen — so waiting for a blur
+   * only means the visitor discovers it after they have gone looking for the
+   * submit button. Just the "you have not filled this in" case still waits, since
+   * naming an empty field before it is touched is nagging, not help.
+   */
+  const walletNotice =
+    walletState.kind === 'empty' ? errorFor('wallet') : walletMessage(walletState);
+
+  /**
+   * The standing description under the field: the shape to aim for, or that the
+   * value already has it. The live character count belongs to the notice above,
+   * so the two lines never say the same thing twice.
+   */
+  const walletHint = prefilled
+    ? 'From your connected wallet — edit it if you want to register a different account.'
+    : walletState.kind === 'valid'
+      ? 'Valid Stellar account id.'
+      : address === null
+        ? `Connect above to fill this in, or paste your account id — G then ${WALLET_LENGTH - 1} characters (A–Z, 2–7).`
+        : `Paste your account id — G then ${WALLET_LENGTH - 1} characters (A–Z, 2–7).`;
 
   return (
     <>
@@ -316,30 +439,43 @@ function SignupForm() {
               required
               spellCheck={false}
               autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="characters"
               placeholder="G…"
               value={wallet}
               onChange={(event) => {
                 setWalletEdited(true);
-                setWallet(event.target.value.trim());
+                setWallet(normaliseWallet(event.target.value));
               }}
               onBlur={() => markTouched('wallet')}
-              aria-invalid={walletError !== null}
-              aria-describedby={[walletError ? `${ids}-wallet-error` : null, `${ids}-wallet-hint`]
+              aria-invalid={walletNotice !== null}
+              aria-describedby={[walletNotice ? `${ids}-wallet-error` : null, `${ids}-wallet-hint`]
                 .filter(Boolean)
                 .join(' ')}
               className={fieldClass}
             />
-            {walletError ? (
-              <p id={`${ids}-wallet-error`} className="mt-1 font-mono text-[11px] text-denied">
-                {walletError}
+            {walletNotice ? (
+              // Coloured by severity rather than by which slot it sits in: a
+              // running character count is progress, not a fault, and painting
+              // it red would make correct typing look like a mistake.
+              <p
+                id={`${ids}-wallet-error`}
+                className={cn(
+                  'mt-1 font-mono text-[11px]',
+                  walletState.kind === 'typing' ? 'text-muted' : 'text-denied',
+                )}
+              >
+                {walletNotice}
               </p>
             ) : null}
-            <p id={`${ids}-wallet-hint`} className="mt-1 font-mono text-[11px] text-faint">
-              {prefilled
-                ? 'From your connected wallet — edit it if you want to register a different account.'
-                : address === null
-                  ? 'Connect above to fill this in, or paste a testnet account id.'
-                  : 'Paste a testnet account id, or use the connected account above.'}
+            <p
+              id={`${ids}-wallet-hint`}
+              className={cn(
+                'mt-1 font-mono text-[11px]',
+                walletState.kind === 'valid' && !prefilled ? 'text-live' : 'text-faint',
+              )}
+            >
+              {walletHint}
             </p>
 
             <span id={`${ids}-rating-label`} className={cn(labelClass, 'mt-4')}>
