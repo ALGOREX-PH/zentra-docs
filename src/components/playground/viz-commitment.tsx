@@ -1,5 +1,3 @@
-import { cn } from '@/lib/cn';
-
 export function VizCommitment() {
   return (
     <div>
@@ -30,7 +28,7 @@ export function VizCommitment() {
       </div>
 
       <p className="mt-4 flex items-center justify-center gap-2 text-center text-[12px] text-muted">
-        <span aria-hidden className={cn('relative font-mono text-denied')}>
+        <span aria-hidden className="relative font-mono text-denied">
           <span>←</span>
           <span className="absolute left-0 top-1/2 h-px w-full -translate-y-1/2 bg-denied" />
         </span>
