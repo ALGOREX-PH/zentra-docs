@@ -11,9 +11,13 @@ import { stellar } from '@/config/stellar';
 import { truncateAddress } from '@/lib/stellar/format';
 import { HudPanel, Eyebrow } from '@/components/landing/primitives';
 import type { ActionEntry } from '@/lib/stellar/types';
+import { cn } from '@/lib/cn';
 
 const POLL_MS = 6000;
 const MAX_SHOWN = 25;
+
+const focusRing =
+  'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan';
 
 /**
  * The live on-chain action feed: seeds history from the contract's `get_recent`
@@ -119,7 +123,7 @@ export function ActionFeed({ refreshSignal = 0 }: { refreshSignal?: number }) {
                         href={stellar.explorerAccountUrl(entry.author)}
                         target="_blank"
                         rel="noreferrer"
-                        className="hover:text-cyan"
+                        className={cn('hover:text-cyan', focusRing)}
                       >
                         {truncateAddress(entry.author)}
                       </a>
