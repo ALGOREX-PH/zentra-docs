@@ -131,6 +131,11 @@ export function ProofEngine() {
               <stop offset="0" stopColor="#7c3aed" />
               <stop offset="1" stopColor="#00e5ff" />
             </linearGradient>
+            {/* the capsule carries dark text, so its violet end is lifted for legibility */}
+            <linearGradient id="zcap" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stopColor="#8b5cf6" />
+              <stop offset="1" stopColor="#00e5ff" />
+            </linearGradient>
           </defs>
           <path d="M90,70 L430,70 L90,270 L430,270" fill="none" stroke="rgba(148,163,184,0.18)" strokeWidth="6" strokeLinecap="square" strokeLinejoin="miter" />
           <path data-z-fill d="M90,70 L430,70 L90,270 L430,270" fill="none" stroke="url(#zgrad)" strokeWidth="6" strokeLinecap="square" strokeLinejoin="miter" style={{ filter: 'drop-shadow(0 0 5px rgba(124,58,237,0.7))' }} />
@@ -145,7 +150,7 @@ export function ProofEngine() {
             <polyline points="420,270 427,278 442,260" fill="none" stroke="#00e5ff" strokeWidth="3" strokeLinecap="square" strokeLinejoin="miter" />
           </g>
           <g data-z-capsule style={{ transform: 'translate(90px,70px)', opacity: 0 }}>
-            <rect x="-23" y="-12" width="46" height="24" fill="url(#zgrad)" style={{ filter: 'drop-shadow(0 0 10px rgba(0,229,255,0.6))' }} />
+            <rect x="-23" y="-12" width="46" height="24" fill="url(#zcap)" style={{ filter: 'drop-shadow(0 0 10px rgba(0,229,255,0.6))' }} />
             <text x="0" y="4" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="11" fontWeight="700" fill="#06070d">ZK</text>
           </g>
           <text x="90" y="48" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="11" letterSpacing="1" fill="#7d8ea6">INTENT</text>
