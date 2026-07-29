@@ -2,7 +2,7 @@
 use super::*;
 use soroban_sdk::{
     testutils::{Address as _, Events as _},
-    Address, Env, String,
+    Address, Env, InvokeError, String,
 };
 
 fn client(env: &Env) -> FeedbackClient<'_> {
@@ -59,6 +59,18 @@ fn rejects_empty_comment() {
     assert_eq!(
         client.try_submit(&author, &5, &String::from_str(&env, "")),
         Err(Ok(Error::EmptyComment))
+    );
+}
+
+#[test]
+fn submit_requires_author_authorization() {
+    let env = Env::default();
+    let client = client(&env);
+    let author = Address::generate(&env);
+
+    assert_eq!(
+        client.try_submit(&author, &5, &String::from_str(&env, "valid feedback")),
+        Err(Err(InvokeError::Abort)),
     );
 }
 
