@@ -551,7 +551,7 @@ bun run build   # production build
 ### Structure
 
 ```
-contracts/                    # Soroban contracts (Rust): action-log · reputation · feedback · proof-registry + deploy.sh
+contracts/                    # Soroban contracts (Rust): action-log · reputation · feedback · proof-registry · multisig + deploy.sh
 .github/workflows/ci.yml      # CI — cargo test (contracts) + Vitest + Next build
 public/zk/                    # ZK circuit artifacts (wasm + zkey + vk) for the playground
 content/docs/                 # MDX documentation (Start Here, Concepts, Guides, Reference…)
