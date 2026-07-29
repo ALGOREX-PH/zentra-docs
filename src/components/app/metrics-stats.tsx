@@ -274,15 +274,11 @@ export function MetricsStats({ refreshSignal = 0 }: { refreshSignal?: number }) 
             <Readout
               label="REGISTRY SIGNUPS"
               value={signups ?? '—'}
-              note={
-                signupsError ? (
-                  <span className="text-denied">{signupsError}</span>
-                ) : signupsLoading ? (
-                  'Reading the signup registry…'
-                ) : (
-                  'Rows in the signup registry — people who registered. Not evidence that they transacted.'
-                )
-              }
+              // The note stays on what the figure measures in every state. Its
+              // loading and failure lines are already rendered once, above, where
+              // the count itself is — repeating them here would put two red lines
+              // about one outage in a panel that has to be read at a glance.
+              note="Rows in the signup registry — people who registered. Not evidence that they transacted."
             />
             <Readout
               label="WALLETS SEEN ON-CHAIN"
