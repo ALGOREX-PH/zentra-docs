@@ -81,7 +81,7 @@ console.log(result.status); // released`;
   }
 
   return (
-    <section id="developer" ref={wrap} className="border-t border-violet/20 bg-abyss px-5 py-14 sm:px-7 sm:py-20">
+    <section id="developer" ref={wrap} aria-labelledby="developer-title" className="border-t border-violet/20 bg-abyss px-5 py-14 sm:px-7 sm:py-20">
       <div className="mx-auto max-w-[1160px]">
         <div className="mb-10 flex items-center gap-3.5">
           <span className="font-mono text-xs tracking-[0.12em] text-violet-soft">[ 04 ] FOR DEVELOPERS</span>
@@ -90,7 +90,7 @@ console.log(result.status); // released`;
 
         <div className="grid items-center gap-12 lg:grid-cols-2">
           <div>
-            <h2 className="font-display text-3xl font-bold tracking-[-0.025em] sm:text-[40px]">
+            <h2 id="developer-title" className="font-display text-3xl font-bold tracking-[-0.025em] sm:text-[40px]">
               Guard an agent in an afternoon.
             </h2>
             <p className="mb-[30px] mt-4 max-w-[480px] text-[17px] text-muted">

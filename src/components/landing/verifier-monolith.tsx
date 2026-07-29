@@ -52,7 +52,7 @@ export function VerifierMonolith() {
   }, [run, settle]);
 
   return (
-    <section ref={wrap} className="border-t border-violet/20 px-5 py-14 sm:px-7 sm:py-20">
+    <section ref={wrap} aria-labelledby="verification-title" className="border-t border-violet/20 px-5 py-14 sm:px-7 sm:py-20">
       <div className="mx-auto max-w-[1160px]">
         <div className="mb-[18px] flex items-center gap-3.5">
           <span className="font-mono text-xs tracking-[0.12em] text-violet-soft">[ 03 ] ON-CHAIN VERIFICATION</span>
@@ -61,7 +61,7 @@ export function VerifierMonolith() {
 
         <div className="grid items-center gap-12 lg:grid-cols-[1fr_0.85fr]">
           <div>
-            <h2 className="font-display text-3xl font-bold tracking-[-0.025em] sm:text-[40px]">
+            <h2 id="verification-title" className="font-display text-3xl font-bold tracking-[-0.025em] sm:text-[40px]">
               The chain is the source of truth.
             </h2>
             <p className="mb-7 mt-4 max-w-[480px] text-[17px] text-muted">

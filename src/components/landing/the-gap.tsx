@@ -20,13 +20,13 @@ const ROWS = [
 
 export function TheGap() {
   return (
-    <section className="border-t border-violet/20 px-5 py-14 sm:px-7 sm:py-20">
+    <section aria-labelledby="trust-gap-title" className="border-t border-violet/20 px-5 py-14 sm:px-7 sm:py-20">
       <div className="mx-auto max-w-[920px]">
         <div className="mb-5 flex items-center gap-3.5">
           <span className="font-mono text-xs tracking-[0.12em] text-violet-soft">[ 01 ] THE TRUST GAP</span>
           <span className="h-px flex-1 bg-violet/25" />
         </div>
-        <h2 className="font-display text-3xl font-bold tracking-[-0.025em] sm:text-[40px]">
+        <h2 id="trust-gap-title" className="font-display text-3xl font-bold tracking-[-0.025em] sm:text-[40px]">
           Three questions in agentic finance.
         </h2>
         <p className="mt-3 max-w-[560px] text-[17px] text-muted">
