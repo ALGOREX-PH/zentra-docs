@@ -72,7 +72,7 @@ Legend: ✅ done · ⬜ pending (you) · 🔄 in progress
 - [x] Smart contract deployment workflow (`contracts/deploy.sh`)
 - [x] Mobile responsive frontend
 - [x] Error handling & loading states
-- [x] Tests for contracts **and** frontend (30 Rust across five contracts, 255 Vitest across 12 files)
+- [x] Tests for contracts **and** frontend (38 Rust across five contracts, 324 Vitest across 15 files)
 - [x] Production-ready architecture
 - [x] Documentation
 
@@ -114,8 +114,9 @@ Legend: ✅ done · ⬜ pending (you) · 🔄 in progress
       Permissions-Policy; secret redaction in logs; 4 KB body ceiling)
 - [x] Health / readiness endpoint (`/api/health`, 200 ok · 503 degraded)
 - [x] API documentation (`docs/API.md`) + architecture (`docs/ARCHITECTURE.md`)
-- [x] Automated tests — 255 frontend (Vitest, across 12 files) + 30 contract
-      (Rust, across five contracts); CI runs typecheck, tests and build
+- [x] Automated tests — 324 frontend (Vitest, across 15 files) + 38 contract
+      (Rust, across five contracts, including negative-authorisation tests on
+      every state-changing function); CI runs typecheck, tests and build
 - [x] On-chain claims verified server-side — a submitted `txHash` is resolved
       against Horizon and must exist, have succeeded, and belong to the claiming
       wallet before it counts as on-chain
@@ -184,7 +185,7 @@ launch is built; the switch is `NEXT_PUBLIC_STELLAR_NETWORK=public` plus the
 steps in [`docs/MAINNET.md`](MAINNET.md).
 
 **Advanced features (1 required, 2 delivered)**
-- [x] Multi-signature logic — `contracts/zentra-multisig` (N-of-M, 14 tests)
+- [x] Multi-signature logic — `contracts/zentra-multisig` (N-of-M, 16 tests)
 - [x] Fee sponsorship / gasless — `src/lib/api/sponsor.ts` + `/api/sponsor`
 
 **Security (1 required)**
