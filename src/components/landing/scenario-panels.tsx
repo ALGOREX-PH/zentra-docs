@@ -44,24 +44,26 @@ function Panel({ cfg }: { cfg: Cfg }) {
     busy.current = true;
     cancel.current = false;
     setActive(-1); setFailed(false); setOutcome('');
+    // reduced motion skips every wait, so the run stays synchronous and React commits
+    // one render — the resting outcome — instead of stepping the rail at zero delay.
     const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
-    const sleep = (ms: number) => new Promise<void>((res) => setTimeout(res, reduced ? 0 : ms));
+    const sleep = (ms: number) => new Promise<void>((res) => setTimeout(res, ms));
     for (let i = 0; i <= cfg.stop; i++) {
       if (cancel.current) { busy.current = false; return; }
       const fail = cfg.id !== 'a' && i === cfg.stop;
       if (fail) setFailed(true);
       setActive(i);
       setStat({ t: (cfg.steps[i] ?? '').toUpperCase(), c: fail ? R : '#e2e8f0' });
-      await sleep(cfg.id === 'a' ? 560 : 640);
+      if (!reduced) await sleep(cfg.id === 'a' ? 560 : 640);
     }
     if (cancel.current) { busy.current = false; return; }
     if (cfg.id === 'a') {
       setOutcome('a'); setStat({ t: 'RECEIPT EMITTED', c: G });
     } else if (cfg.id === 'b') {
-      setStat({ t: 'RECIPIENT NOT IN SET', c: R }); await sleep(420);
-      setOutcome('b'); await sleep(700); setStat({ t: 'NO PAYMENT MOVED', c: '#7d8ea6' });
+      setStat({ t: 'RECIPIENT NOT IN SET', c: R }); if (!reduced) await sleep(420);
+      setOutcome('b'); if (!reduced) await sleep(700); setStat({ t: 'NO PAYMENT MOVED', c: '#7d8ea6' });
     } else {
-      setStat({ t: 'STATEMISMATCH', c: R }); setOutcome('c'); await sleep(1100);
+      setStat({ t: 'STATEMISMATCH', c: R }); setOutcome('c'); if (!reduced) await sleep(1100);
       setStat({ t: 'NO PAYMENT MOVED', c: '#7d8ea6' });
     }
     busy.current = false;
