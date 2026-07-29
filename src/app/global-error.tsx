@@ -26,7 +26,7 @@ export default function GlobalError({
   return (
     <html lang="en">
       <body className="flex min-h-screen items-center justify-center bg-void px-5 py-16 antialiased">
-        <div className="relative w-full max-w-[600px] border border-violet/40 bg-panel px-6 py-8 sm:px-10 sm:py-11">
+        <main className="relative w-full max-w-[600px] border border-violet/40 bg-panel px-6 py-8 sm:px-10 sm:py-11">
           <span
             aria-hidden
             className="pointer-events-none absolute -left-px -top-px h-3 w-3 border-l-2 border-t-2 border-violet"
@@ -77,7 +77,7 @@ export default function GlobalError({
               </p>
             </div>
           ) : null}
-        </div>
+        </main>
       </body>
     </html>
   );
