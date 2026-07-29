@@ -26,7 +26,11 @@ export default function Error({
   }, [error]);
 
   return (
-    <main className="zen-grid flex min-h-[70vh] items-center px-5 py-16 sm:px-7 sm:py-24">
+    <main
+      id="content"
+      tabIndex={-1}
+      className="zen-grid flex min-h-[70vh] flex-1 items-center px-5 py-16 focus:outline-none sm:px-7 sm:py-24"
+    >
       <div className="mx-auto w-full max-w-[720px]">
         <HudPanel className="px-6 py-8 sm:px-10 sm:py-11">
           <Eyebrow>// ZENTRA · RUNTIME FAULT</Eyebrow>
