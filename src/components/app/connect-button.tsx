@@ -11,6 +11,9 @@ import { cn } from '@/lib/cn';
 const focusRing =
   'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan';
 
+/** Everything inside the dialog a keyboard can reach, in document order. */
+const FOCUSABLE = 'a[href], button:not([disabled])';
+
 export function ConnectButton() {
   const { address, connecting, connect, disconnect } = useWallet();
   const [open, setOpen] = useState(false);
@@ -21,7 +24,9 @@ export function ConnectButton() {
 
   const titleId = useId();
   const descriptionId = useId();
+  const panel = useRef<HTMLDivElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
+  const connected = useRef<HTMLAnchorElement>(null);
   // Whether a connection attempt is in flight, so the result can be read off
   // `connecting` falling back to false rather than from a stale closure.
   const attempting = useRef(false);
@@ -73,6 +78,35 @@ export function ConnectButton() {
     return () => document.removeEventListener('keydown', onKeyDown);
   }, [open]);
 
+  /**
+   * Focus enters the dialog on open and goes back to whichever control the
+   * button rendered as on close — the trigger normally, the account link when
+   * the connection succeeded and took the trigger away with it.
+   */
+  useEffect(() => {
+    if (!open) return;
+    panel.current?.querySelector<HTMLElement>(FOCUSABLE)?.focus();
+    return () => {
+      (trigger.current ?? connected.current)?.focus();
+    };
+  }, [open]);
+
+  /** Tab and Shift+Tab wrap at the ends instead of walking out of the dialog. */
+  function trapFocus(event: React.KeyboardEvent<HTMLDivElement>) {
+    if (event.key !== 'Tab') return;
+    const nodes = panel.current?.querySelectorAll<HTMLElement>(FOCUSABLE);
+    if (!nodes || nodes.length === 0) return;
+    const first = nodes[0];
+    const last = nodes[nodes.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  }
+
   function choose(walletId: string) {
     setFailed(null);
     setPending(walletId);
@@ -87,10 +121,12 @@ export function ConnectButton() {
         className="absolute inset-0 bg-void/80 backdrop-blur-[2px]"
       />
       <div
+        ref={panel}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
         aria-describedby={descriptionId}
+        onKeyDown={trapFocus}
         className="relative w-full max-w-[400px] border border-violet/40 bg-panel"
       >
         <div className="flex items-start justify-between gap-4 border-b border-fd-border px-5 py-4">
@@ -205,6 +241,7 @@ export function ConnectButton() {
   return (
     <div className="flex items-center gap-2">
       <a
+        ref={connected}
         href={stellar.explorerAccountUrl(address)}
         target="_blank"
         rel="noreferrer"
