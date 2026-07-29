@@ -106,7 +106,7 @@ console.log(result.status); // released`;
                     className="flex items-center gap-3 border-b border-fd-border px-4 py-2.5 font-mono text-[13px] transition-opacity duration-500 last:border-b-0"
                     style={{ opacity: i < revealed ? 1 : 0, color: last ? '#22c55e' : '#e2e8f0', fontWeight: last ? 600 : 400 }}
                   >
-                    <svg width="14" height="14" viewBox="0 0 15 15" aria-hidden>
+                    <svg width="14" height="14" viewBox="0 0 15 15" className="shrink-0" aria-hidden>
                       <polyline points="2,8 6,12 13,3" fill="none" stroke="#22c55e" strokeWidth="2.2" strokeLinecap="square" strokeLinejoin="miter" />
                     </svg>
                     {c}
