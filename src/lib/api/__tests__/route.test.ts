@@ -154,6 +154,42 @@ describe('route error handling', () => {
   });
 });
 
+describe('route cache headers', () => {
+  it('never lets an error response be stored by a cache', async () => {
+    muffle();
+
+    for (const thrown of [badRequest('Missing body.'), rateLimited(30), new Error('boom')]) {
+      const handler = route('test', async () => {
+        throw thrown;
+      });
+
+      const response = await handler(new Request('https://x.test/api'));
+
+      expect(response.headers.get('cache-control')).toBe('no-store');
+    }
+  });
+
+  it('defaults a successful json response to no-store', async () => {
+    muffle();
+    const handler = route('test', async () => json({ ok: true }));
+
+    const response = await handler(new Request('https://x.test/api'));
+
+    expect(response.headers.get('cache-control')).toBe('no-store');
+  });
+
+  it('lets a handler override the default with a deliberate policy', async () => {
+    muffle();
+    const handler = route('test', async () =>
+      json({ ok: true }, { headers: { 'cache-control': 'public, s-maxage=30' } }),
+    );
+
+    const response = await handler(new Request('https://x.test/api'));
+
+    expect(response.headers.get('cache-control')).toBe('public, s-maxage=30');
+  });
+});
+
 describe('route logging', () => {
   it('logs one line carrying the request id and the status it answered with', async () => {
     const log = vi.spyOn(console, 'log').mockImplementation(() => undefined);

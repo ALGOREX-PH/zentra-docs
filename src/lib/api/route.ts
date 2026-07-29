@@ -84,9 +84,15 @@ export function route(
           code: body.error.code,
           ...(isApiError(error) ? {} : { err: error }),
         });
+        // `no-store` leads so an error carrying its own headers can still
+        // override it, and so nothing else has to remember: a failure is a
+        // property of one attempt by one caller at one moment, and a 429 or a
+        // 503 replayed from a shared cache to somebody else is worse than
+        // useless. Several of these statuses are heuristically cacheable when
+        // no directive is present, which is exactly what this removes.
         return NextResponse.json(body, {
           status,
-          headers: { ...headers, 'x-request-id': requestId },
+          headers: { 'cache-control': 'no-store', ...headers, 'x-request-id': requestId },
         });
       } catch {
         // The catch block is the last line of defence, so it may not throw
