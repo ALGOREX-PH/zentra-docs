@@ -60,6 +60,17 @@ export default function Layout({ children }: { children: ReactNode }) {
       suppressHydrationWarning
     >
       <body className="flex min-h-screen flex-col font-sans antialiased">
+        {/* First focusable element in the document, so keyboard and screen
+            reader users can jump the nav on every route. It is parked above the
+            viewport rather than hidden with `sr-only`, which keeps the reveal
+            from depending on utility ordering. Every route marks its content
+            landmark `id="content"`. */}
+        <a
+          href="#content"
+          className="fixed left-4 top-4 z-50 -translate-y-24 border border-cyan bg-panel px-4 py-2.5 font-mono text-xs tracking-[0.08em] text-cyan transition-transform focus:translate-y-0 print:hidden"
+        >
+          Skip to content
+        </a>
         <RootProvider theme={{ attribute: 'class', forcedTheme: 'dark' }}>
           {children}
         </RootProvider>
