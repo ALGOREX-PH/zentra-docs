@@ -30,7 +30,44 @@ function HashLink({ hash }: { hash: string }) {
   );
 }
 
+/**
+ * The same information the panel shows, flattened to one sentence.
+ *
+ * A phase change is otherwise a colour and an icon: nothing a screen reader
+ * would report, even though "awaiting signature" is exactly when the user needs
+ * to be told to look at their wallet.
+ */
+function announce(state: TxState): string {
+  if (state.phase === 'idle') return '';
+  if (isInFlight(state.phase)) return state.message ?? inFlightLabels[state.phase];
+  if (state.phase === 'success') {
+    return state.message ? `Payment settled. ${state.message}` : 'Payment settled.';
+  }
+  return `Payment failed. ${state.message ?? 'Something went wrong.'}`;
+}
+
 export function TxStatus({ state }: { state: TxState }) {
+  const spoken = announce(state);
+
+  return (
+    <>
+      {/*
+        Both regions stay mounted for the life of the form. A live region that
+        appears at the same moment as its text is routinely missed, so the nodes
+        exist from the first render and only their contents change.
+      */}
+      <span aria-live="polite" aria-atomic="true" className="sr-only">
+        {state.phase === 'error' ? '' : spoken}
+      </span>
+      <span role="alert" className="sr-only">
+        {state.phase === 'error' ? spoken : ''}
+      </span>
+      <StatusPanel state={state} />
+    </>
+  );
+}
+
+function StatusPanel({ state }: { state: TxState }) {
   if (state.phase === 'idle') return null;
 
   if (isInFlight(state.phase)) {
