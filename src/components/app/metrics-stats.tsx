@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { activeProfile } from '@/config/network';
 import { getCount, getRecent } from '@/lib/stellar/action-log';
 import { getFeedbackCount, getFeedbackAuthors } from '@/lib/stellar/feedback';
 import { HudPanel } from '@/components/landing/primitives';
@@ -108,7 +109,13 @@ export function MetricsStats({ refreshSignal = 0 }: { refreshSignal?: number }) 
         <HudPanel accent="cyan">
           <div className="p-5">
             <div className={labelClass}>NETWORK</div>
-            <div className="font-display text-2xl text-cyan">Testnet</div>
+            {/*
+              Named by the active profile rather than typed in. The chain is a
+              deploy-time choice, and a tile that says "Testnet" on a mainnet
+              build is not a stale label — it is a false claim about where every
+              other figure on this page was read from.
+            */}
+            <div className="font-display text-2xl text-cyan">{activeProfile.label}</div>
             <div className="font-mono text-[11px] text-muted">Soroban · live</div>
           </div>
         </HudPanel>
