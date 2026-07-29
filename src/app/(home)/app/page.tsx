@@ -43,7 +43,19 @@ export default function AppPage() {
         </div>
 
         <div className="mt-5 grid gap-5 lg:grid-cols-2">
-          <BalanceCard refreshSignal={refreshSignal} />
+          {/*
+            The guide's funding step links straight here, because Friendbot is the
+            gate an unfunded account cannot get past. The wrapper takes focus as
+            well as the scroll so a keyboard lands on the panel, and `grid` keeps
+            the card stretched to the row height it had as a direct grid item.
+          */}
+          <div
+            id="testnet-balance"
+            tabIndex={-1}
+            className="grid scroll-mt-24 focus:outline-none"
+          >
+            <BalanceCard refreshSignal={refreshSignal} />
+          </div>
           <SendForm onPaid={() => setRefreshSignal((s) => s + 1)} />
         </div>
 

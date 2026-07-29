@@ -71,10 +71,19 @@ const STEPS: ReadonlyArray<{ title: string; body: ReactNode }> = [
         A fresh testnet account holds nothing, and an account with no XLM cannot
         pay a transaction fee — nothing here can be signed until that is cleared.
         One action clears it:{' '}
-        <span className="text-text">Fund with Friendbot</span> in the Testnet
-        balance panel below. Done when that panel stops saying the account
-        isn&apos;t funded and shows an XLM figure; if Friendbot is unreachable it
-        states the error and offers <span className="text-text">Retry</span>.
+        <a
+          href="#testnet-balance"
+          className={cn(
+            'text-cyan underline-offset-4 hover:underline',
+            focusRing,
+          )}
+        >
+          Fund with Friendbot
+        </a>{' '}
+        in the Testnet balance panel below. Done when that panel stops saying the
+        account isn&apos;t funded and shows an XLM figure; if Friendbot is
+        unreachable it states the error and offers{' '}
+        <span className="text-text">Retry</span>.
       </>
     ),
   },
