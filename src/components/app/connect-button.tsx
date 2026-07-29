@@ -108,6 +108,7 @@ export function ConnectButton() {
   }
 
   function choose(walletId: string) {
+    if (connecting) return;
     setFailed(null);
     setPending(walletId);
     void connect(walletId);
@@ -166,13 +167,20 @@ export function ConnectButton() {
             <ul className="divide-y divide-fd-border border border-fd-border">
               {(wallets ?? []).map((wallet) => (
                 <li key={wallet.id}>
+                  {/*
+                    aria-disabled, not disabled: a real `disabled` on the wallet
+                    the user just activated would drop the focused element out
+                    of the trap's selector mid-connection and let the next Tab
+                    walk straight out of the dialog.
+                  */}
                   {wallet.isAvailable ? (
                     <button
                       type="button"
                       onClick={() => choose(wallet.id)}
-                      disabled={connecting}
+                      aria-disabled={connecting}
                       className={cn(
-                        'flex w-full items-center justify-between gap-3 px-4 py-3 text-left font-mono text-sm text-text transition-colors hover:bg-violet/[0.07] disabled:cursor-not-allowed disabled:opacity-50',
+                        'flex w-full items-center justify-between gap-3 px-4 py-3 text-left font-mono text-sm text-text transition-colors hover:bg-violet/[0.07]',
+                        connecting && 'cursor-not-allowed opacity-50',
                         focusRing,
                       )}
                     >
