@@ -52,10 +52,18 @@ export function VizFlow() {
           {i < STAGES.length - 1 ? (
             <li
               aria-hidden
-              className="relative mx-auto flex h-5 w-px items-center justify-center overflow-hidden md:h-px md:w-12"
+              className="mx-auto flex items-center justify-center md:w-12"
             >
-              <span className="absolute inset-0 bg-fd-border" />
-              <span className="absolute left-0 hidden size-1.5 rounded-full bg-cyan motion-safe:md:block motion-safe:md:[animation:zen-flow_1.8s_linear_infinite]" />
+              {/* Motion allowed: a pulse travels the connector, showing the direction. */}
+              <span className="relative hidden h-5 w-px overflow-hidden motion-safe:block md:h-px md:w-12">
+                <span className="absolute inset-0 bg-fd-border" />
+                <span className="absolute left-0 hidden size-1.5 rounded-full bg-cyan md:block md:[animation:zen-flow_1.8s_linear_infinite]" />
+              </span>
+              {/* Motion reduced: the same direction, stated once and left alone. */}
+              <span className="hidden font-mono text-sm leading-none text-faint motion-reduce:block">
+                <span className="md:hidden">↓</span>
+                <span className="hidden md:inline">→</span>
+              </span>
             </li>
           ) : null}
         </Fragment>
