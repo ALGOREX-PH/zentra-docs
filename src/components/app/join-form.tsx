@@ -320,7 +320,9 @@ function SignupForm() {
             onBlur={() => markTouched('note')}
             placeholder="What are you hoping to build?"
             aria-invalid={noteError !== null}
-            aria-describedby={noteError ? `${ids}-note-error` : undefined}
+            aria-describedby={[noteError ? `${ids}-note-error` : null, `${ids}-note-count`]
+              .filter(Boolean)
+              .join(' ')}
             className={cn(fieldClass, 'resize-none')}
           />
 
@@ -332,7 +334,10 @@ function SignupForm() {
             ) : (
               <span />
             )}
-            <span className={cn('shrink-0 text-faint', noteOver && 'text-denied')}>
+            <span
+              id={`${ids}-note-count`}
+              className={cn('shrink-0 text-faint', noteOver && 'text-denied')}
+            >
               {note.length}/{MAX_NOTE}
             </span>
           </div>
