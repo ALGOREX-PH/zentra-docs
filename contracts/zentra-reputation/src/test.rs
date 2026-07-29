@@ -2,7 +2,8 @@
 use super::*;
 use soroban_sdk::{
     testutils::{Address as _, Events as _},
-    Address, Env,
+    xdr::{ScErrorCode, ScErrorType},
+    Address, Env, InvokeError,
 };
 
 fn deploy(env: &Env) -> (ReputationClient<'_>, Address) {
@@ -70,4 +71,31 @@ fn set_logger_emits_event() {
     client.set_logger(&logger);
 
     assert_eq!(env.events().all().events().len(), 1);
+}
+
+#[test]
+fn bump_requires_logger_authorization() {
+    let env = Env::default();
+    let (client, _admin) = deploy(&env);
+
+    let logger = Address::generate(&env);
+    let author = Address::generate(&env);
+
+    assert_eq!(
+        client.try_bump(&logger, &author),
+        Err(Err(InvokeError::Abort)),
+    );
+}
+
+#[test]
+fn set_logger_requires_admin_authorization() {
+    let env = Env::default();
+    let (client, _admin) = deploy(&env);
+
+    let logger = Address::generate(&env);
+
+    assert_eq!(
+        client.try_set_logger(&logger),
+        Err(Ok((ScErrorType::Context, ScErrorCode::InvalidAction).into())),
+    );
 }
