@@ -2,15 +2,28 @@
 
 import { useEffect, useState, type ReactNode } from 'react';
 import { activeProfile } from '@/config/network';
+import { readApiError } from '@/lib/api/client';
 import { getCount, getRecent } from '@/lib/stellar/action-log';
 import { getFeedbackCount, getFeedbackAuthors } from '@/lib/stellar/feedback';
 import { HudPanel, Eyebrow } from '@/components/landing/primitives';
 import { cn } from '@/lib/cn';
 
 /**
- * Live on-chain usage stats read straight from the Soroban contracts: total
- * interactions across the action-log and feedback contracts, the distinct wallets
- * behind them, and the network — the product's proof of real wallet interactions.
+ * The adoption panel: registry signups beside live on-chain usage read straight
+ * from the Soroban contracts — total interactions across the action-log and
+ * feedback contracts, the distinct wallets behind them, and the network.
+ *
+ * Two sources, two populations, deliberately never merged. The signup registry
+ * is a Postgres table read through `GET /api/onboard` and says only that somebody
+ * registered; the wallet and interaction figures are contract reads and say that
+ * somebody transacted. Nobody proves ownership of the address they typed into a
+ * form, so the two numbers are not interchangeable and neither is derived from
+ * the other — which is precisely the substitution a reviewer makes if the panel
+ * does not label each figure with what it measures.
+ *
+ * Every figure is a live read. A source that fails renders its own failure rather
+ * than a zero or a last-known value: a plausible-looking stand-in inside a panel
+ * whose entire purpose is proof is worse than an empty cell.
  */
 /**
  * How many recent entries each contract is asked for when counting distinct
@@ -24,12 +37,28 @@ import { cn } from '@/lib/cn';
  */
 const SAMPLE = 20;
 
+/**
+ * Whether `value` is shaped like the `/api/onboard` counter.
+ *
+ * Asserted rather than trusted: an edge error page or a cold-start response would
+ * otherwise arrive as a count of `undefined` and render as a figure nobody can
+ * account for.
+ */
+function isOnboardCount(value: unknown): value is { count: number } {
+  if (typeof value !== 'object' || value === null) return false;
+  const { count } = value as { count?: unknown };
+  return typeof count === 'number' && Number.isFinite(count);
+}
+
 export function MetricsStats({ refreshSignal = 0 }: { refreshSignal?: number }) {
   const [interactions, setInteractions] = useState<number | null>(null);
   const [wallets, setWallets] = useState<number | null>(null);
   const [partial, setPartial] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [signups, setSignups] = useState<number | null>(null);
+  const [signupsLoading, setSignupsLoading] = useState(true);
+  const [signupsError, setSignupsError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -68,8 +97,52 @@ export function MetricsStats({ refreshSignal = 0 }: { refreshSignal?: number }) 
     };
   }, [refreshSignal]);
 
+  /**
+   * The signup registry, fetched separately from the contracts on purpose.
+   *
+   * Postgres and public RPC fail independently, and a database outage must not
+   * blank the chain figures — nor an RPC outage the signup count. Two effects
+   * keep each source's failure confined to the cell it belongs to, which is what
+   * lets the panel report a partial read honestly instead of collapsing to one
+   * all-or-nothing error.
+   */
+  useEffect(() => {
+    let cancelled = false;
+    setSignupsLoading(true);
+    setSignupsError(null);
+    fetch('/api/onboard')
+      .then(async (res) => {
+        if (!res.ok) throw new Error(await readApiError(res, 'Could not load the signup count.'));
+        const body: unknown = await res.json();
+        if (!isOnboardCount(body)) throw new Error('Could not load the signup count.');
+        return body.count;
+      })
+      .then((count) => {
+        if (!cancelled) setSignups(count);
+      })
+      .catch((cause: unknown) => {
+        if (cancelled) return;
+        // The previous count is dropped along with the error. A number left on
+        // screen beside a fresh failure is presented as current when it is not,
+        // and this panel is read as evidence.
+        setSignups(null);
+        setSignupsError(
+          cause instanceof Error ? cause.message : 'Could not load the signup count.',
+        );
+      })
+      .finally(() => {
+        if (!cancelled) setSignupsLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [refreshSignal]);
+
+  const busy = loading || signupsLoading;
+
   return (
-    <div aria-busy={loading} className={cn('flex flex-col gap-2', loading && 'opacity-95')}>
+    <div aria-busy={busy} className={cn('flex flex-col gap-2', busy && 'opacity-95')}>
       {/*
         One framed panel rather than a row of loose tiles. The adoption claim is
         only credible read together — the wallets that transacted, what they did,
@@ -97,7 +170,20 @@ export function MetricsStats({ refreshSignal = 0 }: { refreshSignal?: number }) 
             </p>
           ) : null}
 
-          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <Readout
+              label="REGISTRY SIGNUPS"
+              value={signups ?? '—'}
+              note={
+                signupsError ? (
+                  <span className="text-denied">{signupsError}</span>
+                ) : signupsLoading ? (
+                  'Reading the signup registry…'
+                ) : (
+                  'Rows in the signup registry — people who registered. Not evidence that they transacted.'
+                )
+              }
+            />
             <Readout
               label="WALLETS SEEN ON-CHAIN"
               value={wallets === null ? '—' : `${wallets}${partial ? '+' : ''}`}
