@@ -20,12 +20,12 @@ export function VerifierMonolith() {
   const wrap = useRef<HTMLDivElement>(null);
   const ran = useRef(false);
 
+  /** The finished verification, with no intermediate frames — the reduced-motion view. */
+  const settle = useCallback(() => {
+    setDropped(true); setAccepted(true); setStamped(true); setRevealed(STEPS.length);
+  }, []);
+
   const run = useCallback(async () => {
-    const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
-    if (reduced) {
-      setDropped(true); setAccepted(true); setStamped(true); setRevealed(4);
-      return;
-    }
     const sleep = (ms: number) => new Promise<void>((res) => setTimeout(res, ms));
     await sleep(300); setDropped(true);
     await sleep(700); setRevealed(1);
@@ -37,6 +37,11 @@ export function VerifierMonolith() {
 
   useEffect(() => {
     const el = wrap.current; if (!el) return;
+    // reduced motion never plays the sequence — show the settled panel straight away
+    // rather than waiting on a scroll that would leave it frozen at frame zero.
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false) {
+      ran.current = true; settle(); return;
+    }
     const io = new IntersectionObserver((entries) => {
       for (const e of entries) {
         if (e.isIntersecting && !ran.current) { ran.current = true; run(); io.disconnect(); }
@@ -44,7 +49,7 @@ export function VerifierMonolith() {
     }, { threshold: 0.35 });
     io.observe(el);
     return () => io.disconnect();
-  }, [run]);
+  }, [run, settle]);
 
   return (
     <section ref={wrap} className="border-t border-violet/20 px-5 py-14 sm:px-7 sm:py-20">
@@ -92,7 +97,7 @@ export function VerifierMonolith() {
               <span className="absolute inset-y-0 left-1/4 w-px bg-violet/15" />
               <span className="absolute inset-y-0 left-1/2 w-px bg-violet/20" />
               <span className="absolute inset-y-0 left-3/4 w-px bg-violet/15" />
-              <span aria-hidden className="absolute inset-x-0 top-0 h-10 [animation:zen-scan_4s_linear_infinite]" style={{ background: 'linear-gradient(180deg,transparent,rgba(0,229,255,0.08),transparent)' }} />
+              <span aria-hidden className="absolute inset-x-0 top-0 h-10 [animation:zen-scan_4s_linear_infinite] motion-reduce:hidden" style={{ background: 'linear-gradient(180deg,transparent,rgba(0,229,255,0.08),transparent)' }} />
 
               <div className="absolute inset-x-0 top-0 flex items-center justify-between border-b border-fd-border px-3.5 py-3">
                 <span className="font-mono text-[10px] tracking-[0.1em] text-muted">SOROBAN VERIFIER</span>
