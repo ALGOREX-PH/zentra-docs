@@ -128,7 +128,12 @@ export function ProofEngine() {
       </div>
 
       <div className="px-4 pt-3">
-        <svg viewBox="0 0 520 340" className="block h-auto w-full" aria-label="Zentra proof path">
+        <svg
+          viewBox="0 0 520 340"
+          className="block h-auto w-full"
+          role="img"
+          aria-label="Zentra proof path: intent, private policy, proof, state binding, on-chain verification, settlement, receipt"
+        >
           <defs>
             <linearGradient id="zgrad" x1="0" y1="0" x2="1" y2="1">
               <stop offset="0" stopColor="#7c3aed" />
