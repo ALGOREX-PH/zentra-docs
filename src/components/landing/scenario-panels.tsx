@@ -104,7 +104,8 @@ function Panel({ cfg }: { cfg: Cfg }) {
         ))}
       </div>
 
-      <div className="relative mb-[18px] min-h-[48px] py-1">
+      {/* the rail restates the status line below it, so it stays decorative */}
+      <div aria-hidden className="relative mb-[18px] min-h-[48px] py-1">
         <div className="absolute inset-x-0 top-3 h-0.5 bg-[rgba(148,163,184,0.16)]" />
         <div
           className="absolute left-0 top-3 h-0.5 transition-[width] duration-500"
