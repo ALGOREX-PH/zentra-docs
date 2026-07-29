@@ -187,7 +187,7 @@ export function ScenarioPanels() {
           collapses before money moves.
         </p>
 
-        <div className="grid border border-fd-border md:grid-cols-3 md:[&>*:not(:last-child)]:border-r md:[&>*]:border-fd-border">
+        <div className="grid border border-fd-border [&>*:not(:last-child)]:border-b [&>*]:border-fd-border md:grid-cols-3 md:[&>*:not(:last-child)]:border-b-0 md:[&>*:not(:last-child)]:border-r">
           {PANELS.map((p) => (
             <Panel key={p.id} cfg={p} />
           ))}
