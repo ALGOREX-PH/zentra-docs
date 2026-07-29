@@ -26,6 +26,48 @@ interface FeedbackResponse {
   recent: FeedbackItem[];
 }
 
+/** Whether `value` is shaped like one stored review. */
+function isFeedbackItem(value: unknown): value is FeedbackItem {
+  if (typeof value !== 'object' || value === null) return false;
+  const { rating, comment, wallet, txHash, onChain, createdAt } = value as {
+    rating?: unknown;
+    comment?: unknown;
+    wallet?: unknown;
+    txHash?: unknown;
+    onChain?: unknown;
+    createdAt?: unknown;
+  };
+  return (
+    // A non-integer or negative rating would make `'★'.repeat(rating)` throw.
+    typeof rating === 'number' &&
+    Number.isInteger(rating) &&
+    rating >= 0 &&
+    typeof comment === 'string' &&
+    (wallet === null || typeof wallet === 'string') &&
+    (txHash === null || typeof txHash === 'string') &&
+    typeof onChain === 'boolean' &&
+    typeof createdAt === 'string'
+  );
+}
+
+/** Whether `value` is shaped like the `/api/feedback` summary. */
+function isFeedbackResponse(value: unknown): value is FeedbackResponse {
+  if (typeof value !== 'object' || value === null) return false;
+  const { count, average, onChain, recent } = value as {
+    count?: unknown;
+    average?: unknown;
+    onChain?: unknown;
+    recent?: unknown;
+  };
+  return (
+    typeof count === 'number' &&
+    typeof average === 'number' &&
+    typeof onChain === 'number' &&
+    Array.isArray(recent) &&
+    recent.every(isFeedbackItem)
+  );
+}
+
 /**
  * A summary of user feedback plus the most recent comments, read from the
  * backend `/api/feedback` route. On-chain reviews link out to Stellar Expert so
@@ -46,7 +88,12 @@ export function FeedbackSummary({ refreshSignal = 0 }: { refreshSignal?: number 
         // The API answers every failure with the same envelope, so a rate limit
         // or a storage outage can say so instead of showing a bare status code.
         if (!res.ok) throw new Error(await readApiError(res, 'Could not load feedback.'));
-        return (await res.json()) as FeedbackResponse;
+        // Asserting the shape would let a changed payload — or a proxy's HTML
+        // error page — reach `average.toFixed` and take the panel down with a
+        // TypeError, when the catch below already knows how to report it.
+        const body: unknown = await res.json();
+        if (!isFeedbackResponse(body)) throw new Error('Could not load feedback.');
+        return body;
       })
       .then((json) => {
         if (!cancelled) setData(json);
