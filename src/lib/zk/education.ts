@@ -4,6 +4,8 @@
  * against payment_policy.circom), so what users read is what the proof exposes.
  */
 
+import type { ProofStage } from '@/lib/zk/prover';
+
 export type SignalKind = 'hash' | 'value';
 
 export interface SignalInfo {
@@ -118,6 +120,31 @@ export const PROVES: string[] = [
   'Past spend + this amount stays under the daily limit.',
   'A matching invoice exists, and this proof can’t be replayed.',
 ];
+
+export interface PipelineStep {
+  label: string;
+  /** The observable run phase that drives this step. */
+  stage: ProofStage;
+}
+
+/**
+ * The four steps a run walks through, in order. Only the circuit download is
+ * observable on its own; the other three share one worker round-trip, so they
+ * light up — and settle — together.
+ */
+export const PIPELINE: PipelineStep[] = [
+  { label: 'Load circuit', stage: 'circuit' },
+  { label: 'Compute witness', stage: 'proving' },
+  { label: 'Generate proof', stage: 'proving' },
+  { label: 'Verify', stage: 'proving' },
+];
+
+/** What the run is actually doing, per observable phase. */
+export const STAGE_STATUS: Record<ProofStage, string> = {
+  circuit: 'Downloading the compiled circuit, proving key and verification key.',
+  proving:
+    'Computing the witness, proving and verifying — in a Web Worker, off the main thread.',
+};
 
 export interface GlossaryTerm {
   term: string;
