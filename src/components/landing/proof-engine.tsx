@@ -114,10 +114,10 @@ export function ProofEngine() {
 
   return (
     <div ref={root} className="relative border border-violet/35 bg-panel">
-      <span className="absolute -left-px -top-px h-3.5 w-3.5 border-l-2 border-t-2 border-violet" />
-      <span className="absolute -right-px -top-px h-3.5 w-3.5 border-r-2 border-t-2 border-violet" />
-      <span className="absolute -bottom-px -left-px h-3.5 w-3.5 border-b-2 border-l-2 border-violet" />
-      <span className="absolute -bottom-px -right-px h-3.5 w-3.5 border-b-2 border-r-2 border-violet" />
+      <span aria-hidden className="absolute -left-px -top-px h-3.5 w-3.5 border-l-2 border-t-2 border-violet" />
+      <span aria-hidden className="absolute -right-px -top-px h-3.5 w-3.5 border-r-2 border-t-2 border-violet" />
+      <span aria-hidden className="absolute -bottom-px -left-px h-3.5 w-3.5 border-b-2 border-l-2 border-violet" />
+      <span aria-hidden className="absolute -bottom-px -right-px h-3.5 w-3.5 border-b-2 border-r-2 border-violet" />
 
       <div className="flex items-center justify-between border-b border-fd-border bg-[#0a0c12] px-4 py-3">
         <div className="flex items-center gap-2.5">

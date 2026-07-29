@@ -90,13 +90,13 @@ export function VerifierMonolith() {
 
           <div className="flex h-[400px] items-center justify-center">
             <div className="relative h-[360px] w-full max-w-[280px] overflow-hidden border border-violet/40" style={{ background: 'linear-gradient(180deg,#0e121c,#090b12)' }}>
-              <span className="absolute -left-px -top-px h-3.5 w-3.5 border-l-2 border-t-2 border-violet" />
-              <span className="absolute -right-px -top-px h-3.5 w-3.5 border-r-2 border-t-2 border-violet" />
-              <span className="absolute -bottom-px -left-px h-3.5 w-3.5 border-b-2 border-l-2 border-violet" />
-              <span className="absolute -bottom-px -right-px h-3.5 w-3.5 border-b-2 border-r-2 border-violet" />
-              <span className="absolute inset-y-0 left-1/4 w-px bg-violet/15" />
-              <span className="absolute inset-y-0 left-1/2 w-px bg-violet/20" />
-              <span className="absolute inset-y-0 left-3/4 w-px bg-violet/15" />
+              <span aria-hidden className="absolute -left-px -top-px h-3.5 w-3.5 border-l-2 border-t-2 border-violet" />
+              <span aria-hidden className="absolute -right-px -top-px h-3.5 w-3.5 border-r-2 border-t-2 border-violet" />
+              <span aria-hidden className="absolute -bottom-px -left-px h-3.5 w-3.5 border-b-2 border-l-2 border-violet" />
+              <span aria-hidden className="absolute -bottom-px -right-px h-3.5 w-3.5 border-b-2 border-r-2 border-violet" />
+              <span aria-hidden className="absolute inset-y-0 left-1/4 w-px bg-violet/15" />
+              <span aria-hidden className="absolute inset-y-0 left-1/2 w-px bg-violet/20" />
+              <span aria-hidden className="absolute inset-y-0 left-3/4 w-px bg-violet/15" />
               <span aria-hidden className="absolute inset-x-0 top-0 h-10 [animation:zen-scan_4s_linear_infinite] motion-reduce:hidden" style={{ background: 'linear-gradient(180deg,transparent,rgba(0,229,255,0.08),transparent)' }} />
 
               <div className="absolute inset-x-0 top-0 flex items-center justify-between border-b border-fd-border px-3.5 py-3">

@@ -5,10 +5,10 @@ export function Closing() {
     <>
       <section className="px-5 py-12 sm:px-7 sm:py-16">
         <div className="relative mx-auto max-w-[880px] border border-violet/40 bg-[#0a0c12] px-6 py-7 sm:px-10 sm:py-9">
-          <span className="absolute -left-px -top-px h-3.5 w-3.5 border-l-2 border-t-2 border-violet" />
-          <span className="absolute -right-px -top-px h-3.5 w-3.5 border-r-2 border-t-2 border-violet" />
-          <span className="absolute -bottom-px -left-px h-3.5 w-3.5 border-b-2 border-l-2 border-violet" />
-          <span className="absolute -bottom-px -right-px h-3.5 w-3.5 border-b-2 border-r-2 border-violet" />
+          <span aria-hidden className="absolute -left-px -top-px h-3.5 w-3.5 border-l-2 border-t-2 border-violet" />
+          <span aria-hidden className="absolute -right-px -top-px h-3.5 w-3.5 border-r-2 border-t-2 border-violet" />
+          <span aria-hidden className="absolute -bottom-px -left-px h-3.5 w-3.5 border-b-2 border-l-2 border-violet" />
+          <span aria-hidden className="absolute -bottom-px -right-px h-3.5 w-3.5 border-b-2 border-r-2 border-violet" />
           <div className="mb-[18px] font-mono text-[11px] tracking-[0.14em] text-[#7d8ea6]">// BOUNDARY</div>
           <p className="mb-4 font-display text-[22px] font-semibold leading-[1.45] tracking-[-0.01em]">
             Zentra is a proof-of-compliance and settlement layer.
