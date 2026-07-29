@@ -38,7 +38,9 @@ export const metadata: Metadata = {
     title,
     description,
     type: 'website',
-    url: siteUrl,
+    // Relative, so each route resolves it against its own path. A fixed origin
+    // here made every shared link claim to be the landing page.
+    url: './',
     siteName: 'Zentra Protocol',
     // Declared at the file's true pixel size. The card is authored at 1200x630
     // and rendered at 2x for high-density displays, so quoting the design size
