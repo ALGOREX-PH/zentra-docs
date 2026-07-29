@@ -15,9 +15,19 @@ export interface LogFields {
   [key: string]: unknown;
 }
 
-/** Keys whose values are never safe to write to a log drain. */
+/** Keys whose values are never safe to write to a log drain, at any depth. */
 const SENSITIVE_KEY =
-  /(secret|token|password|key|authorization|cookie|database_url|connection|email|\bname\b)/i;
+  /(secret|token|password|key|authorization|cookie|database_url|connection)/i;
+
+/**
+ * Keys that carry personal data, masked only below the top level.
+ *
+ * Top-level fields are operational metadata this codebase chooses deliberately —
+ * `route()` logs the operation under `name`, next to `method` and `status`. Only
+ * nested structures are payloads we are dumping wholesale, where a `name` or
+ * `email` is a person rather than a route.
+ */
+const PII_KEY = /(email|\bname\b)/i;
 
 /** Placeholder substituted for any value under a sensitive key. */
 const REDACTED = '[redacted]';
@@ -74,20 +84,21 @@ export function newRequestId(): string {
  * so a credential nested inside a request or config payload is masked too.
  * `Error` values are left for `normalise`, which scrubs them separately.
  */
-export function redact(fields: LogFields): LogFields {
+export function redact(fields: LogFields, depth = 0): LogFields {
   const out: LogFields = {};
   for (const key of Object.keys(fields)) {
-    out[key] = SENSITIVE_KEY.test(key) ? REDACTED : redactValue(fields[key]);
+    const masked = SENSITIVE_KEY.test(key) || (depth > 0 && PII_KEY.test(key));
+    out[key] = masked ? REDACTED : redactValue(fields[key], depth);
   }
   return out;
 }
 
 /** Recurse through plain containers, leaving `Error` and exotic objects alone. */
-function redactValue(value: unknown): unknown {
+function redactValue(value: unknown, depth: number): unknown {
   if (value instanceof Error) return value;
-  if (Array.isArray(value)) return value.map(redactValue);
+  if (Array.isArray(value)) return value.map((item) => redactValue(item, depth + 1));
   if (value !== null && typeof value === 'object' && isPlainObject(value)) {
-    return redact(value as LogFields);
+    return redact(value as LogFields, depth + 1);
   }
   return value;
 }
