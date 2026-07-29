@@ -12,7 +12,11 @@ export default function MetricsPage() {
   const [refresh, setRefresh] = useState(0);
 
   return (
-    <main className="zen-grid px-5 py-14 sm:px-7 sm:py-20">
+    <main
+      id="content"
+      tabIndex={-1}
+      className="zen-grid flex-1 px-5 py-14 focus:outline-none sm:px-7 sm:py-20"
+    >
       <div className="mx-auto max-w-[1100px]">
         <header className="flex flex-col gap-6 border-b border-violet/20 pb-8 sm:flex-row sm:items-end sm:justify-between">
           <div>

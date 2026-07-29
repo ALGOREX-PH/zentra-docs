@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 /** `/pitch` — the deck judges and ecosystem contacts are pointed at. */
 export default function PitchPage() {
   return (
-    <main className="zen-grid">
+    <main id="content" tabIndex={-1} className="zen-grid flex-1 focus:outline-none">
       <PitchDeck />
     </main>
   );

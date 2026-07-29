@@ -11,7 +11,11 @@ export const metadata: Metadata = {
 
 export default function JoinPage() {
   return (
-    <main className="zen-grid px-5 py-14 sm:px-7 sm:py-20">
+    <main
+      id="content"
+      tabIndex={-1}
+      className="zen-grid flex-1 px-5 py-14 focus:outline-none sm:px-7 sm:py-20"
+    >
       <div className="mx-auto max-w-[1100px]">
         <header className="border-b border-violet/20 pb-8">
           <Eyebrow>// ZENTRA · TESTNET PROGRAMME</Eyebrow>
