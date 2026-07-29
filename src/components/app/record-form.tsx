@@ -21,6 +21,15 @@ export function RecordForm({ onRecorded }: { onRecorded?: () => void }) {
   const inFlight =
     tx.phase === 'building' || tx.phase === 'signing' || tx.phase === 'submitting';
 
+  // An empty box is the starting state, not a mistake, so the field only reads
+  // as invalid once there is something in it that the contract would refuse.
+  const fieldError =
+    message.length > MAX
+      ? `Message must be ${MAX} characters or fewer.`
+      : message.length > 0 && trimmed.length === 0
+        ? 'Enter a message — whitespace on its own is not recorded.'
+        : null;
+
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
@@ -59,7 +68,7 @@ export function RecordForm({ onRecorded }: { onRecorded?: () => void }) {
     <HudPanel accent="violet">
       <div className="p-5 sm:p-6">
         <Eyebrow>RECORD AN ACTION</Eyebrow>
-        <p className="mt-2 font-mono text-[11px] text-muted">
+        <p id="record-message-help" className="mt-2 font-mono text-[11px] text-muted">
           Writes a message to the on-chain action log on Soroban (Stellar testnet).
         </p>
 
@@ -76,11 +85,29 @@ export function RecordForm({ onRecorded }: { onRecorded?: () => void }) {
             value={message}
             onChange={(event) => setMessage(event.target.value)}
             placeholder="gm from an autonomous agent…"
+            aria-invalid={fieldError !== null}
+            aria-describedby={[
+              'record-message-help',
+              'record-message-count',
+              fieldError ? 'record-message-error' : null,
+            ]
+              .filter(Boolean)
+              .join(' ')}
             className="w-full resize-none border border-fd-border bg-abyss px-3 py-2.5 font-mono text-sm text-text placeholder:text-faint outline-none transition-colors focus:border-violet/60"
           />
 
-          <div className="mt-1 flex justify-end font-mono text-[11px]">
-            <span className={cn('text-faint', message.length > MAX && 'text-denied')}>
+          <div className="mt-1 flex items-start justify-between gap-3 font-mono text-[11px]">
+            {fieldError ? (
+              <p id="record-message-error" className="text-denied">
+                {fieldError}
+              </p>
+            ) : (
+              <span />
+            )}
+            <span
+              id="record-message-count"
+              className={cn('shrink-0 text-faint', message.length > MAX && 'text-denied')}
+            >
               {message.length}/200
             </span>
           </div>
