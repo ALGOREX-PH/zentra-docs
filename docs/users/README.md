@@ -3,9 +3,17 @@
 The Blue Belt target is **50 testnet users**. This directory holds the exported
 responses and the plan they feed.
 
-- Exported sheet: [`onboarding-responses.csv`](onboarding-responses.csv)
+**Current state: 0 of 50.** The `users` table is empty, and
+[`onboarding-responses.csv`](onboarding-responses.csv) is its header row and
+nothing else. Everything described below — both intake paths, the export, the
+counter — is built and live; none of it has been used yet. That distinction is
+the whole point of stating it: the mechanism working is not evidence that anyone
+came through it.
+
+- Exported sheet: [`onboarding-responses.csv`](onboarding-responses.csv) — header only
 - Live signup: [`/join`](https://zentra-docs.vercel.app/join)
-- Live progress: the counter on `/join` reads `GET /api/onboard`
+- Live progress: the counter on `/join` reads `GET /api/onboard`, which currently
+  returns `0`
 
 ---
 
@@ -82,7 +90,9 @@ constraint.
 
 ## What the data is for
 
-Not vanity metrics. Each field answers a question we could not otherwise answer:
+Not vanity metrics. Each field answers a question we could not otherwise answer —
+though with zero rows in the table, every one of these is a plan rather than a
+finding today:
 
 | Field | Question it answers |
 | --- | --- |
@@ -96,8 +106,12 @@ Not vanity metrics. Each field answers a question we could not otherwise answer:
 
 Stated plainly so they are not mistaken for solved problems.
 
-- **Retention is unmeasured.** Every figure today is a first-touch count. A
-  returning-wallet metric on `/metrics` is the next step.
+- **The registry has no rows.** Zero people have signed up, so nothing in this
+  directory has been validated against real data — not the import path, not the
+  `lower(email)` collision behaviour, not any of the analyses below.
+- **Retention is unmeasured.** Every figure today is a first-touch count, and the
+  count is currently zero. A returning-wallet metric on `/metrics` is the next
+  step.
 - **Signup does not imply usage.** A row here means somebody registered, not that
   they transacted. Only the on-chain counts prove activity.
 - **No deletion path.** Names and emails are stored with no retention policy and
