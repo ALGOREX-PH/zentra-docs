@@ -242,7 +242,7 @@ passes only when the Action Log is the caller.
 | Contract deployment workflow | `contracts/deploy.sh` — build → deploy → wire both contracts |
 | Mobile responsive frontend | `/board` grid stacks on small screens |
 | Error handling & loading states | `errors.ts`, `tx-status.tsx`, feed loading / empty / error states |
-| Tests (contract + frontend) | 5 + 3 Rust unit tests; 10 Vitest tests (`bun run test`) |
+| Tests (contract + frontend) | 30 Rust tests across five contracts; 255 Vitest tests across 12 files (`bun run test`) |
 | Production architecture | typed libs, single-source config, CI, size-optimized wasm |
 
 ### Build, test, deploy
