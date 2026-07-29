@@ -48,10 +48,14 @@ export function ProofsFeed({ refreshSignal = 0 }: { refreshSignal?: number }) {
       <div className="p-5 sm:p-6">
         <Eyebrow accent="cyan">PROOFS ANCHORED ON-CHAIN</Eyebrow>
 
-        <div className="flex items-center gap-2 font-mono text-[11px] text-faint">
-          <span className="size-1.5 rounded-full bg-live animate-pulse" />
+        <div
+          role="status"
+          aria-busy={loading}
+          className="flex items-center gap-2 font-mono text-[11px] text-faint"
+        >
+          <span aria-hidden className="size-1.5 rounded-full bg-live animate-pulse" />
           <span>{count ?? '—'} proof(s) anchored</span>
-          <span>·</span>
+          <span aria-hidden>·</span>
           <a
             href={stellar.explorerContractUrl(actionLog.proofRegistryId)}
             target="_blank"
@@ -63,7 +67,10 @@ export function ProofsFeed({ refreshSignal = 0 }: { refreshSignal?: number }) {
         </div>
 
         {error ? (
-          <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2 border border-denied/40 bg-denied/[0.06] px-3 py-2">
+          <div
+            role="alert"
+            className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2 border border-denied/40 bg-denied/[0.06] px-3 py-2"
+          >
             <p className="font-mono text-[11px] text-denied">
               {error}
               {proofs.length > 0 ? ' Showing the last list that loaded.' : ''}
@@ -88,7 +95,10 @@ export function ProofsFeed({ refreshSignal = 0 }: { refreshSignal?: number }) {
             </p>
           )
         ) : (
-          <ul className="mt-4 divide-y divide-fd-border border border-fd-border">
+          <ul
+            aria-label="Recently anchored proofs"
+            className="mt-4 divide-y divide-fd-border border border-fd-border"
+          >
             {proofs.map((proof) => (
               <li key={proof.index} className="px-4 py-3">
                 <div className="flex justify-between font-mono text-[11px] text-faint">
