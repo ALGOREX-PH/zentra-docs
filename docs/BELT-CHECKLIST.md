@@ -72,7 +72,7 @@ Legend: ✅ done · ⬜ pending (you) · 🔄 in progress
 - [x] Smart contract deployment workflow (`contracts/deploy.sh`)
 - [x] Mobile responsive frontend
 - [x] Error handling & loading states
-- [x] Tests for contracts **and** frontend (Rust 3+5, Vitest 10 = 18)
+- [x] Tests for contracts **and** frontend (30 Rust across five contracts, 255 Vitest across 12 files)
 - [x] Production-ready architecture
 - [x] Documentation
 
