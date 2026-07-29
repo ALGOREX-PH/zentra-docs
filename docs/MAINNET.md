@@ -755,7 +755,7 @@ discovers it mid-launch and improvises.
 | 4 | **Who holds custody** | §3.2 lists the options and does not choose. This needs a name, not a mechanism | Undecided |
 | 5 | **Personal data retention** | The `users` table holds names and email addresses with no retention policy, no deletion path, and no stated purpose limitation. `GET /api/admin/users` exports the lot behind one shared secret | Undecided |
 | 6 | **`ADMIN_TOKEN` rotation** | One process-wide shared secret, no rotation procedure, no expiry. It fails closed when unset, which is right, but nothing says when it changes | Undecided |
-| 7 | **`zentra-multisig`** | Exists in the tree, absent from CI, absent from `contract.ts`, undeployed. Either it ships and needs a CI job, an audit and a place in this runbook, or it is removed | Undecided |
+| 7 | **`zentra-multisig`** | Exists in the tree and is tested in CI, but is absent from `contract.ts` and undeployed. Either it ships and needs an audit and a place in this runbook, or it is removed | Undecided |
 | 8 | **Mainnet `readSource`** | Read simulations need a funded mainnet account. Which one, funded by whom, and what happens when it empties | Undecided |
 | 9 | **Testnet after mainnet** | Whether the testnet deployment stays live as a staging environment, and if so how the two are kept from being confused | Undecided |
 | 10 | **Incident response** | §10.5 has a blank. So does the question of what the response actually is, given decision 2 | Undecided |
