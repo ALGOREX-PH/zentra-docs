@@ -731,13 +731,6 @@ async function main(argv: readonly string[], env: Env): Promise<number> {
       `action log ${config.actionLogId}\n`,
   );
 
-  const countBefore = await safeRead(
-    'get_count before the run',
-    () => readActionLogCount(config),
-    config.timeoutMs,
-    notes,
-  );
-
   // Provisioning has no watchdog of its own: it is a phase, not an operation,
   // and the per-account ceiling belongs to `accounts.ts`, which owns the
   // Friendbot call. A phase that throws outright is caught here so the run still
@@ -756,20 +749,49 @@ async function main(argv: readonly string[], env: Env): Promise<number> {
       `(${funding.failures.length} failed)\n`,
   );
 
+  // Reads simulate rather than sign, so any funded account serves as the source,
+  // and using one of our own keeps the harness from having to be told about an
+  // account it does not own. Reading the "before" count here rather than at the
+  // top costs nothing: funding creates accounts through Friendbot and never
+  // touches the action log, so the count is still the pre-run figure.
+  const readSource = funding.funded[0]?.publicKey ?? null;
+  if (readSource === null) {
+    notes.push(
+      'No account was funded, so there was nothing to simulate the contract reads from. Every ' +
+        'chain figure is reported as null rather than zero.',
+    );
+  }
+
+  const countBefore =
+    readSource === null
+      ? null
+      : await safeRead(
+          'get_count before the run',
+          () => readActionLogCount(config, readSource),
+          config.timeoutMs,
+          notes,
+        );
+
   const { attempts, watchdogHits } = await driveRecords(funding.funded, config, verbose);
 
-  const countAfter = await safeRead(
-    'get_count after the run',
-    () => readActionLogCount(config),
-    config.timeoutMs,
-    notes,
-  );
-  const distinctAuthors = await safeRead(
-    'distinct authors from get_recent',
-    () => readDistinctAuthors(config),
-    config.timeoutMs,
-    notes,
-  );
+  const countAfter =
+    readSource === null
+      ? null
+      : await safeRead(
+          'get_count after the run',
+          () => readActionLogCount(config, readSource),
+          config.timeoutMs,
+          notes,
+        );
+  const distinctAuthors =
+    readSource === null
+      ? null
+      : await safeRead(
+          'distinct authors from get_recent',
+          () => countDistinctAuthorsLowerBound(config, readSource),
+          config.timeoutMs,
+          notes,
+        );
 
   const finishedAtMs = Date.now();
 
