@@ -49,8 +49,8 @@ import process from 'node:process';
 import { Networks } from '@stellar/stellar-sdk';
 
 import { provisionAccounts } from './accounts';
-import { readActionLogCount, readDistinctAuthors, recordOnce } from './driver';
-import { buildReport, renderReportMarkdown } from './report';
+import { countDistinctAuthorsLowerBound, readActionLogCount, recordOnce } from './driver';
+import { buildReport, renderMarkdown } from './report';
 import type {
   AttemptFailure,
   FundedAccount,
