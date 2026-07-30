@@ -983,9 +983,20 @@ Dependabot for cargo, npm and GitHub Actions.
 
 ---
 
-### ZEN-23 — Concurrent `record()` calls trap: the entry key is derived from a mutable shared counter (Medium)
+### ZEN-23 — Concurrent writes trap in four of five contracts: the entry key is derived from a mutable shared counter (Medium)
 
-**Where.** `contracts/zentra-action-log/src/lib.rs:87` and `:115`.
+**Where.** Four contracts share the pattern:
+
+| Contract | Entrypoint | Counter read | Key written |
+| --- | --- | --- | --- |
+| `zentra-action-log` | `record()` | `:87` | `Entry(index)` `:115` |
+| `zentra-feedback` | `submit()` | `:75` | `Entry(index)` `:85` |
+| `zentra-proof-registry` | `anchor()` | `:51` | `Entry(index)` `:61` |
+| `zentra-multisig` | `propose()` | `:173` | `Proposal(id)` |
+
+`zentra-reputation` is **not** affected, and shows the fix: it keys on
+`DataKey::Score(author)` (`:80`), so two different callers never touch the same
+entry. The correct pattern is already in this codebase.
 
 **What.** `record()` reads a counter and then uses that value as a *storage key*:
 
@@ -1004,7 +1015,7 @@ The trap is correct behaviour — it is what stops the second caller from
 overwriting the first's entry. The defect is deriving a key from mutable shared
 state, which makes concurrent writes mutually exclusive by construction.
 
-**Measured.** Three runs against an isolated pair (`docs/LOADTEST.md` §11):
+**Measured** on `zentra-action-log`. Three runs against an isolated pair (`docs/LOADTEST.md` §11). The other three contracts are identified by code inspection, not measurement — the mechanism is identical, but only the action log has been driven under concurrency:
 
 | Accounts | Concurrency | Succeeded | Rate |
 | --- | --- | --- | --- |
@@ -1017,7 +1028,7 @@ never the constraint — 50 of 50 accounts funded with zero failures, and every
 failure was at confirm. Decoded, the result is
 `{"tx_failed":[{"op_inner":{"invoke_host_function":"trapped"}}]}`.
 
-**Impact.** Two users recording in the same ~5s ledger means one fails, and
+**Impact.** It reaches every write surface in the product: recording an action on `/board`, submitting feedback, and anchoring a proof on `/playground` — the playground's entire demo is an anchor, so a workshop or a demo with several people at once is the worst case. Two users writing in the same ~5s ledger means one fails, and
 because the contract traps rather than returning an `Error` variant, no code in
 the error enum describes it and the dApp can only surface a generic failure. It is
 also a cheap griefing vector: one account recording every ledger keeps every other
@@ -1028,8 +1039,8 @@ suite ever has two callers simulate against the same `Count`, so no amount of
 passing tests could have surfaced this. It took a concurrent run against a real
 network.
 
-**Fix options.** Key entries so concurrent authors cannot contend (a per-author
-sequence, or a client-supplied id) — this removes the shared mutable key, but needs
+**Fix options.** Key entries the way `zentra-reputation` already does — on the
+caller's address, or a client-supplied id — so concurrent callers cannot contend — this removes the shared mutable key, but needs
 a redeploy and §11 records that there is no upgrade path. Or retry with
 re-simulation in the dApp, which succeeds on a fresh footprint at the cost of a
 second wallet signature. Or accept and document the one-write-per-ledger limit,
