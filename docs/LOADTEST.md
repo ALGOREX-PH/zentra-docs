@@ -18,10 +18,10 @@ So:
   of `/metrics`** presented as usage. If a number from this harness is quoted, it
   must be quoted as what it is: a synthetic concurrency measurement.
 
-**No load run has been performed.** This document is preparation, like
-`docs/MAINNET.md` — a procedure to follow, not a record of anything. Every
-example below is a shape, and §8 says so where the temptation to read it as data
-is strongest.
+**Runs have now been performed**, against a throwaway pair on testnet. Their
+findings are in §11 — and the first run found a real defect in `record()`, not a
+performance number. Every example in §8 is still only a shape, and §8 says so
+where the temptation to read it as data is strongest.
 
 What the harness *is* good for: finding out where the write path gives out under
 concurrency, and which layer gives out first. That is a real question the
