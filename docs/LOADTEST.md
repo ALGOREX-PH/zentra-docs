@@ -345,3 +345,80 @@ Stated plainly, because a load-test report reads as more authoritative than it i
    `get_count` at deploy time and a matching delta afterwards are consistent with
    an isolated instance. They do not prove the id you passed is not read by
    something you forgot about.
+
+---
+
+## 11. Findings from the runs performed
+
+Three runs on 2026-07-30 against a throwaway pair on testnet
+(`action_log CCV53CH3RHOJLVSSHZPBB4WK6XUDOSJHJ6IDMMM3NAXQFSQ4VJPFMHQB`,
+`reputation CAB4ZA45J5NNC75XNKONFYSSQBC2FYY567Y47BWEADQXUVFLQ7WLWJ6A`,
+deployed fresh with `get_count = 0` and its reputation pointer verified).
+
+### 11.1 `record()` serialises to one write per ledger
+
+| Accounts | Concurrency | Succeeded | Rate | Failures |
+| --- | --- | --- | --- | --- |
+| 50 | 5 | 10 | 20% | `confirm` × 40 |
+| 4 | 2 | 2 | 50% | `confirm` × 2 |
+| 5 | 1 | 5 | 100% | none |
+
+Funding was never the constraint: **50 of 50 accounts funded, zero failures.**
+Every failure was at `confirm` — accepted by the network, then failed on apply.
+
+The success rate is `1 / concurrency`. One transaction per ledger lands; the rest
+trap. Decoded, a failure is:
+
+```
+$ stellar xdr decode --type TransactionResult --input single-base64
+{"fee_charged":"13890","result":{"tx_failed":[{"op_inner":{"invoke_host_function":"trapped"}}]}}
+```
+
+`trapped` — the contract panicked rather than returning one of its own `Error`
+variants, which is why nothing in `contracts/zentra-action-log/src/lib.rs`'s error
+enum describes it and why the dApp can only report a generic failure.
+
+### 11.2 Why
+
+`record()` derives a **storage key** from a counter it reads at simulation time:
+
+```rust
+let index: u64 = env.storage().instance().get(&DataKey::Count).unwrap_or(0);
+...
+env.storage().persistent().set(&DataKey::Entry(index), &entry);
+```
+
+Soroban requires every write to be declared in the transaction's footprint, and
+the footprint is fixed at simulation. So for two concurrent callers:
+
+1. Both simulate against `Count = 10`. Both footprints declare a write to `Entry(10)`.
+2. The first applies: `Entry(10)` is written, `Count` becomes 11.
+3. The second applies, now reads `Count = 11`, and attempts `Entry(11)` — a key
+   its footprint never declared. Writing outside the footprint traps.
+
+The trap is doing its job: it is what stops the second caller from overwriting
+`Entry(10)` and losing an entry. The defect is using a mutable shared counter as
+a key at all, which makes concurrent writes mutually exclusive by construction.
+
+### 11.3 What it means for the product
+
+- **Two users recording in the same ~5s ledger means one fails**, with no message
+  explaining why. At sparse traffic this is invisible; at any real concurrency it
+  is the dominant outcome.
+- **It is a cheap griefing vector.** One account recording every ledger keeps
+  every other write trapping, for the price of one transaction per ledger.
+- `docs/ARCHITECTURE.md`'s throughput expectations for the action log do not
+  account for this, and no test covered it — the contract's own tests are
+  sequential, which is exactly why 38 passing tests never caught it.
+
+### 11.4 Fixes, none applied yet
+
+1. **Key entries so concurrent authors cannot contend** — per-author sequence, or
+   a client-supplied unique id. Removes the shared mutable key entirely. Requires
+   a redeploy, and `docs/MAINNET.md` §11 records that there is no upgrade path, so
+   the live instance's history would be orphaned.
+2. **Retry with re-simulation in the dApp.** Re-simulating produces a fresh
+   footprint that succeeds. It costs a second wallet signature, because the user
+   signed an envelope built for the old index.
+3. **Accept and document it**, keeping `Count` as-is. Honest, and adequate while
+   traffic is sparse, but the griefing vector remains.
