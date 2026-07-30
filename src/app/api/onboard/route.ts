@@ -17,6 +17,7 @@
 
 import { conflict, rateLimited, upstreamUnavailable } from '@/lib/api/errors';
 import { log } from '@/lib/api/logger';
+import { requireSameOrigin } from '@/lib/api/origin';
 import {
   clientKey,
   rateLimit,
@@ -53,16 +54,21 @@ const READ_CACHE_CONTROL = 'public, s-maxage=30, stale-while-revalidate=120';
 const UNIQUE_VIOLATION = '23505';
 
 export const GET = route('onboard.count', async (request) => {
-  const headers = enforceRateLimit(request, 'onboard:read', READ_LIMIT);
+  countRequest(request, 'onboard:read', READ_LIMIT);
 
   // Deliberately only the count. Everything else in this table is personal
   // data, and this endpoint is public and cached at the edge.
   const count = await readUserCount();
 
-  return json({ count }, { headers: { ...headers, 'cache-control': READ_CACHE_CONTROL } });
+  return json({ count }, { headers: { 'cache-control': READ_CACHE_CONTROL } });
 });
 
 export const POST = route('onboard.create', async (request, { requestId }) => {
+  // Before the budget is spent and before the body is read. This registry holds
+  // personal data, so a row written from a page we do not control is worse than
+  // junk: it is somebody's name and address arriving without their intent.
+  requireSameOrigin(request, requestId);
+
   const headers = enforceRateLimit(request, 'onboard:write', WRITE_LIMIT);
 
   const input = parseUserInput(await readJsonBody(request));
@@ -95,6 +101,21 @@ function enforceRateLimit(
   const result = rateLimit(clientKey(request, scope), options);
   if (!result.ok) throw rateLimited(result.retryAfterSeconds);
   return rateLimitHeaders(result);
+}
+
+/**
+ * Count one request without reporting the budget back.
+ *
+ * The counter response is `public` and cached at the edge, and `X-RateLimit-*`
+ * describes one caller — so attaching them here would store one visitor's
+ * remaining allowance in a shared cache and hand it to every visitor served
+ * from that entry until it expired. Counters that describe nobody are worse
+ * than no counters, and the response they belong on is the 429, which the
+ * wrapper marks `no-store` and which still carries `Retry-After`.
+ */
+function countRequest(request: Request, scope: string, options: RateLimitOptions): void {
+  const result = rateLimit(clientKey(request, scope), options);
+  if (!result.ok) throw rateLimited(result.retryAfterSeconds);
 }
 
 /** Fetch the number of registered users, and nothing else about them. */

@@ -48,6 +48,21 @@ describe('redact', () => {
     expect(input.password).toBe('hunter2');
     expect(out).not.toBe(input);
   });
+
+  it('recursively masks secrets and PII in nested structured fields', () => {
+    const out = redact({
+      request: {
+        profile: { email: 'ada@example.test', name: 'Ada' },
+        headers: { authorization: 'Bearer secret' },
+      },
+    }) as {
+      request: { profile: { email: string; name: string }; headers: { authorization: string } };
+    };
+
+    expect(out.request.profile.email).toBe('[redacted]');
+    expect(out.request.profile.name).toBe('[redacted]');
+    expect(out.request.headers.authorization).toBe('[redacted]');
+  });
 });
 
 describe('log', () => {
@@ -120,6 +135,18 @@ describe('log', () => {
     const parsed = JSON.parse(line) as Record<string, unknown>;
     expect(parsed.serializationError).toBe(true);
     expect(parsed.event).toBe('circular.event');
+  });
+
+  it('does not emit credentials embedded in an Error message or stack', () => {
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const secret = 'postgres://user:password@db.example/zentra';
+
+    log('error', 'database.failed', { err: new Error(`Connection refused: ${secret}`) });
+
+    const line = spy.mock.calls[0][0] as string;
+    expect(line).not.toContain(secret);
+    expect(line).not.toContain('password@');
+    expect(JSON.parse(line).err).toEqual({ name: 'Error', message: '[redacted]' });
   });
 });
 

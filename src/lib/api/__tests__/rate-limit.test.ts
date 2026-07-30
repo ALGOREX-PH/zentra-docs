@@ -111,57 +111,118 @@ describe('rateLimit', () => {
 });
 
 describe('clientKey', () => {
-  it('takes the first hop of a multi-value x-forwarded-for and trims it', () => {
-    const request = new Request('https://example.test/api', {
-      headers: { 'x-forwarded-for': ' 203.0.113.5 , 198.51.100.7, 70.41.3.18' },
-    });
+  /** Build a request carrying `headers` and nothing else the limiter reads. */
+  function requestWith(headers: Record<string, string>): Request {
+    return new Request('https://example.test/api', { headers });
+  }
 
-    expect(clientKey(request, 'proof')).toBe('proof:203.0.113.5');
-  });
-
-  it('falls back to x-real-ip when x-forwarded-for is absent', () => {
-    const request = new Request('https://example.test/api', {
-      headers: { 'x-real-ip': ' 198.51.100.7 ' },
-    });
-
-    const key = clientKey(request, 'proof');
-    expect(key).toBe('proof:198.51.100.7');
-    expect(key.startsWith('proof:')).toBe(true);
-  });
-
-  it('falls back to cf-connecting-ip when the other headers are absent', () => {
-    const request = new Request('https://example.test/api', {
-      headers: { 'cf-connecting-ip': '70.41.3.18' },
-    });
-
-    expect(clientKey(request, 'verify')).toBe('verify:70.41.3.18');
-  });
-
-  it('uses "unknown" when no IP header is present', () => {
-    const request = new Request('https://example.test/api');
-
-    expect(clientKey(request, 'verify')).toBe('verify:unknown');
-  });
-
-  it('keys the same IP differently per scope so routes do not share a bucket', () => {
-    const headers = { 'x-forwarded-for': '203.0.113.5' };
-    const proof = clientKey(
-      new Request('https://example.test/api', { headers }),
+  it('takes the last hop of a multi-value x-forwarded-for, not the first', () => {
+    // The leftmost entry is whatever the caller sent; only the rightmost was
+    // written by the proxy that accepted the connection.
+    const spoofed = clientKey(
+      requestWith({ 'x-forwarded-for': ' 10.0.0.1 , 10.0.0.2, 203.0.113.5' }),
       'proof',
     );
-    const verify = clientKey(
-      new Request('https://example.test/api', { headers }),
-      'verify',
+    const plain = clientKey(requestWith({ 'x-forwarded-for': '203.0.113.5' }), 'proof');
+
+    expect(spoofed).toBe(plain);
+  });
+
+  it('gives a caller no way to change its own bucket by prepending hops', () => {
+    const options = { limit: 1, windowMs: WINDOW_MS };
+    const first = clientKey(requestWith({ 'x-forwarded-for': '203.0.113.5' }), 'write');
+    const second = clientKey(
+      requestWith({ 'x-forwarded-for': `${'9.9.9.9, '.repeat(5)}203.0.113.5` }),
+      'write',
     );
 
+    expect(rateLimit(first, options).ok).toBe(true);
+    expect(rateLimit(second, options).ok).toBe(false);
+  });
+
+  it('prefers the platform headers over x-forwarded-for entirely', () => {
+    const trusted = clientKey(requestWith({ 'x-real-ip': '198.51.100.7' }), 'proof');
+    const withDecoy = clientKey(
+      requestWith({ 'x-real-ip': '198.51.100.7', 'x-forwarded-for': '203.0.113.5' }),
+      'proof',
+    );
+
+    expect(withDecoy).toBe(trusted);
+  });
+
+  it('orders the platform headers vercel, cloudflare, then x-real-ip', () => {
+    const vercel = clientKey(requestWith({ 'x-vercel-forwarded-for': '198.51.100.7' }), 'proof');
+    const shadowed = clientKey(
+      requestWith({
+        'x-vercel-forwarded-for': '198.51.100.7',
+        'cf-connecting-ip': '70.41.3.18',
+        'x-real-ip': '10.0.0.1',
+      }),
+      'proof',
+    );
+
+    expect(shadowed).toBe(vercel);
+  });
+
+  it('falls back to cf-connecting-ip when the other trusted headers are absent', () => {
+    const key = clientKey(requestWith({ 'cf-connecting-ip': '70.41.3.18' }), 'verify');
+
+    expect(key).toBe(clientKey(requestWith({ 'cf-connecting-ip': ' 70.41.3.18 ' }), 'verify'));
+    expect(key.startsWith('verify:')).toBe(true);
+  });
+
+  it('buckets every unidentifiable caller together', () => {
+    const anonymous = clientKey(new Request('https://example.test/api'), 'verify');
+    const blank = clientKey(requestWith({ 'x-forwarded-for': '   ' }), 'verify');
+
+    expect(blank).toBe(anonymous);
+  });
+
+  it('separates two different addresses', () => {
+    const a = clientKey(requestWith({ 'x-real-ip': '203.0.113.5' }), 'proof');
+    const b = clientKey(requestWith({ 'x-real-ip': '203.0.113.6' }), 'proof');
+
+    expect(a).not.toBe(b);
+  });
+
+  it('never returns the raw address it was derived from', () => {
+    const key = clientKey(requestWith({ 'x-real-ip': '203.0.113.5' }), 'proof');
+
+    expect(key).not.toContain('203.0.113.5');
+    expect(key).toBe('proof:91cf7406236023d6');
+  });
+
+  it('holds the key to a fixed width however long the header is', () => {
+    const short = clientKey(requestWith({ 'x-real-ip': '1.2.3.4' }), 'proof');
+    const long = clientKey(requestWith({ 'x-real-ip': 'a'.repeat(8000) }), 'proof');
+
+    expect(long).toHaveLength(short.length);
+  });
+
+  it('cannot be steered into another scope by an address containing a colon', () => {
+    const injected = clientKey(requestWith({ 'x-real-ip': 'write:203.0.113.5' }), 'feedback');
+    const target = clientKey(requestWith({ 'x-real-ip': '203.0.113.5' }), 'feedback:write');
+
+    expect(injected).not.toBe(target);
+  });
+
+  it('keys the same address differently per scope so routes do not share a bucket', () => {
+    const headers = { 'x-real-ip': '203.0.113.5' };
+    const proof = clientKey(requestWith(headers), 'proof');
+    const verify = clientKey(requestWith(headers), 'verify');
+
     expect(proof).not.toBe(verify);
-    expect(proof).toBe('proof:203.0.113.5');
-    expect(verify).toBe('verify:203.0.113.5');
 
     const options = { limit: 1, windowMs: WINDOW_MS };
     expect(rateLimit(proof, options).ok).toBe(true);
     expect(rateLimit(proof, options).ok).toBe(false);
     expect(rateLimit(verify, options).ok).toBe(true);
+  });
+
+  it('is stable across calls for the same address', () => {
+    const headers = { 'x-real-ip': '203.0.113.5' };
+
+    expect(clientKey(requestWith(headers), 'proof')).toBe(clientKey(requestWith(headers), 'proof'));
   });
 });
 

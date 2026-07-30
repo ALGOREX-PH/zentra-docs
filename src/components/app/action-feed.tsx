@@ -11,9 +11,13 @@ import { stellar } from '@/config/stellar';
 import { truncateAddress } from '@/lib/stellar/format';
 import { HudPanel, Eyebrow } from '@/components/landing/primitives';
 import type { ActionEntry } from '@/lib/stellar/types';
+import { cn } from '@/lib/cn';
 
 const POLL_MS = 6000;
 const MAX_SHOWN = 25;
+
+const focusRing =
+  'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan';
 
 /**
  * The live on-chain action feed: seeds history from the contract's `get_recent`
@@ -98,34 +102,47 @@ export function ActionFeed({ refreshSignal = 0 }: { refreshSignal?: number }) {
             No actions yet — be the first to record one.
           </p>
         ) : (
-          <ul className="divide-y divide-fd-border border border-fd-border">
-            {entries.map((entry) => (
-              <li key={entry.index} className="px-4 py-3">
-                <div className="flex items-center justify-between gap-3 font-mono text-[11px] text-faint">
-                  <span className="flex items-center gap-2">
-                    <a
-                      href={stellar.explorerAccountUrl(entry.author)}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="hover:text-cyan"
-                    >
-                      {truncateAddress(entry.author)}
-                    </a>
-                    <span
-                      title="Reputation, bumped via a cross-contract call"
-                      className="border border-violet/40 bg-violet/[0.07] px-1.5 py-0.5 text-violet-soft"
-                    >
-                      rep {entry.score}
+          <>
+            {/*
+              A reseed that fails once entries are on screen used to fail
+              silently: the list kept showing whatever it had, with nothing to
+              say it had gone stale. The entries stay — they are still real —
+              but the staleness is stated.
+            */}
+            {error ? (
+              <p className="mb-3 border border-denied/40 bg-denied/[0.06] px-3 py-2 font-mono text-[11px] text-denied">
+                {error} Showing the last entries loaded.
+              </p>
+            ) : null}
+            <ul className="divide-y divide-fd-border border border-fd-border">
+              {entries.map((entry) => (
+                <li key={entry.index} className="px-4 py-3">
+                  <div className="flex items-center justify-between gap-3 font-mono text-[11px] text-faint">
+                    <span className="flex items-center gap-2">
+                      <a
+                        href={stellar.explorerAccountUrl(entry.author)}
+                        target="_blank"
+                        rel="noreferrer"
+                        className={cn('hover:text-cyan', focusRing)}
+                      >
+                        {truncateAddress(entry.author)}
+                      </a>
+                      <span
+                        title="Reputation, bumped via a cross-contract call"
+                        className="border border-violet/40 bg-violet/[0.07] px-1.5 py-0.5 text-violet-soft"
+                      >
+                        rep {entry.score}
+                      </span>
                     </span>
-                  </span>
-                  <span>
-                    #{entry.index} · ledger {entry.ledger}
-                  </span>
-                </div>
-                <p className="mt-1.5 break-words text-sm text-text">{entry.message}</p>
-              </li>
-            ))}
-          </ul>
+                    <span>
+                      #{entry.index} · ledger {entry.ledger}
+                    </span>
+                  </div>
+                  <p className="mt-1.5 break-words text-sm text-text">{entry.message}</p>
+                </li>
+              ))}
+            </ul>
+          </>
         )}
       </div>
     </HudPanel>

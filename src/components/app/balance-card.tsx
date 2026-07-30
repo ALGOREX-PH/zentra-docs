@@ -9,8 +9,13 @@ import { stellar } from '@/config/stellar';
 import { HudPanel, Eyebrow } from '@/components/landing/primitives';
 import { cn } from '@/lib/cn';
 
-const buttonClass =
-  'border border-fd-border px-3 py-2 font-mono text-[11px] uppercase tracking-[0.08em] text-muted transition-colors hover:border-cyan/40 hover:text-cyan disabled:opacity-50';
+const focusRing =
+  'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan';
+
+const buttonClass = cn(
+  'border border-fd-border px-3 py-2 font-mono text-[11px] uppercase tracking-[0.08em] text-muted transition-colors hover:border-cyan/40 hover:text-cyan disabled:opacity-50',
+  focusRing,
+);
 
 type BalanceCardProps = {
   refreshSignal?: number;
@@ -82,6 +87,21 @@ export function BalanceCard({ refreshSignal }: BalanceCardProps) {
           </p>
         ) : loading ? (
           <p className="mt-4 font-mono text-sm text-muted">Loading balance…</p>
+        ) : error && balance === null ? (
+          // `getXlmBalance` only answers null for an account Horizon has never
+          // seen; a thrown error means the read itself failed, so it must not
+          // be reported as "this account isn't funded".
+          <div className="mt-4 space-y-4">
+            <p className="font-mono text-sm text-denied">{error}</p>
+            <button
+              type="button"
+              onClick={refresh}
+              disabled={funding}
+              className={buttonClass}
+            >
+              Retry
+            </button>
+          </div>
         ) : balance === null ? (
           <div className="mt-4 space-y-4">
             <p className="font-mono text-sm text-muted">
@@ -109,7 +129,7 @@ export function BalanceCard({ refreshSignal }: BalanceCardProps) {
               href={stellar.explorerAccountUrl(address)}
               target="_blank"
               rel="noreferrer"
-              className="font-mono text-xs text-faint hover:text-cyan"
+              className={cn('font-mono text-xs text-faint hover:text-cyan', focusRing)}
             >
               {truncateAddress(address)}
             </a>
@@ -135,7 +155,7 @@ export function BalanceCard({ refreshSignal }: BalanceCardProps) {
           </div>
         )}
 
-        {error ? (
+        {error && balance !== null ? (
           <p className="mt-4 font-mono text-xs text-denied">{error}</p>
         ) : null}
       </div>

@@ -25,7 +25,11 @@ const linkFocus =
  */
 export default function NotFound() {
   return (
-    <main className="zen-grid flex min-h-[80vh] flex-1 items-center justify-center px-5 py-16 sm:px-7 sm:py-24">
+    <main
+      id="content"
+      tabIndex={-1}
+      className="zen-grid flex min-h-[80vh] flex-1 items-center justify-center px-5 py-16 focus:outline-none sm:px-7 sm:py-24"
+    >
       <div className="w-full max-w-[560px]">
         <Link
           href="/"

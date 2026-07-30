@@ -8,17 +8,20 @@ const NODES: [number, number][] = [
 const RECTS: [number, number][] = [
   [81, 61], [251, 61], [421, 61], [251, 161], [81, 261], [251, 261], [421, 261],
 ];
-const MSG: Record<string, string[]> = {
+type Scenario = 'valid' | 'injection' | 'overspend';
+
+const MSG: Record<Scenario, string[]> = {
   valid: ['composing action', 'checking private policy', 'generating proof', 'binding to authority state', 'verifying on-chain', 'settling on Stellar', 'receipt emitted'],
   injection: ['composing action', 'checking private policy'],
   overspend: ['composing action', 'checking private policy', 'generating proof', 'binding to authority state'],
 };
 const PILLS = ['COMPOSING', 'POLICY', 'PROVING', 'BINDING', 'VERIFYING', 'SETTLING', 'RELEASED'];
-const V = '#7c3aed', C = '#00e5ff', G = '#22c55e', R = '#ef4444';
+// V/C/G/R tint the rail and nodes; VS is the readable violet used for pill text.
+const V = '#7c3aed', C = '#00e5ff', G = '#22c55e', R = '#ef4444', VS = '#a78bfa';
 
 export function ProofEngine() {
   const root = useRef<HTMLDivElement>(null);
-  const play = useRef<(s: string) => void>(() => {});
+  const play = useRef<(s: Scenario) => void>(() => {});
 
   useEffect(() => {
     const el = root.current;
@@ -26,12 +29,12 @@ export function ProofEngine() {
     let alive = true, loop = true, busy = false;
     const timers: number[] = [];
     const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
-    const q = (s: string) => el.querySelector(s) as HTMLElement | null;
-    const rect = (i: number) => el.querySelector(`[data-i="${i}"] rect`) as SVGRectElement | null;
-    const fill = q('[data-z-fill]') as unknown as SVGPathElement;
-    const cap = q('[data-z-capsule]') as unknown as SVGGElement;
-    const seal = q('[data-z-seal]') as unknown as SVGGElement;
-    const burn = q('[data-z-burn]') as unknown as SVGLineElement;
+    const q = (s: string) => el.querySelector<HTMLElement>(s);
+    const rect = (i: number) => el.querySelector<SVGRectElement>(`[data-i="${i}"] rect`);
+    const fill = el.querySelector<SVGPathElement>('[data-z-fill]');
+    const cap = el.querySelector<SVGGElement>('[data-z-capsule]');
+    const seal = el.querySelector<SVGGElement>('[data-z-seal]');
+    const burn = el.querySelector<SVGLineElement>('[data-z-burn]');
     if (!fill || !cap || !seal || !burn) return;
 
     const cum = [0];
@@ -46,19 +49,19 @@ export function ProofEngine() {
     fill.style.strokeDashoffset = String(len);
     cap.style.transition = 'transform .55s cubic-bezier(.45,0,.3,1), opacity .3s';
 
-    const sleep = (ms: number) => new Promise<void>((res) => { const t = window.setTimeout(res, reduced ? 0 : ms); timers.push(t); });
+    const sleep = (ms: number) => new Promise<void>((res) => { const t = window.setTimeout(res, ms); timers.push(t); });
     const setPill = (t: string, c: string) => { const p = q('[data-z-pill]'); if (p) { p.textContent = t; p.style.color = c; p.style.borderColor = c; p.style.background = c + '1f'; } };
     const setStatus = (t: string, c?: string) => { const s = q('[data-z-status]'); if (s) { s.textContent = t; s.style.color = c || '#e2e8f0'; } };
-    const setOutput = (t: string, c?: string) => { const o = q('[data-z-output]'); if (o) { o.textContent = t; o.style.color = c || '#64748b'; } };
+    const setOutput = (t: string, c?: string) => { const o = q('[data-z-output]'); if (o) { o.textContent = t; o.style.color = c || '#7d8ea6'; } };
     const activate = (i: number, c: string) => { const r = rect(i); if (r) { r.style.stroke = c; r.style.fill = c + '26'; r.style.filter = `drop-shadow(0 0 6px ${c})`; } };
     const advance = (i: number, c?: string) => { fill.style.strokeDashoffset = String(len * (1 - cum[i] / total)); if (c) fill.style.stroke = c; };
     const reset = () => {
-      for (let i = 0; i < 7; i++) { const r = rect(i); if (r) { r.style.stroke = 'rgba(148,163,184,0.4)'; r.style.fill = '#0d111a'; r.style.filter = 'none'; } }
+      for (let i = 0; i < 7; i++) { const r = rect(i); if (r) { r.style.stroke = 'rgba(148,163,184,0.6)'; r.style.fill = '#0d111a'; r.style.filter = 'none'; } }
       fill.style.strokeDashoffset = String(len); fill.style.stroke = 'url(#zgrad)';
       cap.style.transform = `translate(${NODES[0][0]}px,${NODES[0][1]}px)`; cap.style.opacity = '0';
       seal.style.transition = 'none'; seal.style.opacity = '0'; seal.style.transform = 'scale(0.5)';
       burn.style.opacity = '0';
-      setPill('COMPOSING', V); setStatus('composing action'); setOutput('awaiting submission');
+      setPill('COMPOSING', VS); setStatus('composing action'); setOutput('awaiting submission');
     };
     const burnAt = (i: number) => {
       const [x, y] = NODES[i];
@@ -67,8 +70,12 @@ export function ProofEngine() {
       burn.style.opacity = '1'; cap.style.opacity = '0';
     };
 
-    async function run(scenario: string) {
-      if (busy) return; busy = true; reset(); await sleep(150); cap.style.opacity = '1';
+    // Under reduced motion every wait is skipped, so the whole run resolves inside one
+    // frame and only its end state is ever painted — a still, not a fast-forward.
+    const run = async (scenario: Scenario) => {
+      if (busy) return; busy = true; reset();
+      if (!reduced) await sleep(150);
+      cap.style.opacity = '1';
       const stop = scenario === 'valid' ? 6 : scenario === 'injection' ? 1 : 3;
       for (let i = 0; i <= stop; i++) {
         if (!alive) { busy = false; return; }
@@ -79,7 +86,7 @@ export function ProofEngine() {
         const m = MSG[scenario][i];
         if (m) setStatus(m, fail ? R : '#e2e8f0');
         setPill(fail ? 'BLOCKED' : PILLS[i], fail ? R : i === 6 ? G : '#c4b5fd');
-        await sleep(640);
+        if (!reduced) await sleep(640);
       }
       if (scenario === 'valid') {
         cap.style.opacity = '0'; seal.style.transition = 'none'; seal.style.opacity = '1'; seal.style.transform = 'scale(1)';
@@ -91,14 +98,13 @@ export function ProofEngine() {
         burnAt(3); setStatus('state mismatch', R); setOutput('claimed prev_spent=0  ≠  chain spent=500  ·  no payment moved', R);
       }
       busy = false;
-    }
-    play.current = (s: string) => { loop = false; void run(s); };
+    };
+    play.current = (s: Scenario) => { loop = false; void run(s); };
 
     reset();
     if (reduced) {
-      for (let i = 0; i < 7; i++) activate(i, i >= 4 ? C : V);
-      advance(6); cap.style.opacity = '0'; seal.style.opacity = '1'; seal.style.transform = 'scale(1)';
-      setPill('RELEASED', G); setStatus('receipt emitted', G); setOutput('proof verified · payment released', G);
+      // no idle loop: settle on the released receipt and leave the tabs to redraw it
+      void run('valid');
       return () => { alive = false; timers.forEach(clearTimeout); };
     }
     void (async () => {
@@ -110,24 +116,34 @@ export function ProofEngine() {
 
   return (
     <div ref={root} className="relative border border-violet/35 bg-panel">
-      <span className="absolute -left-px -top-px h-3.5 w-3.5 border-l-2 border-t-2 border-violet" />
-      <span className="absolute -right-px -top-px h-3.5 w-3.5 border-r-2 border-t-2 border-violet" />
-      <span className="absolute -bottom-px -left-px h-3.5 w-3.5 border-b-2 border-l-2 border-violet" />
-      <span className="absolute -bottom-px -right-px h-3.5 w-3.5 border-b-2 border-r-2 border-violet" />
+      <span aria-hidden className="absolute -left-px -top-px h-3.5 w-3.5 border-l-2 border-t-2 border-violet" />
+      <span aria-hidden className="absolute -right-px -top-px h-3.5 w-3.5 border-r-2 border-t-2 border-violet" />
+      <span aria-hidden className="absolute -bottom-px -left-px h-3.5 w-3.5 border-b-2 border-l-2 border-violet" />
+      <span aria-hidden className="absolute -bottom-px -right-px h-3.5 w-3.5 border-b-2 border-r-2 border-violet" />
 
-      <div className="flex items-center justify-between border-b border-fd-border bg-[#0a0c12] px-4 py-3">
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 border-b border-fd-border bg-[#0a0c12] px-4 py-3">
         <div className="flex items-center gap-2.5">
-          <span className="size-2 bg-violet" />
-          <span className="font-mono text-[11px] tracking-[0.12em] text-muted">PROOF ENGINE // SUBMIT AN ACTION</span>
+          <span aria-hidden className="size-2 shrink-0 bg-violet" />
+          <h2 className="font-mono text-[10px] tracking-[0.12em] text-muted sm:text-[11px]">PROOF ENGINE // SUBMIT AN ACTION</h2>
         </div>
-        <span data-z-pill className="border border-violet/40 px-2.5 py-0.5 font-mono text-[11px] font-bold tracking-[0.1em] text-violet-soft" style={{ background: 'rgba(124,58,237,0.12)' }}>COMPOSING</span>
+        <span data-z-pill className="border border-violet/40 px-2.5 py-0.5 font-mono text-[10px] font-bold tracking-[0.1em] text-violet-soft sm:text-[11px]" style={{ background: 'rgba(124,58,237,0.12)' }}>COMPOSING</span>
       </div>
 
       <div className="px-4 pt-3">
-        <svg viewBox="0 0 520 340" className="block h-auto w-full" aria-label="Zentra proof path">
+        <svg
+          viewBox="0 0 520 340"
+          className="block h-auto w-full"
+          role="img"
+          aria-label="Zentra proof path: intent, private policy, proof, state binding, on-chain verification, settlement, receipt"
+        >
           <defs>
             <linearGradient id="zgrad" x1="0" y1="0" x2="1" y2="1">
               <stop offset="0" stopColor="#7c3aed" />
+              <stop offset="1" stopColor="#00e5ff" />
+            </linearGradient>
+            {/* the capsule carries dark text, so its violet end is lifted for legibility */}
+            <linearGradient id="zcap" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stopColor="#8b5cf6" />
               <stop offset="1" stopColor="#00e5ff" />
             </linearGradient>
           </defs>
@@ -136,7 +152,7 @@ export function ProofEngine() {
           <line data-z-burn x1="0" y1="0" x2="0" y2="0" stroke="#ef4444" strokeWidth="6" strokeLinecap="square" opacity="0" style={{ filter: 'drop-shadow(0 0 5px rgba(239,68,68,0.8))' }} />
           {RECTS.map(([x, y], i) => (
             <g data-z-node="" data-i={i} key={i}>
-              <rect x={x} y={y} width="18" height="18" fill="#0d111a" stroke="rgba(148,163,184,0.4)" strokeWidth="2" style={{ transition: 'all .3s' }} />
+              <rect x={x} y={y} width="18" height="18" fill="#0d111a" stroke="rgba(148,163,184,0.6)" strokeWidth="2" style={{ transition: 'all .3s' }} />
             </g>
           ))}
           <g data-z-seal style={{ transformBox: 'view-box', transformOrigin: '430px 270px', transform: 'scale(0.5)', opacity: 0 }}>
@@ -144,27 +160,27 @@ export function ProofEngine() {
             <polyline points="420,270 427,278 442,260" fill="none" stroke="#00e5ff" strokeWidth="3" strokeLinecap="square" strokeLinejoin="miter" />
           </g>
           <g data-z-capsule style={{ transform: 'translate(90px,70px)', opacity: 0 }}>
-            <rect x="-23" y="-12" width="46" height="24" fill="url(#zgrad)" style={{ filter: 'drop-shadow(0 0 10px rgba(0,229,255,0.6))' }} />
+            <rect x="-23" y="-12" width="46" height="24" fill="url(#zcap)" style={{ filter: 'drop-shadow(0 0 10px rgba(0,229,255,0.6))' }} />
             <text x="0" y="4" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="11" fontWeight="700" fill="#06070d">ZK</text>
           </g>
-          <text x="90" y="48" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="11" letterSpacing="1" fill="#64748b">INTENT</text>
-          <text x="430" y="320" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="11" letterSpacing="1" fill="#64748b">RECEIPT</text>
+          <text x="90" y="48" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="11" letterSpacing="1" fill="#7d8ea6">INTENT</text>
+          <text x="430" y="320" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="11" letterSpacing="1" fill="#7d8ea6">RECEIPT</text>
         </svg>
       </div>
 
       <div className="flex border-y border-fd-border">
         <button type="button" onClick={() => play.current('valid')} className="flex-1 border-r border-fd-border py-2.5 font-mono text-[10px] font-semibold tracking-[0.04em] sm:py-3 sm:text-[11px] sm:tracking-[0.06em] text-live transition-colors hover:bg-live/15" style={{ background: 'rgba(34,197,94,0.06)' }}>VALID PAYMENT</button>
-        <button type="button" onClick={() => play.current('injection')} className="flex-1 border-r border-fd-border py-2.5 font-mono text-[10px] font-semibold tracking-[0.04em] sm:py-3 sm:text-[11px] sm:tracking-[0.06em] text-denied transition-colors hover:bg-denied/15" style={{ background: 'rgba(239,68,68,0.05)' }}>PROMPT INJECTION</button>
-        <button type="button" onClick={() => play.current('overspend')} className="flex-1 py-2.5 font-mono text-[10px] font-semibold tracking-[0.04em] sm:py-3 sm:text-[11px] sm:tracking-[0.06em] text-denied transition-colors hover:bg-denied/15" style={{ background: 'rgba(239,68,68,0.05)' }}>OVER-SPEND</button>
+        <button type="button" onClick={() => play.current('injection')} className="flex-1 border-r border-fd-border py-2.5 font-mono text-[10px] font-semibold tracking-[0.04em] sm:py-3 sm:text-[11px] sm:tracking-[0.06em] text-denied transition-colors hover:bg-denied/10" style={{ background: 'rgba(239,68,68,0.05)' }}>PROMPT INJECTION</button>
+        <button type="button" onClick={() => play.current('overspend')} className="flex-1 py-2.5 font-mono text-[10px] font-semibold tracking-[0.04em] sm:py-3 sm:text-[11px] sm:tracking-[0.06em] text-denied transition-colors hover:bg-denied/10" style={{ background: 'rgba(239,68,68,0.05)' }}>OVER-SPEND</button>
       </div>
 
       <div className="px-4 pb-4 pt-3.5">
         <div className="flex items-center gap-2">
           <span className="font-mono text-[13px] text-cyan">&gt;</span>
           <span data-z-status className="font-mono text-[13px] text-[#e2e8f0]">composing action</span>
-          <span className="h-3.5 w-2 bg-cyan [animation:zen-blink_1.1s_step-end_infinite]" />
+          <span className="h-3.5 w-2 bg-cyan motion-safe:[animation:zen-blink_1.1s_step-end_infinite]" />
         </div>
-        <div data-z-output className="mt-2 font-mono text-[11px] tracking-[0.02em] text-faint">awaiting submission</div>
+        <div data-z-output className="mt-2 font-mono text-[11px] tracking-[0.02em] text-[#7d8ea6]">awaiting submission</div>
       </div>
     </div>
   );

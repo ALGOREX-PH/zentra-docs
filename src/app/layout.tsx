@@ -31,13 +31,19 @@ const description =
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
+  referrer: 'strict-origin-when-cross-origin',
   title: { default: title, template: '%s — Zentra Protocol' },
   description,
+  // `./` resolves against the current route, so each page declares itself
+  // canonical rather than pointing every URL at the origin.
+  alternates: { canonical: './' },
   openGraph: {
     title,
     description,
     type: 'website',
-    url: siteUrl,
+    // Relative, so each route resolves it against its own path. A fixed origin
+    // here made every shared link claim to be the landing page.
+    url: './',
     siteName: 'Zentra Protocol',
     // Declared at the file's true pixel size. The card is authored at 1200x630
     // and rendered at 2x for high-density displays, so quoting the design size
@@ -59,6 +65,17 @@ export default function Layout({ children }: { children: ReactNode }) {
       suppressHydrationWarning
     >
       <body className="flex min-h-screen flex-col font-sans antialiased">
+        {/* First focusable element in the document, so keyboard and screen
+            reader users can jump the nav on every route. It is parked above the
+            viewport rather than hidden with `sr-only`, which keeps the reveal
+            from depending on utility ordering. Every route marks its content
+            landmark `id="content"`. */}
+        <a
+          href="#content"
+          className="fixed left-4 top-4 z-50 -translate-y-24 border border-cyan bg-panel px-4 py-2.5 font-mono text-xs tracking-[0.08em] text-cyan transition-transform focus:translate-y-0 print:hidden"
+        >
+          Skip to content
+        </a>
         <RootProvider theme={{ attribute: 'class', forcedTheme: 'dark' }}>
           {children}
         </RootProvider>

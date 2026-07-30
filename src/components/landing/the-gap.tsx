@@ -20,13 +20,13 @@ const ROWS = [
 
 export function TheGap() {
   return (
-    <section className="border-t border-violet/20 px-5 py-14 sm:px-7 sm:py-20">
+    <section aria-labelledby="trust-gap-title" className="border-t border-violet/20 px-5 py-14 sm:px-7 sm:py-20">
       <div className="mx-auto max-w-[920px]">
         <div className="mb-5 flex items-center gap-3.5">
-          <span className="font-mono text-xs tracking-[0.12em] text-violet">[ 01 ] THE TRUST GAP</span>
+          <span className="font-mono text-xs tracking-[0.12em] text-violet-soft">[ 01 ] THE TRUST GAP</span>
           <span className="h-px flex-1 bg-violet/25" />
         </div>
-        <h2 className="font-display text-3xl font-bold tracking-[-0.025em] sm:text-[40px]">
+        <h2 id="trust-gap-title" className="font-display text-3xl font-bold tracking-[-0.025em] sm:text-[40px]">
           Three questions in agentic finance.
         </h2>
         <p className="mt-3 max-w-[560px] text-[17px] text-muted">
@@ -41,17 +41,19 @@ export function TheGap() {
               className="flex items-stretch border-b border-fd-border last:border-b-0"
               style={r.ok ? undefined : { background: 'rgba(239,68,68,0.04)' }}
             >
-              <span className="flex w-12 shrink-0 items-center justify-center border-r border-fd-border bg-[#0a0c12] font-mono text-xs text-faint">
+              <span className="flex w-12 shrink-0 items-center justify-center border-r border-fd-border bg-[#0a0c12] font-mono text-xs text-[#7d8ea6]">
                 {r.n}
               </span>
               <span className="flex w-9 shrink-0 items-center justify-center">
+                {/* solved vs unsolved is carried by the tick alone, so name it in text */}
                 {r.ok ? <Check /> : <Cross />}
+                <span className="sr-only">{r.ok ? 'Solved' : 'Unsolved'}</span>
               </span>
               <div className="flex flex-1 flex-wrap items-center gap-x-3 gap-y-1 py-5 pr-5">
                 <span className="w-[96px] shrink-0 font-display font-semibold sm:w-[120px]">{r.label}</span>
                 <span className="text-[15px] text-[#cbd5e1]">
                   {r.ok ? r.desc : <>Did this action obey the rule <span className="font-semibold text-white">right now</span>?</>}
-                  {r.tag && <span className="ml-2 font-mono text-xs text-faint">{r.tag}</span>}
+                  {r.tag && <span className="ml-2 font-mono text-xs text-[#7d8ea6]">{r.tag}</span>}
                 </span>
               </div>
             </div>

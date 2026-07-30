@@ -73,7 +73,7 @@ checklist in §5 says so for that reason.
 | ZEN-03 | The documented registry export writes personal data into a git-tracked file | Medium | `docs/users` | Open |
 | ZEN-04 | Admin gate is one static secret, unthrottled, guarding a personal-data export | Medium | `src/lib/api/auth.ts`, admin routes | Mitigated |
 | ZEN-05 | ZK artefacts have no integrity pinning; the in-browser verification is circular | Medium | `public/zk-worker.js`, `public/zk/*` | Open |
-| ZEN-20 | The fee sponsor drains via unlimited legitimate-shaped calls, not the case the allowlist stops | Medium | `src/lib/api/sponsor.ts`, `src/app/api/sponsor/route.ts` | Open |
+| ZEN-20 | The fee sponsor drains via unlimited legitimate-shaped calls, not the case the allowlist stops | Medium | `src/lib/api/sponsor.ts`, `src/app/api/sponsor/route.ts` | Fixed |
 | ZEN-07 | Anchored commitments are neither verified nor unique | Low | `zentra-proof-registry` | Accepted |
 | ZEN-08 | Signup conflict response is an email-membership oracle | Low | `src/app/api/onboard/route.ts` | Open |
 | ZEN-09 | Off-chain feedback attributes an unproven wallet on the public feed | Low | `src/app/api/feedback/route.ts` | Accepted |
@@ -83,6 +83,7 @@ checklist in §5 says so for that reason.
 | ZEN-13 | CSP omits directives the WebAssembly constraint does not actually block | Low | `next.config.mjs` | Open |
 | ZEN-21 | `.env.example` and `ARCHITECTURE.md` still claim the server holds no signing key | Low | `.env.example`, `docs/ARCHITECTURE.md` | Fixed |
 | ZEN-06 | The wallet kit no longer hardcodes the network; wallet-id persistence is still fixed to Freighter | Informational | `src/lib/stellar/kit.ts`, `src/components/app/wallet-provider.tsx` | Mitigated |
+| ZEN-23 | Concurrent writes trap in four of five contracts: the entry key is derived from a mutable shared counter | Medium | `zentra-action-log`, `zentra-feedback`, `zentra-proof-registry`, `zentra-multisig` | Open |
 | ZEN-14 | Contract authorisation is never negatively tested | Informational | All `src/test.rs` | Open |
 | ZEN-15 | On-chain storage grows without bound and cannot be pruned | Informational | All contracts | Open |
 | ZEN-16 | `x-request-id` is caller-controlled and echoed to logs and response headers | Informational | `src/lib/api/route.ts` | Accepted |
@@ -981,6 +982,69 @@ every action.
 Dependabot for cargo, npm and GitHub Actions.
 
 ---
+
+### ZEN-23 — Concurrent writes trap in four of five contracts: the entry key is derived from a mutable shared counter (Medium)
+
+**Where.** Four contracts share the pattern:
+
+| Contract | Entrypoint | Counter read | Key written |
+| --- | --- | --- | --- |
+| `zentra-action-log` | `record()` | `:87` | `Entry(index)` `:115` |
+| `zentra-feedback` | `submit()` | `:75` | `Entry(index)` `:85` |
+| `zentra-proof-registry` | `anchor()` | `:51` | `Entry(index)` `:61` |
+| `zentra-multisig` | `propose()` | `:173` | `Proposal(id)` |
+
+`zentra-reputation` is **not** affected, and shows the fix: it keys on
+`DataKey::Score(author)` (`:80`), so two different callers never touch the same
+entry. The correct pattern is already in this codebase.
+
+**What.** `record()` reads a counter and then uses that value as a *storage key*:
+
+```rust
+let index: u64 = env.storage().instance().get(&DataKey::Count).unwrap_or(0);
+...
+env.storage().persistent().set(&DataKey::Entry(index), &entry);
+```
+
+Soroban fixes a transaction's write footprint at simulation time and traps on any
+write outside it. Two callers who simulate against the same `Count` both declare a
+write to `Entry(n)`. The first applies and advances `Count`; the second then
+computes `Entry(n+1)`, which its footprint never declared, and traps.
+
+The trap is correct behaviour — it is what stops the second caller from
+overwriting the first's entry. The defect is deriving a key from mutable shared
+state, which makes concurrent writes mutually exclusive by construction.
+
+**Measured** on `zentra-action-log`. Three runs against an isolated pair (`docs/LOADTEST.md` §11). The other three contracts are identified by code inspection, not measurement — the mechanism is identical, but only the action log has been driven under concurrency:
+
+| Accounts | Concurrency | Succeeded | Rate |
+| --- | --- | --- | --- |
+| 50 | 5 | 10 | 20% |
+| 4 | 2 | 2 | 50% |
+| 5 | 1 | 5 | 100% |
+
+The success rate is `1 / concurrency`: one write lands per ledger. Funding was
+never the constraint — 50 of 50 accounts funded with zero failures, and every
+failure was at confirm. Decoded, the result is
+`{"tx_failed":[{"op_inner":{"invoke_host_function":"trapped"}}]}`.
+
+**Impact.** It reaches every write surface in the product: recording an action on `/board`, submitting feedback, and anchoring a proof on `/playground` — the playground's entire demo is an anchor, so a workshop or a demo with several people at once is the worst case. Two users writing in the same ~5s ledger means one fails, and
+because the contract traps rather than returning an `Error` variant, no code in
+the error enum describes it and the dApp can only surface a generic failure. It is
+also a cheap griefing vector: one account recording every ledger keeps every other
+write trapping, for one transaction per ledger.
+
+**Why the tests missed it.** All 38 contract tests are sequential. Nothing in the
+suite ever has two callers simulate against the same `Count`, so no amount of
+passing tests could have surfaced this. It took a concurrent run against a real
+network.
+
+**Fix options.** Key entries the way `zentra-reputation` already does — on the
+caller's address, or a client-supplied id — so concurrent callers cannot contend — this removes the shared mutable key, but needs
+a redeploy and §11 records that there is no upgrade path. Or retry with
+re-simulation in the dApp, which succeeds on a fresh footprint at the cost of a
+second wallet signature. Or accept and document the one-write-per-ledger limit,
+which leaves the griefing vector open.
 
 ### ZEN-22 — The multisig contract is an approval board, not account-level custody (Informational)
 

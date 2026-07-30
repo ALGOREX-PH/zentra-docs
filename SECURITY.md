@@ -208,9 +208,10 @@ If you are reviewing rather than reporting, these are the useful entry points:
 Two design facts worth knowing before you start, because they rule out whole
 classes of finding:
 
-- **The server holds no signing key.** Transactions are built in the browser,
-  signed by the user's own wallet extension, and submitted as signed XDR. There
-  is no server-side wallet and no key to steal — `.env.example` documents this as
-  a deliberate absence.
+- **User transactions do not use a server signing key.** Transactions are built
+  in the browser, signed by the user's own wallet extension, and submitted as
+  signed XDR. The one server-side key is the optional fee sponsor
+  (`SPONSOR_SECRET`), which only signs fee-bumps around user-signed transactions
+  targeting Zentra contracts; the feature is off unless the secret is set.
 - **`ADMIN_TOKEN` fails closed.** If it is unset or empty, every `/api/admin/*`
   route denies with `503`. A missing secret never means "open".

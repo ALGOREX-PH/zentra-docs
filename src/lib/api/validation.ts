@@ -2,12 +2,18 @@
  * Request parsing and validation for the JSON API routes.
  *
  * Everything that arrives from the network is `unknown` until it passes
- * through here. `parseFeedbackInput` is the trust boundary: it accumulates
- * every field error before throwing, and rebuilds the value key by key so no
- * caller-supplied extra ever reaches the database.
+ * through here — bodies from `readJsonBody`, and URL parameters from
+ * `parseSearchQuery`. Each parser is a trust boundary of the same shape: it
+ * accumulates every field error before throwing, and rebuilds the value key by
+ * key so no caller-supplied extra ever reaches the database or the index.
  */
 
-import { badRequest, payloadTooLarge, validationFailed } from '@/lib/api/errors';
+import {
+  badRequest,
+  payloadTooLarge,
+  unsupportedMediaType,
+  validationFailed,
+} from '@/lib/api/errors';
 
 /** Longest comment we store, in characters, after whitespace normalisation. */
 export const MAX_COMMENT_LENGTH = 280;
@@ -18,8 +24,32 @@ export const MAX_NAME_LENGTH = 80;
 /** Longest signup note we store, in characters, after whitespace normalisation. */
 export const MAX_NOTE_LENGTH = 500;
 
+/** Longest search phrase we will tokenise. Past this it is not a search. */
+export const MAX_QUERY_LENGTH = 256;
+
+/** Most search results a caller may ask for in one response. */
+export const MAX_RESULT_LIMIT = 50;
+
+/** Most tags a caller may filter a search on at once. */
+export const MAX_TAGS = 8;
+
+/** Longest single search tag or locale we will accept. */
+export const MAX_FACET_LENGTH = 64;
+
 /** Largest request body we will read, in bytes. */
 export const MAX_BODY_BYTES = 4096;
+
+/** The media type a JSON body must be labelled with, as told to the caller. */
+export const JSON_MEDIA_TYPE = 'application/json';
+
+/**
+ * The media types `readJsonBody` will parse.
+ *
+ * `application/json` plus the `+json` structured suffix, with any parameters
+ * (`; charset=utf-8`) allowed after them. Everything else is refused, and that
+ * refusal is load-bearing rather than pedantic — see `readJsonBody`.
+ */
+const JSON_CONTENT_TYPE = /^application\/(?:[\w.-]+\+)?json\s*(?:;|$)/i;
 
 /** A feedback submission after validation — exactly the fields we persist. */
 export interface FeedbackInput {
@@ -39,6 +69,14 @@ export interface UserInput {
   note: string | null;
 }
 
+/** A search request after validation — exactly what the index is given. */
+export interface SearchQuery {
+  query: string;
+  locale: string | undefined;
+  tag: string[] | undefined;
+  limit: number | undefined;
+}
+
 /** A Stellar Ed25519 public key: `G` plus 55 base32 characters. */
 const STELLAR_ACCOUNT_ID = /^G[A-Z2-7]{55}$/;
 
@@ -56,6 +94,9 @@ const EMAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
 /** Longest address the SMTP standard permits, and so the longest we accept. */
 const MAX_EMAIL_LENGTH = 254;
+
+/** Search tags and locales are identifiers, not free text. */
+const FACET = /^[A-Za-z0-9_.-]+$/;
 
 /** ASCII control characters, which have no business in a stored comment. */
 const CONTROL_CHARACTERS = /[\u0000-\u001f\u007f]/g;
@@ -207,13 +248,98 @@ export function parseUserInput(raw: unknown): UserInput {
 }
 
 /**
+ * Validate the URL parameters of a search request into a `SearchQuery`.
+ *
+ * Same contract as the body parsers: one 422 listing every parameter that
+ * failed. An absent or blank `query` is not a failure and comes back as an
+ * empty string — the search dialog issues exactly that request every time it
+ * opens, and the route answers it with an empty result set.
+ *
+ * The bounds are the point. Each of these values is handed to the search index
+ * and every one of them was previously unchecked: an unbounded `query` is CPU
+ * we spend tokenising on request, a `limit` of a million is a result set we
+ * allocate on demand, and `tag` and `locale` are matched against the index's
+ * own facets and so belong to the identifier alphabet rather than to free text.
+ */
+export function parseSearchQuery(params: URLSearchParams): SearchQuery {
+  const details: Record<string, string> = {};
+
+  const query = (params.get('query') ?? '').trim();
+  if (query.length > MAX_QUERY_LENGTH) {
+    details.query = `Query must be at most ${MAX_QUERY_LENGTH} characters.`;
+  }
+
+  let locale: string | undefined;
+  const rawLocale = params.get('locale')?.trim();
+  if (rawLocale) {
+    if (rawLocale.length <= MAX_FACET_LENGTH && FACET.test(rawLocale)) {
+      locale = rawLocale;
+    } else {
+      details.locale = 'Locale must be a short identifier.';
+    }
+  }
+
+  let tag: string[] | undefined;
+  const rawTag = params.get('tag')?.trim();
+  if (rawTag) {
+    // Sent as one comma-separated value by the search client, so it is split
+    // the same way here rather than read as a repeated parameter.
+    const parts = rawTag
+      .split(',')
+      .map((part) => part.trim())
+      .filter((part) => part.length > 0);
+
+    if (
+      parts.length === 0 ||
+      parts.length > MAX_TAGS ||
+      parts.some((part) => part.length > MAX_FACET_LENGTH || !FACET.test(part))
+    ) {
+      details.tag = `Tag must be up to ${MAX_TAGS} short identifiers, comma separated.`;
+    } else {
+      tag = parts;
+    }
+  }
+
+  let limit: number | undefined;
+  const rawLimit = params.get('limit')?.trim();
+  if (rawLimit) {
+    const value = Number(rawLimit);
+    if (Number.isSafeInteger(value) && value >= 1 && value <= MAX_RESULT_LIMIT) {
+      limit = value;
+    } else {
+      details.limit = `Limit must be an integer between 1 and ${MAX_RESULT_LIMIT}.`;
+    }
+  }
+
+  if (Object.keys(details).length > 0) {
+    throw validationFailed(details);
+  }
+
+  return { query, locale, tag, limit };
+}
+
+/**
  * Read and JSON-decode a request body, refusing anything over the byte ceiling.
  *
- * The `content-length` header is checked first so an oversized upload is
+ * The `content-type` is checked before anything is read. That check is a
+ * security control, not a formality: `application/json` is not on the CORS
+ * safelist, so demanding it forces a browser to send a preflight the attacker's
+ * page cannot satisfy, and closes the cross-site *simple request* path — an
+ * HTML form posting `enctype="text/plain"`, or a `fetch` with
+ * `content-type: text/plain` — that would otherwise land a write here with no
+ * preflight at all (ZEN-12). It is checked first so a body sent that way is
+ * refused before we spend anything reading it.
+ *
+ * The `content-length` header is checked next so an oversized upload is
  * rejected before the stream is touched, then the decoded text is measured
  * again in case that header was absent or lying.
  */
 export async function readJsonBody(request: Request): Promise<unknown> {
+  const contentType = request.headers.get('content-type');
+  if (contentType === null || !JSON_CONTENT_TYPE.test(contentType.trim())) {
+    throw unsupportedMediaType(JSON_MEDIA_TYPE);
+  }
+
   const declared = Number(request.headers.get('content-length'));
   if (Number.isFinite(declared) && declared > MAX_BODY_BYTES) {
     throw payloadTooLarge(MAX_BODY_BYTES);

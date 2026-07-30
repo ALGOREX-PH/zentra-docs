@@ -8,8 +8,13 @@ import { HudPanel } from '@/components/landing/primitives';
 export function ScenarioPlayer({ s }: { s: Scenario }) {
   const [step, setStep] = useState(0);
   const [playing, setPlaying] = useState(false);
+  const [reduced, setReduced] = useState(false);
   const denied = s.outcome !== 'settled';
   const finished = !playing && step >= s.steps.length && step > 0;
+
+  useEffect(() => {
+    setReduced(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false);
+  }, []);
 
   useEffect(() => {
     if (!playing) return;
@@ -22,6 +27,13 @@ export function ScenarioPlayer({ s }: { s: Scenario }) {
   }, [playing, step, s.steps.length]);
 
   function run() {
+    // Under reduced motion there is no staged reveal: the finished scenario —
+    // every phase and its outcome — is shown at once instead.
+    if (reduced) {
+      setPlaying(false);
+      setStep(s.steps.length);
+      return;
+    }
     setStep(0);
     setPlaying(true);
   }
@@ -32,14 +44,14 @@ export function ScenarioPlayer({ s }: { s: Scenario }) {
       <h3 className="mt-3 font-display text-lg font-semibold">{s.title}</h3>
       <p className="mt-1 text-sm text-fd-muted-foreground">{s.subtitle}</p>
 
-      <ul className="mt-5 min-h-[112px] space-y-2" aria-live="polite">
+      <ul className="mt-5 min-h-[112px] space-y-2" aria-live="polite" aria-busy={playing}>
         {s.steps.slice(0, step).map((phase, i) => {
           const released = phase === 'released';
           const blocked = phase === 'blocked';
           return (
             <li
               key={phase}
-              className="flex items-center gap-2.5 font-mono text-xs [animation:zen-check_.4s_ease_both]"
+              className="flex items-center gap-2.5 font-mono text-xs motion-safe:[animation:zen-check_.4s_ease_both]"
               style={{ animationDelay: `${i * 0.04}s` }}
             >
               <span
@@ -57,14 +69,17 @@ export function ScenarioPlayer({ s }: { s: Scenario }) {
       </ul>
 
       {finished && (
-        <div className="border-t border-fd-border pt-4 [animation:zen-check_.4s_ease_both]">
+        <div
+          role="status"
+          className="border-t border-fd-border pt-4 motion-safe:[animation:zen-check_.4s_ease_both]"
+        >
           <span
             className={cn(
               'inline-flex items-center gap-1.5 font-mono text-xs font-medium',
               denied ? 'text-denied' : 'text-cyan',
             )}
           >
-            {denied ? '✗' : '✓'} {s.outcomeLabel}
+            <span aria-hidden>{denied ? '✗' : '✓'}</span> {s.outcomeLabel}
           </span>
           <p className="mt-2 text-xs leading-relaxed text-fd-muted-foreground">{s.explanation}</p>
         </div>

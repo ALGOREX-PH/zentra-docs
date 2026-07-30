@@ -1,6 +1,5 @@
 import type { Metadata } from 'next';
 import { Eyebrow } from '@/components/landing/primitives';
-import { Footer } from '@/components/landing/footer';
 import { gitConfig, repoUrl } from '@/lib/shared';
 
 export const metadata: Metadata = {
@@ -48,40 +47,41 @@ const POSTS: {
 
 export default function BlogPage() {
   return (
-    <>
-      <section className="border-b border-fd-border">
-        <div className="mx-auto max-w-4xl px-5 py-14 sm:px-6 sm:py-20">
-          <Eyebrow>ZENTRA // BLOG &amp; CHANGELOG</Eyebrow>
-          <h1 className="font-display text-3xl font-bold tracking-tight sm:text-4xl">
-            Releases, deep-dives, and testnet results.
-          </h1>
+    <main
+      id="content"
+      tabIndex={-1}
+      className="flex-1 border-b border-fd-border focus:outline-none"
+    >
+      <div className="mx-auto max-w-4xl px-5 py-14 sm:px-6 sm:py-20">
+        <Eyebrow>ZENTRA // BLOG &amp; CHANGELOG</Eyebrow>
+        <h1 className="font-display text-3xl font-bold tracking-tight sm:text-4xl">
+          Releases, deep-dives, and testnet results.
+        </h1>
 
-          <div className="mt-12 space-y-px border border-fd-border bg-fd-border">
-            {POSTS.map((p) => (
-              <article key={p.title} className="bg-panel p-6">
-                <div className="flex items-center gap-3 font-mono text-xs text-fd-muted-foreground">
-                  <span className="text-violet-soft">{p.cat}</span>
-                  <span>·</span>
-                  <time>{p.date}</time>
-                </div>
-                <h2 className="mt-3 font-display text-xl font-semibold">{p.title}</h2>
-                <p className="mt-2 leading-relaxed text-fd-muted-foreground">{p.body}</p>
-                {p.href ? (
-                  <a
-                    href={p.href}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="mt-3 inline-block font-mono text-xs text-cyan transition-colors hover:text-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan"
-                  >
-                    Read it →
-                  </a>
-                ) : null}
-              </article>
-            ))}
-          </div>
+        <div className="mt-12 space-y-px border border-fd-border bg-fd-border">
+          {POSTS.map((p) => (
+            <article key={p.title} className="bg-panel p-6">
+              <div className="flex items-center gap-3 font-mono text-xs text-fd-muted-foreground">
+                <span className="text-violet-soft">{p.cat}</span>
+                <span>·</span>
+                <time dateTime={p.date}>{p.date}</time>
+              </div>
+              <h2 className="mt-3 font-display text-xl font-semibold">{p.title}</h2>
+              <p className="mt-2 leading-relaxed text-fd-muted-foreground">{p.body}</p>
+              {p.href ? (
+                <a
+                  href={p.href}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-3 inline-block font-mono text-xs text-cyan transition-colors hover:text-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan"
+                >
+                  Read it →
+                </a>
+              ) : null}
+            </article>
+          ))}
         </div>
-      </section>
-      <Footer />
-    </>
+      </div>
+    </main>
   );
 }

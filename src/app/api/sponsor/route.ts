@@ -23,6 +23,7 @@ import {
   validationFailed,
 } from '@/lib/api/errors';
 import { log } from '@/lib/api/logger';
+import { requireSameOrigin } from '@/lib/api/origin';
 import {
   clientKey,
   rateLimit,
@@ -37,7 +38,12 @@ import {
   sponsorPublicKey,
   MAX_SPONSORED_FEE_STROOPS,
   type SponsorDecision,
+  sponsorshipCharge,
 } from '@/lib/api/sponsor';
+import {
+  reserveSponsorBudget,
+  sponsorBudgetEnforced,
+} from '@/lib/api/sponsor-budget';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -79,6 +85,11 @@ export const GET = route('sponsor.status', async (request) => {
 });
 
 export const POST = route('sponsor.bump', async (request, { requestId }) => {
+  // This is the one endpoint that spends real lumens, so it is the one that can
+  // least afford to be driven from someone else's page: refuse cross-origin
+  // callers before any budget, parsing or signing work happens.
+  requireSameOrigin(request, requestId);
+
   const headers = enforceRateLimit(request, 'sponsor:write', WRITE_LIMIT);
 
   const xdr = readXdr(await readBody(request));
@@ -99,6 +110,27 @@ export const POST = route('sponsor.bump', async (request, { requestId }) => {
     // echoed — it is the caller's data and there is nothing to gain by
     // reflecting it back into an error body or a log drain.
     throw forbidden(`Fee sponsorship refused: ${decision.reason}.`);
+  }
+
+  const charge = sponsorshipCharge(xdr);
+  const budget = await reserveSponsorBudget(charge);
+  if (!budget.ok) {
+    const { reason } = budget;
+    refused(requestId, reason);
+    if (reason === 'ledger_unavailable') {
+      log('error', 'sponsor.ledger_unavailable', { requestId, err: budget.error });
+      throw upstreamUnavailable('Fee sponsorship accounting is unavailable.');
+    }
+    log('warn', 'sponsor.budget_exceeded', {
+      requestId,
+      reason,
+      sourceAccount: charge.sourceAccount,
+      feeStroops: charge.feeStroops,
+      enforced: sponsorBudgetEnforced(),
+    });
+    if (sponsorBudgetEnforced()) {
+      throw forbidden(`Fee sponsorship refused: ${reason}.`);
+    }
   }
 
   let signed: string;

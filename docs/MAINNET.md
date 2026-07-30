@@ -84,9 +84,9 @@ These are the same steps `.github/workflows/ci.yml` runs. Run them locally on
 the release commit anyway — CI proves the tree builds, running it yourself
 proves you are looking at the tree you think you are.
 
-> `contracts/zentra-multisig` exists in the tree but is **not** in CI, **not** in
+> `contracts/zentra-multisig` exists in the tree and is tested in CI, but is **not** in
 > `src/config/contract.ts`, and **not** deployed anywhere. It is out of scope for
-> this runbook. If it is ever to ship, it needs its own CI job and its own row in
+> this runbook. If it is ever to ship, it needs an audit and its own row in
 > §11.
 
 ---
@@ -145,7 +145,7 @@ no upgrade path in the contracts as written (§11).
 | --- | --- | --- |
 | Hardware wallet (Ledger) holding the admin account | Key never exists in software | The `stellar` CLI path may not support it directly; verify before relying on it, and plan to sign built XDR externally if not |
 | Stellar multisig — raise the account's thresholds and add signers | No single person can act alone | Every admin action becomes a coordination exercise |
-| `contracts/zentra-multisig` as the admin address | N-of-M in a contract we control | Unaudited, uncovered by CI, and not deployed — gate 1 would have to cover it too |
+| `contracts/zentra-multisig` as the admin address | N-of-M in a contract we control | Covered by CI, but unaudited and not deployed — gate 1 would have to cover it too |
 | Secrets manager, single key | Simple, auditable access log | One compromised operator account is the whole loss |
 
 This runbook does not choose for you. §11 records that the choice is open.
@@ -755,7 +755,7 @@ discovers it mid-launch and improvises.
 | 4 | **Who holds custody** | §3.2 lists the options and does not choose. This needs a name, not a mechanism | Undecided |
 | 5 | **Personal data retention** | The `users` table holds names and email addresses with no retention policy, no deletion path, and no stated purpose limitation. `GET /api/admin/users` exports the lot behind one shared secret | Undecided |
 | 6 | **`ADMIN_TOKEN` rotation** | One process-wide shared secret, no rotation procedure, no expiry. It fails closed when unset, which is right, but nothing says when it changes | Undecided |
-| 7 | **`zentra-multisig`** | Exists in the tree, absent from CI, absent from `contract.ts`, undeployed. Either it ships and needs a CI job, an audit and a place in this runbook, or it is removed | Undecided |
+| 7 | **`zentra-multisig`** | Exists in the tree and is tested in CI, but is absent from `contract.ts` and undeployed. Either it ships and needs an audit and a place in this runbook, or it is removed | Undecided |
 | 8 | **Mainnet `readSource`** | Read simulations need a funded mainnet account. Which one, funded by whom, and what happens when it empties | Undecided |
 | 9 | **Testnet after mainnet** | Whether the testnet deployment stays live as a staging environment, and if so how the two are kept from being confused | Undecided |
 | 10 | **Incident response** | §10.5 has a blank. So does the question of what the response actually is, given decision 2 | Undecided |

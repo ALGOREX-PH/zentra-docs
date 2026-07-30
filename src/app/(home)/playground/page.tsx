@@ -6,7 +6,6 @@ import { ZkIntro } from '@/components/playground/zk-intro';
 import { ProofVisuals } from '@/components/playground/proof-visuals';
 import { ZkGlossary } from '@/components/playground/zk-glossary';
 import { Eyebrow } from '@/components/landing/primitives';
-import { Footer } from '@/components/landing/footer';
 
 export const metadata: Metadata = {
   title: 'Playground',
@@ -16,7 +15,7 @@ export const metadata: Metadata = {
 
 export default function PlaygroundPage() {
   return (
-    <>
+    <main id="content" tabIndex={-1} className="flex-1 focus:outline-none">
       <section className="zen-grid border-b border-fd-border">
         <div className="mx-auto max-w-5xl px-5 py-14 sm:px-6 sm:py-20">
           <Eyebrow accent="cyan">ZENTRA // PLAYGROUND</Eyebrow>
@@ -64,7 +63,6 @@ export default function PlaygroundPage() {
           <ZkGlossary />
         </div>
       </section>
-      <Footer />
-    </>
+    </main>
   );
 }

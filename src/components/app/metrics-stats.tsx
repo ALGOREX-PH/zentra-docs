@@ -1,16 +1,13 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { getCount, getRecent } from '@/lib/stellar/action-log';
+import { useEffect, useId, useState, type ReactNode } from 'react';
+import { activeProfile } from '@/config/network';
+import { readApiError } from '@/lib/api/client';
+import { getCount, getLatestLedger, getRecent } from '@/lib/stellar/action-log';
 import { getFeedbackCount, getFeedbackAuthors } from '@/lib/stellar/feedback';
-import { HudPanel } from '@/components/landing/primitives';
+import { HudPanel, Eyebrow } from '@/components/landing/primitives';
 import { cn } from '@/lib/cn';
 
-/**
- * Live on-chain usage stats read straight from the Soroban contracts: total
- * interactions across the action-log and feedback contracts, the distinct wallets
- * behind them, and the network — the product's proof of real wallet interactions.
- */
 /**
  * How many recent entries each contract is asked for when counting distinct
  * wallets.
@@ -23,12 +20,70 @@ import { cn } from '@/lib/cn';
  */
 const SAMPLE = 20;
 
+/**
+ * The onboarding target this panel reports progress against — 50 testnet users
+ * (`docs/users/README.md`).
+ *
+ * A module constant rather than a prop: it is a fixed external requirement, not a
+ * display option, and a caller able to lower it could make any count look like it
+ * had arrived. The goal is a target, not a ceiling — the bar tops out while the
+ * count keeps climbing past it.
+ */
+const SIGNUP_GOAL = 50;
+
+/**
+ * Whether `value` is shaped like the `/api/onboard` counter.
+ *
+ * Asserted rather than trusted: an edge error page or a cold-start response would
+ * otherwise arrive as a count of `undefined` and render as a figure nobody can
+ * account for.
+ */
+function isOnboardCount(value: unknown): value is { count: number } {
+  if (typeof value !== 'object' || value === null) return false;
+  const { count } = value as { count?: unknown };
+  return typeof count === 'number' && Number.isFinite(count);
+}
+
+/**
+ * The moment of a read, in UTC to the second.
+ *
+ * Deliberately not locale-formatted. A screenshot of this panel is read by
+ * somebody in another timezone with no way to ask which one rendered it, and an
+ * ambiguous timestamp evidences nothing.
+ */
+function formatReadAt(at: Date): string {
+  return `${at.toISOString().slice(0, 19).replace('T', ' ')} UTC`;
+}
+
+/**
+ * The adoption panel: registry signups beside live on-chain usage read straight
+ * from the Soroban contracts — total interactions across the action-log and
+ * feedback contracts, the distinct wallets behind them, and the network.
+ *
+ * Two sources, two populations, deliberately never merged. The signup registry
+ * is a Postgres table read through `GET /api/onboard` and says only that somebody
+ * registered; the wallet and interaction figures are contract reads and say that
+ * somebody transacted. Nobody proves ownership of the address they typed into a
+ * form, so the two numbers are not interchangeable and neither is derived from
+ * the other — which is precisely the substitution a reviewer makes if the panel
+ * does not label each figure with what it measures.
+ *
+ * Every figure is a live read. A source that fails renders its own failure rather
+ * than a zero or a last-known value: a plausible-looking stand-in inside a panel
+ * whose entire purpose is proof is worse than an empty cell.
+ */
 export function MetricsStats({ refreshSignal = 0 }: { refreshSignal?: number }) {
   const [interactions, setInteractions] = useState<number | null>(null);
   const [wallets, setWallets] = useState<number | null>(null);
   const [partial, setPartial] = useState(false);
+  const [ledger, setLedger] = useState<number | null>(null);
+  const [readAt, setReadAt] = useState<Date | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [signups, setSignups] = useState<number | null>(null);
+  const [signupsLoading, setSignupsLoading] = useState(true);
+  const [signupsError, setSignupsError] = useState<string | null>(null);
+  const goalLabelId = useId();
 
   useEffect(() => {
     let cancelled = false;
@@ -36,14 +91,20 @@ export function MetricsStats({ refreshSignal = 0 }: { refreshSignal?: number }) 
     setError(null);
     (async () => {
       try {
-        const [actionTotal, actionRecent, feedbackTotal, feedbackAuthors] =
+        const [actionTotal, actionRecent, feedbackTotal, feedbackAuthors, sequence] =
           await Promise.all([
             getCount(),
             getRecent(SAMPLE),
             getFeedbackCount(),
             getFeedbackAuthors(SAMPLE),
+            getLatestLedger(),
           ]);
         if (cancelled) return;
+        // The ledger and the clock are set from the same settled read as the
+        // figures, so the provenance line can never describe a different moment
+        // than the numbers beside it.
+        setLedger(sequence);
+        setReadAt(new Date());
         setInteractions(actionTotal + feedbackTotal);
         setWallets(
           new Set([...actionRecent.map((e) => e.author), ...feedbackAuthors]).size,
@@ -57,6 +118,16 @@ export function MetricsStats({ refreshSignal = 0 }: { refreshSignal?: number }) 
         );
       } catch {
         if (cancelled) return;
+        // Everything the failed read was meant to produce is cleared, provenance
+        // included. Figures from an earlier load surviving beside a fresh error
+        // are presented as current when they are not, and a ledger and read time
+        // left behind would date the panel to a moment its contents no longer
+        // come from. The em dashes and the error line are the honest reading.
+        setInteractions(null);
+        setWallets(null);
+        setPartial(false);
+        setLedger(null);
+        setReadAt(null);
         setError('Could not load on-chain stats.');
       } finally {
         if (!cancelled) setLoading(false);
@@ -67,39 +138,229 @@ export function MetricsStats({ refreshSignal = 0 }: { refreshSignal?: number }) 
     };
   }, [refreshSignal]);
 
-  const labelClass = 'font-mono text-[10px] uppercase tracking-[0.12em] text-faint';
+  /**
+   * The signup registry, fetched separately from the contracts on purpose.
+   *
+   * Postgres and public RPC fail independently, and a database outage must not
+   * blank the chain figures — nor an RPC outage the signup count. Two effects
+   * keep each source's failure confined to the cell it belongs to, which is what
+   * lets the panel report a partial read honestly instead of collapsing to one
+   * all-or-nothing error.
+   */
+  useEffect(() => {
+    let cancelled = false;
+    setSignupsLoading(true);
+    setSignupsError(null);
+    fetch('/api/onboard')
+      .then(async (res) => {
+        if (!res.ok) throw new Error(await readApiError(res, 'Could not load the signup count.'));
+        const body: unknown = await res.json();
+        if (!isOnboardCount(body)) throw new Error('Could not load the signup count.');
+        return body.count;
+      })
+      .then((count) => {
+        if (!cancelled) setSignups(count);
+      })
+      .catch((cause: unknown) => {
+        if (cancelled) return;
+        // The previous count is dropped along with the error. A number left on
+        // screen beside a fresh failure is presented as current when it is not,
+        // and this panel is read as evidence.
+        setSignups(null);
+        setSignupsError(
+          cause instanceof Error ? cause.message : 'Could not load the signup count.',
+        );
+      })
+      .finally(() => {
+        if (!cancelled) setSignupsLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [refreshSignal]);
+
+  const busy = loading || signupsLoading;
 
   return (
-    <div className={cn('flex flex-col gap-2', loading && 'opacity-95')}>
-      {error ? <p className="font-mono text-xs text-denied">{error}</p> : null}
-      <div className="grid gap-4 sm:grid-cols-3">
-        <HudPanel>
-          <div className="p-5">
-            <div className={labelClass}>ON-CHAIN INTERACTIONS</div>
-            <div className="font-display text-3xl font-bold text-text">{interactions ?? '—'}</div>
+    <div aria-busy={busy} className={cn('flex flex-col gap-2', busy && 'opacity-95')}>
+      {/*
+        One framed panel rather than a row of loose tiles. The adoption claim is
+        only credible read together — the wallets that transacted, what they did,
+        and the chain it happened on — and a reviewer has to be able to capture
+        the whole thing in one screenshot without cropping half the evidence out.
+      */}
+      <HudPanel accent="cyan">
+        <div className="p-5 sm:p-6">
+          <Eyebrow accent="cyan">// ADOPTION · PROOF OF USE</Eyebrow>
+
+          {/*
+            Provenance, so an image of this panel stands on its own: which chain
+            the figures were simulated against, the ledger the chain was at when
+            they were read, and when that was. The ledger is the part a reviewer
+            can independently check — it dates the read to a block, not to a
+            caption. Both are omitted until a read has actually settled rather
+            than shown as pending, because an empty slot cannot be misread as a
+            fact.
+          */}
+          <div className="-mt-2 mb-5 flex flex-wrap items-center gap-x-4 gap-y-1 font-mono text-[11px] text-faint">
+            <span className="text-cyan">{activeProfile.label}</span>
+            {ledger === null ? null : <span>ledger #{ledger.toLocaleString('en-US')}</span>}
+            {readAt === null ? null : <span>chain read {formatReadAt(readAt)}</span>}
           </div>
-        </HudPanel>
-        <HudPanel>
-          <div className="p-5">
-            <div className={labelClass}>DISTINCT WALLETS</div>
-            <div className="font-display text-3xl font-bold text-text">
-              {wallets === null ? '—' : `${wallets}${partial ? '+' : ''}`}
-            </div>
-            {partial ? (
-              <div className="font-mono text-[11px] text-muted">
-                lower bound · last {SAMPLE} per contract
-              </div>
-            ) : null}
+
+          {/*
+            Progress against the 50-user target, as the count and the shortfall.
+            Whatever the registry holds is what appears here — a zero renders as a
+            zero, and the remainder is computed from it rather than stated. The
+            panel is only worth screenshotting if the unflattering readings show
+            up in it too.
+          */}
+          <div className="mb-5">
+            {signupsLoading ? (
+              <p className="font-mono text-xs text-muted">Reading the signup registry…</p>
+            ) : signups === null ? (
+              <p className="font-mono text-xs text-denied">
+                {signupsError ?? 'Could not load the signup count.'}
+              </p>
+            ) : (
+              <>
+                <p id={goalLabelId} className="font-mono text-sm text-muted">
+                  <span className="font-display text-4xl font-bold text-text">{signups}</span> of{' '}
+                  {SIGNUP_GOAL} registry signups
+                  <span className="text-faint">
+                    {' · '}
+                    {signups >= SIGNUP_GOAL
+                      ? 'target met'
+                      : `${SIGNUP_GOAL - signups} remaining`}
+                  </span>
+                </p>
+                <div
+                  role="progressbar"
+                  aria-valuenow={signups}
+                  aria-valuemin={0}
+                  aria-valuemax={SIGNUP_GOAL}
+                  aria-labelledby={goalLabelId}
+                  className="mt-3 h-2 w-full border border-fd-border bg-abyss"
+                >
+                  <span
+                    aria-hidden
+                    className="block h-full bg-gradient-to-r from-violet to-cyan transition-[width] duration-500"
+                    style={{ width: `${Math.min(100, (signups / SIGNUP_GOAL) * 100)}%` }}
+                  />
+                </div>
+              </>
+            )}
           </div>
-        </HudPanel>
-        <HudPanel accent="cyan">
-          <div className="p-5">
-            <div className={labelClass}>NETWORK</div>
-            <div className="font-display text-2xl text-cyan">Testnet</div>
-            <div className="font-mono text-[11px] text-muted">Soroban · live</div>
+
+          {/*
+            The readouts fall back to an em dash whenever a figure is missing,
+            which reads the same whether the contracts are still being queried,
+            refused to answer, or genuinely hold nothing. One line above them
+            says which.
+          */}
+          {loading ? (
+            <p className="font-mono text-xs text-muted">Reading the contracts…</p>
+          ) : error ? (
+            <p className="font-mono text-xs text-denied">{error}</p>
+          ) : interactions === 0 ? (
+            <p className="font-mono text-xs text-muted">
+              No on-chain activity yet — record an action or leave feedback to start these
+              counters.
+            </p>
+          ) : null}
+
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <Readout
+              label="REGISTRY SIGNUPS"
+              value={signups ?? '—'}
+              // The note stays on what the figure measures in every state. Its
+              // loading and failure lines are already rendered once, above, where
+              // the count itself is — repeating them here would put two red lines
+              // about one outage in a panel that has to be read at a glance.
+              note="Rows in the signup registry — people who registered. Not evidence that they transacted."
+            />
+            <Readout
+              label="WALLETS SEEN ON-CHAIN"
+              value={wallets === null ? '—' : `${wallets}${partial ? '+' : ''}`}
+              note={
+                partial
+                  ? `Lower bound — distinct authors within the last ${SAMPLE} entries per contract, which is the most either read returns.`
+                  : 'Distinct addresses that signed a recorded interaction, counted from the chain.'
+              }
+            />
+            <Readout
+              label="ON-CHAIN INTERACTIONS"
+              value={interactions ?? '—'}
+              note="Exact totals from the action-log and feedback contracts' own counters."
+            />
+            <Readout
+              accent="cyan"
+              label="NETWORK"
+              // Named by the active profile rather than typed in. The chain is a
+              // deploy-time choice, and a readout that says "Testnet" on a
+              // mainnet build is not a stale label — it is a false claim about
+              // where every other figure in this panel was read from.
+              value={activeProfile.label}
+              note="Soroban — every on-chain figure here is simulated against this network on load."
+            />
           </div>
-        </HudPanel>
+
+          {/*
+            Inside the frame, not under it: the caveats have to travel with the
+            image. Whoever quotes these figures from a screenshot needs the same
+            sentence about where each came from that a reader of the page gets.
+          */}
+          <p className="mt-4 border-t border-violet/15 pt-4 font-mono text-[11px] leading-relaxed text-faint">
+            Signups come from Postgres via GET /api/onboard, which is edge-cached for up to 30
+            seconds; wallets and interactions are read from the contracts on every load. Nothing
+            here is seeded or estimated — a source that cannot be read says so in place of its
+            figure.
+          </p>
+        </div>
+      </HudPanel>
+    </div>
+  );
+}
+
+/**
+ * One readout cell inside the panel: what is being measured, the figure, and the
+ * caveat that keeps the figure from being over-read.
+ *
+ * The note is not decoration. Signups, wallets and interactions are three
+ * different populations, and a bare number under a three-word label is exactly
+ * how a reviewer ends up quoting one as another — so every cell has to state
+ * what it counts. Plain bordered cells rather than nested {@link HudPanel}s,
+ * because the panel already owns the corner brackets.
+ */
+function Readout({
+  label,
+  value,
+  note,
+  accent = 'violet',
+}: {
+  label: string;
+  value: ReactNode;
+  note: ReactNode;
+  accent?: 'violet' | 'cyan';
+}) {
+  return (
+    <div
+      className={cn(
+        'border bg-abyss/60 p-4',
+        accent === 'cyan' ? 'border-cyan/30' : 'border-violet/20',
+      )}
+    >
+      <div className="font-mono text-[10px] uppercase tracking-[0.12em] text-faint">{label}</div>
+      <div
+        className={cn(
+          'mt-1 font-display text-3xl font-bold',
+          accent === 'cyan' ? 'text-cyan' : 'text-text',
+        )}
+      >
+        {value}
       </div>
+      <div className="mt-1.5 font-mono text-[11px] leading-relaxed text-muted">{note}</div>
     </div>
   );
 }

@@ -34,7 +34,7 @@ function Panel({ cfg }: { cfg: Cfg }) {
   const [active, setActive] = useState(-1);
   const [failed, setFailed] = useState(false);
   const [outcome, setOutcome] = useState<'' | Id>('');
-  const [stat, setStat] = useState<{ t: string; c: string }>({ t: 'IDLE', c: '#64748b' });
+  const [stat, setStat] = useState<{ t: string; c: string }>({ t: 'IDLE', c: '#7d8ea6' });
   const wrap = useRef<HTMLDivElement>(null);
   const cancel = useRef(false);
   const busy = useRef(false);
@@ -44,31 +44,39 @@ function Panel({ cfg }: { cfg: Cfg }) {
     busy.current = true;
     cancel.current = false;
     setActive(-1); setFailed(false); setOutcome('');
+    // reduced motion skips every wait, so the run stays synchronous and React commits
+    // one render — the resting outcome — instead of stepping the rail at zero delay.
     const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
-    const sleep = (ms: number) => new Promise<void>((res) => setTimeout(res, reduced ? 0 : ms));
+    const sleep = (ms: number) => new Promise<void>((res) => setTimeout(res, ms));
     for (let i = 0; i <= cfg.stop; i++) {
       if (cancel.current) { busy.current = false; return; }
       const fail = cfg.id !== 'a' && i === cfg.stop;
       if (fail) setFailed(true);
       setActive(i);
       setStat({ t: (cfg.steps[i] ?? '').toUpperCase(), c: fail ? R : '#e2e8f0' });
-      await sleep(cfg.id === 'a' ? 560 : 640);
+      if (!reduced) await sleep(cfg.id === 'a' ? 560 : 640);
     }
     if (cancel.current) { busy.current = false; return; }
     if (cfg.id === 'a') {
       setOutcome('a'); setStat({ t: 'RECEIPT EMITTED', c: G });
     } else if (cfg.id === 'b') {
-      setStat({ t: 'RECIPIENT NOT IN SET', c: R }); await sleep(420);
-      setOutcome('b'); await sleep(700); setStat({ t: 'NO PAYMENT MOVED', c: '#64748b' });
+      setStat({ t: 'RECIPIENT NOT IN SET', c: R }); if (!reduced) await sleep(420);
+      setOutcome('b'); if (!reduced) await sleep(700); setStat({ t: 'NO PAYMENT MOVED', c: '#7d8ea6' });
     } else {
-      setStat({ t: 'STATEMISMATCH', c: R }); setOutcome('c'); await sleep(1100);
-      setStat({ t: 'NO PAYMENT MOVED', c: '#64748b' });
+      setStat({ t: 'STATEMISMATCH', c: R }); setOutcome('c'); if (!reduced) await sleep(1100);
+      setStat({ t: 'NO PAYMENT MOVED', c: '#7d8ea6' });
     }
     busy.current = false;
   }, [cfg]);
 
   useEffect(() => {
     const el = wrap.current; if (!el) return;
+    // reduced motion drops both the stagger and the scroll trigger — `run` waits for
+    // nothing, so the panel paints its finished outcome instead of an idle rail.
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false) {
+      run();
+      return () => { cancel.current = true; };
+    }
     let fired = false;
     const io = new IntersectionObserver((entries) => {
       for (const e of entries) {
@@ -89,7 +97,7 @@ function Panel({ cfg }: { cfg: Cfg }) {
     <div ref={wrap} className="flex flex-col bg-panel p-6">
       <div className="mb-[18px] flex items-center justify-between">
         <span className="font-mono text-[11px] tracking-[0.1em]" style={{ color: cfg.accent }}>{cfg.label}</span>
-        <span className="flex size-6 items-center justify-center font-display text-[13px] font-bold" style={{ color: cfg.accent, background: cfg.accent + '24' }}>{cfg.letter}</span>
+        <span className="flex size-6 items-center justify-center font-display text-[13px] font-bold" style={{ color: cfg.accent, background: cfg.accent + '18' }}>{cfg.letter}</span>
       </div>
       <h3 className="mb-3 font-display text-lg font-semibold">{cfg.title}</h3>
       <div className="mb-[22px] flex flex-wrap gap-1.5">
@@ -98,7 +106,8 @@ function Panel({ cfg }: { cfg: Cfg }) {
         ))}
       </div>
 
-      <div className="relative mb-[18px] min-h-[48px] py-1">
+      {/* the rail restates the status line below it, so it stays decorative */}
+      <div aria-hidden className="relative mb-[18px] min-h-[48px] py-1">
         <div className="absolute inset-x-0 top-3 h-0.5 bg-[rgba(148,163,184,0.16)]" />
         <div
           className="absolute left-0 top-3 h-0.5 transition-[width] duration-500"
@@ -109,7 +118,7 @@ function Panel({ cfg }: { cfg: Cfg }) {
             const on = i <= active;
             const col = nodeColor(cfg, i, failed);
             return (
-              <span key={i} className="flex size-[18px] items-center justify-center border-2 bg-panel transition-all" style={{ borderColor: on ? col : 'rgba(148,163,184,0.3)', boxShadow: on ? `0 0 12px ${col}aa` : 'none' }}>
+              <span key={i} className="flex size-[18px] items-center justify-center border-2 bg-panel transition-all" style={{ borderColor: on ? col : 'rgba(148,163,184,0.6)', boxShadow: on ? `0 0 12px ${col}aa` : 'none' }}>
                 <span className="size-[5px] transition-opacity" style={{ background: on ? col : '#94a3b8', opacity: on ? 1 : 0 }} />
               </span>
             );
@@ -119,7 +128,7 @@ function Panel({ cfg }: { cfg: Cfg }) {
 
       <div className="mb-1.5 flex h-[92px] items-center justify-center">
         {outcome === 'a' && (
-          <svg width="70" height="70" viewBox="0 0 70 70" className="[animation:zen-seal-pulse_1.3s_ease-out]" aria-hidden>
+          <svg width="70" height="70" viewBox="0 0 70 70" className="motion-safe:[animation:zen-seal-pulse_1.3s_ease-out]" aria-hidden>
             <polygon points="35,5 60,20 60,50 35,65 10,50 10,20" fill="rgba(34,197,94,0.06)" stroke="#22c55e" strokeWidth="2" />
             <polyline points="27,35 32,41 45,27" fill="none" stroke="#22c55e" strokeWidth="2.6" strokeLinecap="square" strokeLinejoin="miter" />
           </svg>
@@ -135,14 +144,14 @@ function Panel({ cfg }: { cfg: Cfg }) {
           </div>
         )}
         {outcome === 'c' && (
-          <div className="grid h-[92px] w-full grid-cols-2 border border-denied/30 [animation:zen-flare_1s_ease-in-out_2]">
+          <div className="grid h-[92px] w-full grid-cols-2 border border-denied/30 motion-safe:[animation:zen-flare_1s_ease-in-out_2]">
             <div className="border-r border-denied/30 p-2.5">
-              <div className="mb-1.5 font-mono text-[8px] tracking-[0.08em] text-faint">CLAIMED</div>
+              <div className="mb-1.5 font-mono text-[8px] tracking-[0.08em] text-[#7d8ea6]">CLAIMED</div>
               <div className="font-mono text-[11px] text-denied">prev_spent=0</div>
               <div className="mt-0.5 font-mono text-[11px] text-[#cbd5e1]">count=2</div>
             </div>
             <div className="p-2.5">
-              <div className="mb-1.5 font-mono text-[8px] tracking-[0.08em] text-faint">CHAIN</div>
+              <div className="mb-1.5 font-mono text-[8px] tracking-[0.08em] text-[#7d8ea6]">CHAIN</div>
               <div className="font-mono text-[11px] text-denied">spent=500</div>
               <div className="mt-0.5 font-mono text-[11px] text-[#cbd5e1]">count=2</div>
             </div>
@@ -166,13 +175,13 @@ function Panel({ cfg }: { cfg: Cfg }) {
 
 export function ScenarioPanels() {
   return (
-    <section id="panels" className="border-t border-violet/20 bg-abyss px-5 py-14 sm:px-7 sm:py-20">
+    <section id="panels" aria-labelledby="panels-title" className="border-t border-violet/20 bg-abyss px-5 py-14 sm:px-7 sm:py-20">
       <div className="mx-auto max-w-[1160px]">
         <div className="mb-[18px] flex items-center gap-3.5">
-          <span className="font-mono text-xs tracking-[0.12em] text-violet">[ 02 ] PROOF PLAYGROUND</span>
+          <span className="font-mono text-xs tracking-[0.12em] text-violet-soft">[ 02 ] PROOF PLAYGROUND</span>
           <span className="h-px flex-1 bg-violet/25" />
         </div>
-        <h2 className="font-display text-3xl font-bold tracking-[-0.025em] sm:text-[40px]">
+        <h2 id="panels-title" className="font-display text-3xl font-bold tracking-[-0.025em] sm:text-[40px]">
           Watch the protocol enforce itself.
         </h2>
         <p className="mb-[42px] mt-3 max-w-[600px] text-[17px] text-muted">
@@ -180,12 +189,12 @@ export function ScenarioPanels() {
           collapses before money moves.
         </p>
 
-        <div className="grid border border-fd-border md:grid-cols-3 md:[&>*:not(:last-child)]:border-r md:[&>*]:border-fd-border">
+        <div className="grid border border-fd-border [&>*:not(:last-child)]:border-b [&>*]:border-fd-border md:grid-cols-3 md:[&>*:not(:last-child)]:border-b-0 md:[&>*:not(:last-child)]:border-r">
           {PANELS.map((p) => (
             <Panel key={p.id} cfg={p} />
           ))}
         </div>
-        <p className="mt-7 text-center font-mono text-[13px] tracking-[0.1em] text-faint">// NO PAYMENT MOVED</p>
+        <p className="mt-7 text-center font-mono text-[13px] tracking-[0.1em] text-[#7d8ea6]">// NO PAYMENT MOVED</p>
       </div>
     </section>
   );

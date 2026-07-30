@@ -18,12 +18,52 @@ const STORAGE_KEY = 'zentra:wallet';
 interface WalletContextValue {
   address: string | null;
   connecting: boolean;
-  connect: () => Promise<void>;
+  /**
+   * Connect the given wallet, or fall back to the kit's own picker when the
+   * caller has not chosen one.
+   */
+  connect: (walletId?: string) => Promise<void>;
   disconnect: () => void;
   signTransaction: (xdr: string) => Promise<string>;
 }
 
 const WalletContext = createContext<WalletContextValue | null>(null);
+
+/** The shape written to localStorage — narrow, so a stale entry can be spotted. */
+interface PersistedWallet {
+  walletId: string;
+  address: string;
+}
+
+/**
+ * `JSON.parse` hands back `any`, which would let a hand-edited or stale entry
+ * put a non-string through `setWallet` and into React state. Narrowing it here
+ * keeps the untyped boundary to a single function.
+ */
+function readPersisted(raw: string): PersistedWallet | null {
+  const parsed: unknown = JSON.parse(raw);
+  if (typeof parsed !== 'object' || parsed === null) return null;
+  if (!('address' in parsed) || typeof parsed.address !== 'string') return null;
+  if (parsed.address.length === 0) return null;
+  const walletId =
+    'walletId' in parsed && typeof parsed.walletId === 'string'
+      ? parsed.walletId
+      : FREIGHTER_ID;
+  return { walletId, address: parsed.address };
+}
+
+/**
+ * Which module the kit ended up on, so a reconnect reaches for the wallet the
+ * user actually picked rather than assuming Freighter. `selectedModule` throws
+ * when nothing is selected, hence the guard.
+ */
+function selectedWalletId(): string {
+  try {
+    return getKit().selectedModule.productId;
+  } catch {
+    return FREIGHTER_ID;
+  }
+}
 
 /**
  * Holds the single source of truth for "is a wallet connected, and which one".
@@ -40,22 +80,29 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     const saved = window.localStorage.getItem(STORAGE_KEY);
     if (!saved) return;
     try {
-      const { walletId, address: savedAddress } = JSON.parse(saved);
-      getKit().setWallet(walletId ?? FREIGHTER_ID);
-      setAddress(savedAddress ?? null);
+      const persisted = readPersisted(saved);
+      if (!persisted) throw new Error('Unrecognised wallet entry.');
+      getKit().setWallet(persisted.walletId);
+      setAddress(persisted.address);
     } catch {
       window.localStorage.removeItem(STORAGE_KEY);
     }
   }, []);
 
-  const connect = useCallback(async () => {
+  const connect = useCallback(async (walletId?: string) => {
     setConnecting(true);
     try {
-      const { address: addr } = await getKit().authModal();
+      const kit = getKit();
+      // A wallet id means the caller already ran its own picker, so the kit's
+      // modal is skipped and the chosen module is asked for the address direct.
+      if (walletId) kit.setWallet(walletId);
+      const { address: addr } = walletId
+        ? await kit.fetchAddress()
+        : await kit.authModal();
       setAddress(addr);
       window.localStorage.setItem(
         STORAGE_KEY,
-        JSON.stringify({ walletId: FREIGHTER_ID, address: addr }),
+        JSON.stringify({ walletId: selectedWalletId(), address: addr }),
       );
     } catch {
       // user dismissed the modal or declined — stay disconnected

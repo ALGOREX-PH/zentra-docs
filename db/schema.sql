@@ -158,6 +158,22 @@ CREATE UNIQUE INDEX IF NOT EXISTS users_email_lower_unique_idx
 CREATE UNIQUE INDEX IF NOT EXISTS users_wallet_unique_idx
   ON users (wallet);
 
+-- UTC-daily fee-sponsor accounting. The empty source_account is reserved for
+-- the global row; source rows contain the inner transaction's account.
+CREATE TABLE IF NOT EXISTS sponsor_spend (
+  spend_day      date   NOT NULL,
+  budget_scope   text   NOT NULL
+                 CONSTRAINT sponsor_spend_scope CHECK (budget_scope IN ('source', 'global')),
+  source_account text   NOT NULL,
+  spent_stroops  bigint NOT NULL
+                 CONSTRAINT sponsor_spend_nonnegative CHECK (spent_stroops >= 0),
+  PRIMARY KEY (spend_day, budget_scope, source_account),
+  CONSTRAINT sponsor_spend_account_shape CHECK (
+    (budget_scope = 'global' AND source_account = '') OR
+    (budget_scope = 'source' AND source_account ~ '^G[A-Z2-7]{55}$')
+  )
+);
+
 -- Serves: recent signups and growth-over-time,
 -- SELECT ... FROM users ORDER BY created_at DESC LIMIT 10
 CREATE INDEX IF NOT EXISTS users_created_at_desc_idx

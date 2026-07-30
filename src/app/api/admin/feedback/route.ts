@@ -16,6 +16,7 @@
 import { requireAdmin } from '@/lib/api/auth';
 import { ApiError, badRequest, upstreamUnavailable, validationFailed } from '@/lib/api/errors';
 import { log } from '@/lib/api/logger';
+import { requireSameOrigin } from '@/lib/api/origin';
 import { json, route } from '@/lib/api/route';
 import { readJsonBody } from '@/lib/api/validation';
 import { sql } from '@/lib/db';
@@ -31,6 +32,13 @@ interface ModerationInput {
 
 export const PATCH = route('admin.feedback.moderate', async (request, { requestId }) => {
   requireAdmin(request, requestId);
+
+  // After the credential rather than before it, unlike the public writes. An
+  // unauthenticated caller must not be able to tell a wrong origin from a wrong
+  // token, and the operator's own tooling is a non-browser client that sends no
+  // `Origin` at all — so this only ever refuses a browser that was pointed here
+  // from a page it should not have been.
+  requireSameOrigin(request, requestId);
 
   const { id, hidden } = parseModerationInput(await readJsonBody(request));
   await setHidden(id, hidden, requestId);

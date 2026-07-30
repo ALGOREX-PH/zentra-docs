@@ -3,7 +3,8 @@ use super::*;
 use soroban_sdk::{
     contract, contractimpl,
     testutils::{Address as _, Events as _},
-    Address, Env, String,
+    xdr::{ScErrorCode, ScErrorType},
+    Address, Env, Error as SdkError, InvokeError, String,
 };
 
 // A stand-in reputation contract: every `bump` returns an incrementing counter,
@@ -17,6 +18,19 @@ impl MockReputation {
         let n: u32 = env.storage().instance().get(&0u32).unwrap_or(0) + 1;
         env.storage().instance().set(&0u32, &n);
         n
+    }
+}
+
+// Mirrors the authorization boundary of the real reputation contract so the
+// action log's cross-contract dependency can be negatively tested in isolation.
+#[contract]
+pub struct AuthenticatedReputation;
+
+#[contractimpl]
+impl AuthenticatedReputation {
+    pub fn bump(_env: Env, logger: Address, _author: Address) -> u32 {
+        logger.require_auth();
+        1
     }
 }
 
@@ -37,6 +51,37 @@ fn setup(env: &Env) -> ActionLogClient<'_> {
     let reputation = env.register(MockReputation, ());
     let id = env.register(ActionLog, (reputation,));
     ActionLogClient::new(env, &id)
+}
+
+#[test]
+fn record_rejects_missing_author_authorization() {
+    let env = Env::default();
+    let client = setup(&env);
+    let author = Address::generate(&env);
+
+    let result = client.try_record(&author, &String::from_str(&env, "valid message"));
+
+    assert_eq!(result, Err(Err(InvokeError::Abort)));
+    assert_eq!(client.get_count(), 0);
+}
+
+#[test]
+fn reputation_bump_rejects_missing_logger_authorization() {
+    let env = Env::default();
+    let reputation = env.register(AuthenticatedReputation, ());
+    let client = AuthenticatedReputationClient::new(&env, &reputation);
+    let logger = Address::generate(&env);
+    let author = Address::generate(&env);
+
+    let result = client.try_bump(&logger, &author);
+
+    assert_eq!(
+        result,
+        Err(Ok(SdkError::from_type_and_code(
+            ScErrorType::Context,
+            ScErrorCode::InvalidAction,
+        )))
+    );
 }
 
 #[test]

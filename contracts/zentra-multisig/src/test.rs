@@ -1,8 +1,8 @@
 #![cfg(test)]
 use super::*;
 use soroban_sdk::{
-    testutils::{Address as _, Events as _},
-    vec, Address, Bytes, Env, Event as _, Symbol,
+    testutils::{Address as _, Events as _, MockAuth, MockAuthInvoke},
+    vec, Address, Bytes, Env, Event as _, IntoVal, InvokeError, Symbol,
 };
 
 /// Three fresh signers — the canonical 2-of-3 committee used by most tests.
@@ -26,6 +26,12 @@ fn kind(env: &Env) -> Symbol {
 fn payload(env: &Env) -> Bytes {
     Bytes::from_slice(env, &[0xde, 0xad, 0xbe, 0xef])
 }
+
+/// An unauthorized invocation aborts in the host before the contract can return
+/// one of its own `Error` variants, so it surfaces as `Err(Err(Abort))` — not as
+/// a contract error. Asserting this exact shape keeps the test from passing for
+/// an unrelated reason such as bad arguments.
+const MISSING_AUTHORIZATION: Result<Error, InvokeError> = Err(InvokeError::Abort);
 
 // ---------------------------------------------------------------- constructor
 
@@ -106,6 +112,49 @@ fn non_signer_cannot_approve() {
     assert_eq!(
         client.try_approve(&outsider, &id),
         Err(Ok(Error::NotASigner))
+    );
+    assert_eq!(client.approvals_of(&id).len(), 0);
+}
+
+#[test]
+fn propose_requires_proposer_authorization() {
+    let env = Env::default();
+    let (a, b, c) = signers(&env);
+    let (client, _) = deploy(&env, vec![&env, a.clone(), b, c], 2);
+
+    assert_eq!(
+        client.try_propose(&a, &kind(&env), &payload(&env)),
+        Err(MISSING_AUTHORIZATION)
+    );
+    assert_eq!(client.get_count(), 0);
+}
+
+#[test]
+fn approve_requires_signer_authorization() {
+    let env = Env::default();
+    let (a, b, c) = signers(&env);
+    let (client, contract) = deploy(&env, vec![&env, a.clone(), b.clone(), c], 2);
+    let proposal_kind = kind(&env);
+    let proposal_payload = payload(&env);
+    env.mock_auths(&[MockAuth {
+        address: &a,
+        invoke: &MockAuthInvoke {
+            contract: &contract,
+            fn_name: "propose",
+            args: (
+                a.clone(),
+                proposal_kind.clone(),
+                proposal_payload.clone(),
+            )
+                .into_val(&env),
+            sub_invokes: &[],
+        },
+    }]);
+    let id = client.propose(&a, &proposal_kind, &proposal_payload);
+
+    assert_eq!(
+        client.try_approve(&b, &id),
+        Err(MISSING_AUTHORIZATION)
     );
     assert_eq!(client.approvals_of(&id).len(), 0);
 }

@@ -11,6 +11,9 @@ import { cn } from '@/lib/cn';
 
 const MAX = 280;
 
+const focusRing =
+  'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan';
+
 type Status = 'idle' | 'sending' | 'success' | 'error';
 
 export function FeedbackForm({ onSubmitted }: { onSubmitted?: () => void }) {
@@ -72,15 +75,27 @@ export function FeedbackForm({ onSubmitted }: { onSubmitted?: () => void }) {
     <HudPanel accent="violet">
       <div className="p-5 sm:p-6">
         <Eyebrow>LEAVE FEEDBACK</Eyebrow>
-        <p className="mt-2 font-mono text-[11px] text-muted">
+        <p id="feedback-comment-help" className="mt-2 font-mono text-[11px] text-muted">
           Connect a wallet to anchor your feedback on-chain — otherwise it&apos;s saved off-chain.
         </p>
 
         <form onSubmit={handleSubmit} className="mt-4">
-          <span className="mb-1.5 block font-mono text-[11px] uppercase tracking-[0.08em] text-faint">
+          <span
+            id="feedback-rating-label"
+            className="mb-1.5 block font-mono text-[11px] uppercase tracking-[0.08em] text-faint"
+          >
             Rating
           </span>
-          <div className="flex items-center gap-1">
+          {/*
+            A group rather than a radiogroup: these stay ordinary buttons, so
+            every star keeps its own tab stop and Enter/Space, and the filled
+            state is carried by aria-pressed instead of a glyph nobody hears.
+          */}
+          <div
+            role="group"
+            aria-labelledby="feedback-rating-label"
+            className="flex items-center gap-1"
+          >
             {[1, 2, 3, 4, 5].map((value) => {
               const filled = value <= rating;
               return (
@@ -88,10 +103,12 @@ export function FeedbackForm({ onSubmitted }: { onSubmitted?: () => void }) {
                   key={value}
                   type="button"
                   aria-label={`Rate ${value} of 5`}
+                  aria-pressed={filled}
                   onClick={() => setRating(value)}
                   className={cn(
                     'text-2xl leading-none transition-colors',
                     filled ? 'text-cyan' : 'text-faint',
+                    focusRing,
                   )}
                 >
                   {filled ? '★' : '☆'}
@@ -112,11 +129,32 @@ export function FeedbackForm({ onSubmitted }: { onSubmitted?: () => void }) {
             value={comment}
             onChange={(event) => setComment(event.target.value)}
             placeholder="What worked, what didn't…"
-            className="w-full resize-none border border-fd-border bg-abyss px-3 py-2.5 font-mono text-sm text-text placeholder:text-faint outline-none transition-colors focus:border-violet/60"
+            aria-invalid={over}
+            aria-describedby={[
+              'feedback-comment-help',
+              'feedback-comment-count',
+              over ? 'feedback-comment-error' : null,
+            ]
+              .filter(Boolean)
+              .join(' ')}
+            className={cn(
+              'w-full resize-none border border-fd-border bg-abyss px-3 py-2.5 font-mono text-sm text-text placeholder:text-faint transition-colors focus:border-violet/60',
+              focusRing,
+            )}
           />
 
-          <div className="mt-1 flex justify-end font-mono text-[11px]">
-            <span className={cn('text-faint', over && 'text-denied')}>
+          <div className="mt-1 flex items-start justify-between gap-3 font-mono text-[11px]">
+            {over ? (
+              <p id="feedback-comment-error" className="text-denied">
+                Comment must be {MAX} characters or fewer.
+              </p>
+            ) : (
+              <span />
+            )}
+            <span
+              id="feedback-comment-count"
+              className={cn('shrink-0 text-faint', over && 'text-denied')}
+            >
               {comment.length}/280
             </span>
           </div>
@@ -124,20 +162,33 @@ export function FeedbackForm({ onSubmitted }: { onSubmitted?: () => void }) {
           <button
             type="submit"
             disabled={disabled}
-            className="mt-4 w-full bg-violet px-4 py-3 font-mono text-xs uppercase tracking-[0.1em] text-white transition-colors hover:bg-[#8b5cf6] disabled:cursor-not-allowed disabled:opacity-50"
+            className={cn(
+              'mt-4 w-full bg-violet px-4 py-3 font-mono text-xs uppercase tracking-[0.1em] text-white transition-colors hover:bg-[#8b5cf6] disabled:cursor-not-allowed disabled:opacity-50',
+              focusRing,
+            )}
           >
             {inFlight ? 'Sending…' : 'Send feedback'}
           </button>
 
-          {status === 'success' && (
-            <p className="mt-2 font-mono text-xs text-live">
-              Thanks — your feedback was recorded.
-            </p>
-          )}
+          {/*
+            Both outcomes live in regions that are mounted from the first
+            render. A live region created at the same instant as its text is
+            routinely missed, and this form's only feedback is these two lines.
+          */}
+          <p
+            aria-live="polite"
+            aria-atomic="true"
+            className={cn('font-mono text-xs text-live', status === 'success' && 'mt-2')}
+          >
+            {status === 'success' ? 'Thanks — your feedback was recorded.' : ''}
+          </p>
 
-          {status === 'error' && error && (
-            <p className="mt-2 font-mono text-xs text-denied">{error}</p>
-          )}
+          <p
+            role="alert"
+            className={cn('font-mono text-xs text-denied', status === 'error' && error && 'mt-2')}
+          >
+            {status === 'error' && error ? error : ''}
+          </p>
         </form>
       </div>
     </HudPanel>

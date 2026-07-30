@@ -6,6 +6,7 @@ import {
   payloadTooLarge,
   rateLimited,
   toErrorBody,
+  unsupportedMediaType,
   upstreamUnavailable,
   validationFailed,
 } from '@/lib/api/errors';
@@ -56,6 +57,21 @@ describe('payloadTooLarge', () => {
     expect(err.status).toBe(413);
     expect(err.code).toBe('payload_too_large');
     expect(err.message).toContain('1024');
+  });
+});
+
+describe('unsupportedMediaType', () => {
+  it('produces a 415 with the unsupported_media_type code and names the type wanted', () => {
+    const err = unsupportedMediaType('application/json');
+    expect(err.status).toBe(415);
+    expect(err.code).toBe('unsupported_media_type');
+    expect(err.message).toContain('application/json');
+  });
+
+  it('survives toErrorBody as the same code and status', () => {
+    const result = toErrorBody(unsupportedMediaType('application/json'));
+    expect(result.status).toBe(415);
+    expect(result.body.error.code).toBe('unsupported_media_type');
   });
 });
 

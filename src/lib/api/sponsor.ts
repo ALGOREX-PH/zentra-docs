@@ -65,7 +65,15 @@ export interface SponsorDecision {
     | 'malformed'
     | 'fee_too_high'
     | 'operation_not_allowed'
-    | 'wrong_network';
+    | 'wrong_network'
+    | 'source_budget_exceeded'
+    | 'global_budget_exceeded'
+    | 'ledger_unavailable';
+}
+
+export interface SponsorshipCharge {
+  sourceAccount: string;
+  feeStroops: number;
 }
 
 /**
@@ -168,6 +176,23 @@ export function inspectInnerTransaction(xdr: string): SponsorDecision {
     // are worth propagating as an exception.
     return refuse('malformed');
   }
+}
+
+/**
+ * Return the financial-accounting identity and worst-case charge of an already
+ * approved inner transaction. The identity deliberately comes from the signed
+ * envelope itself; request headers and network addresses are not inputs.
+ */
+export function sponsorshipCharge(xdr: string): SponsorshipCharge {
+  const parsed = TransactionBuilder.fromXDR(xdr, stellar.networkPassphrase);
+  if (parsed instanceof FeeBumpTransaction) {
+    throw new Error('Inner transaction is already a fee-bump.');
+  }
+
+  return {
+    sourceAccount: parsed.source,
+    feeStroops: feeBumpBaseFee(parsed) * (parsed.operations.length + 1),
+  };
 }
 
 /**

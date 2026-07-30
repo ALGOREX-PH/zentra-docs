@@ -16,6 +16,7 @@
 
 import { stellar } from '@/config/stellar';
 import { log } from '@/lib/api/logger';
+import { isTxHash } from '@/lib/api/validation';
 
 /** The outcome of checking a transaction hash against Horizon. */
 export type AnchorVerdict =
@@ -51,6 +52,17 @@ export async function verifyAnchor(txHash: string, wallet: string | null): Promi
  * regardless of which of the many negative paths produced the verdict.
  */
 async function lookup(txHash: string, wallet: string | null): Promise<AnchorVerdict> {
+  // The hash is pasted into a URL *path*, so its shape is re-checked here and
+  // not merely at the route that happens to call this today. A value that is
+  // not 64 hex characters can contain a `/` or a `..` and address some other
+  // Horizon endpoint entirely — turning a transaction lookup into a request for
+  // whatever the caller named, whose response would then be read as if it were
+  // a transaction. Every route already validates before calling, so this is the
+  // guard for the next caller rather than for the current ones: nothing here
+  // relies on the caller having done it. `not_found` is the honest verdict,
+  // because a string that cannot be a hash cannot name a transaction.
+  if (!isTxHash(txHash)) return { verified: false, reason: 'not_found' };
+
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), ANCHOR_TIMEOUT_MS);
 

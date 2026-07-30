@@ -1,5 +1,3 @@
-import { cn } from '@/lib/cn';
-
 type RedactedItem = {
   label: string;
   width: number;
@@ -44,7 +42,10 @@ export function VizPrivatePublic() {
                 className="flex items-center justify-between gap-3"
               >
                 <span className="text-[11px] text-faint">{item.label}</span>
+                {/* The bar is the whole point — so say what it stands for. */}
+                <span className="sr-only">hidden</span>
                 <span
+                  aria-hidden
                   className="inline-block h-3 rounded-sm bg-violet/30"
                   style={{ width: item.width }}
                 />
@@ -55,7 +56,7 @@ export function VizPrivatePublic() {
         </div>
 
         <div className="flex flex-col items-center justify-center px-1">
-          <div className="border border-cyan/40 bg-abyss px-3 py-2 text-center">
+          <div aria-hidden className="border border-cyan/40 bg-abyss px-3 py-2 text-center">
             <span className="font-display text-lg text-cyan">π</span>
           </div>
           <span className="mt-1 font-mono text-[10px] text-faint">proof</span>
@@ -76,9 +77,7 @@ export function VizPrivatePublic() {
                 className="flex items-center justify-between gap-3"
               >
                 <span className="text-[11px] text-faint">{item.label}</span>
-                <span className={cn('font-mono text-[11px] text-cyan')}>
-                  {item.value}
-                </span>
+                <span className="font-mono text-[11px] text-cyan">{item.value}</span>
               </div>
             ))}
           </div>

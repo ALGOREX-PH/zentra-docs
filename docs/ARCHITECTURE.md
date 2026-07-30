@@ -268,7 +268,7 @@ Four Rust contracts under `contracts/`, each `#![no_std]` on `soroban-sdk`
 
 | Contract | Source | Purpose | Testnet address |
 | --- | --- | --- | --- |
-| Action Log v2 | `contracts/zentra-action-log` | `record(author, message)` — `require_auth`, validates 1–200 chars, stores an `Entry`, bumps a global count, cross-contract-calls the reputation contract, emits `recorded`. Reads: `get_count`, `get_entry`, `get_recent` (capped at 20) | `CCSXFTQTWVSHUMH2C64RJKY7JKCVHD5REFIW3P3YPVY6PWHVSJ7ZDDES` |
+| Action Log v2 | `contracts/zentra-action-log` | `record(author, message)` — `require_auth`, validates 1–200 **bytes** (`String::len()` is a byte count, so non-ASCII costs more than it looks), stores an `Entry`, bumps a global count, cross-contract-calls the reputation contract, emits `recorded`. Reads: `get_count`, `get_entry`, `get_recent` (capped at 20) | `CCSXFTQTWVSHUMH2C64RJKY7JKCVHD5REFIW3P3YPVY6PWHVSJ7ZDDES` |
 | Reputation | `contracts/zentra-reputation` | `bump(logger, author)` — admin-set single authorised logger, `logger.require_auth()` plus a registered-address equality check; increments and returns the score, emits `bumped`. Read: `score_of` | `CA2QOMGVQ5XWGFDYT5XEJ7EQ6B6H4ZNDAPS337P3BT55XY3DJY4AIIPI` |
 | Feedback | `contracts/zentra-feedback` | `submit(author, rating, comment)` — `require_auth`, validates rating 1–5 and comment 1–280, keeps a running count and rating sum, emits `feedback`. Reads: `get_count`, `summary`, `get_recent` | `CC6S6CKPWKUUH6NDLAENAGBN3EBZNO4GXZ7SLIJ4O3OK2I6U6K5F4CUG` |
 | Proof Registry | `contracts/zentra-proof-registry` | `anchor(prover, commitment, signals)` — `require_auth`, stores a `BytesN<32>` commitment with the public-signal count and ledger, emits `anchored`. Reads: `get_count`, `get_recent` | `CBSGDR6WBOXHSRPDHOHY24DFHIJACY3DAK2MRRO6MLFRK7YUUBSNTSHS` |
@@ -397,8 +397,8 @@ from the other direction: it degrades to 503 with the fixed string
 
 | Suite | Scope | Count |
 | --- | --- | --- |
-| Vitest (`vitest.config.ts`, node environment, `@` alias) | `src/lib/api/{auth,client,errors,logger,moderation,rate-limit,validation,verify-anchor}` and `src/lib/stellar/{errors,format}` | 201 tests in 10 files, verified passing |
-| `cargo test` | `zentra-action-log` 5, `zentra-reputation` 3, `zentra-feedback` 4, `zentra-proof-registry` 2 | 14 `#[test]` functions; each contract also carries Soroban test snapshots |
+| Vitest (`vitest.config.ts`, node environment, `@` alias) | `src/lib/api/{auth,client,errors,logger,moderation,rate-limit,validation,verify-anchor}` and `src/lib/stellar/{errors,format}` | 255 tests in 12 files, verified passing |
+| `cargo test` | `zentra-action-log` 6, `zentra-reputation` 4, `zentra-feedback` 4, `zentra-proof-registry` 2, `zentra-multisig` 14 | 30 `#[test]` functions across five contracts; each contract also carries Soroban test snapshots |
 
 **CI** (`.github/workflows/ci.yml`, on every push and pull request, permissions
 `contents: read`): a `contracts` job (Rust stable, cargo cache, `cargo test` for

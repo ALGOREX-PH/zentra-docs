@@ -2,10 +2,13 @@
  * Readiness probe for uptime monitors, load balancers and deploy gates.
  *
  * `GET /api/health` reports whether this instance can actually serve traffic,
- * not merely whether the process is listening: it round-trips a trivial query
- * to Postgres and reports the latency. The response is `200` while every check
+ * not merely whether the process is listening: it round-trips a query to
+ * Postgres that proves the tables the API depends on are really there, and asks
+ * the Soroban RPC which chain it is. The response is `200` while every check
  * passes and `503` as soon as one fails, so a monitor polling the status code
- * alone alarms correctly without parsing the body.
+ * alone alarms correctly without parsing the body. Every probe answers for
+ * itself — a dependency that is down or wrong degrades the verdict rather than
+ * being skipped, so there is no failure this can report as healthy.
  *
  * Safe to expose publicly. The body carries no environment variables, versions,
  * hostnames, region names or dependency URLs — nothing that helps fingerprint
@@ -103,11 +106,12 @@ async function checkChain(requestId: string): Promise<CheckResult> {
 }
 
 /**
- * Time a `SELECT 1` against Postgres, degrading rather than throwing.
+ * Time a round trip to Postgres, degrading rather than throwing.
  *
  * Nothing here is allowed to escape: a missing `DATABASE_URL`, a rejected
- * connection and a socket that hangs past the timeout all resolve to the same
- * client-facing `error` result, and the underlying cause is logged instead.
+ * connection, an unapplied schema and a socket that hangs past the timeout all
+ * resolve to the same client-facing `error` result, and the underlying cause is
+ * logged instead.
  */
 async function checkDatabase(requestId: string): Promise<CheckResult> {
   const startedAt = Date.now();
@@ -122,7 +126,17 @@ async function checkDatabase(requestId: string): Promise<CheckResult> {
 }
 
 /**
- * Issue the cheapest query that still proves the connection works.
+ * Issue the cheapest query that still proves the database can serve this app.
+ *
+ * `SELECT 1` proves less than it looks like it does. It answers as long as
+ * *some* Postgres is reachable, so a deployment pointed at a brand new branch,
+ * or at a database `db/schema.sql` was never applied to, passes it and reports
+ * itself healthy while every feedback and signup request 503s — which is
+ * exactly the state a readiness probe exists to catch, and the one it was
+ * quietly certifying. Asking the catalogue for the two tables the API actually
+ * reads and writes costs the same single round trip and cannot pass in that
+ * state. `to_regclass` returns null for an absent relation rather than raising,
+ * so a missing table is a row to inspect rather than an error to interpret.
  *
  * `sql()` throws synchronously when `DATABASE_URL` is unset; keeping the call
  * inside this `async` function turns that into a rejection the caller's
@@ -130,7 +144,19 @@ async function checkDatabase(requestId: string): Promise<CheckResult> {
  */
 async function probeDatabase(): Promise<void> {
   const db = sql();
-  await db`SELECT 1`;
+
+  const rows = (await db`
+    SELECT to_regclass('public.feedback') IS NOT NULL AS feedback,
+           to_regclass('public.users') IS NOT NULL AS users
+  `) as unknown as { feedback: boolean; users: boolean }[];
+
+  const schema = rows[0];
+  if (schema?.feedback !== true || schema?.users !== true) {
+    // Thrown rather than returned: the caller turns any rejection into the same
+    // opaque `error` result, so this reaches the log with a cause an operator
+    // can act on while the client still learns only that we are degraded.
+    throw new Error('Database schema is not applied.');
+  }
 }
 
 /**

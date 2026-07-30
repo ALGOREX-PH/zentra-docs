@@ -6,20 +6,21 @@ import { ScenarioPanels } from '@/components/landing/scenario-panels';
 import { VerifierMonolith } from '@/components/landing/verifier-monolith';
 import { ForDevelopers } from '@/components/landing/for-developers';
 import { Closing } from '@/components/landing/closing';
-import { Footer } from '@/components/landing/footer';
 
 export default function HomePage() {
   return (
     <>
+      {/* Viewport-level decoration, so it sits outside the content landmark. */}
       <HudFrame />
-      <SystemBar />
-      <Hero />
-      <TheGap />
-      <ScenarioPanels />
-      <VerifierMonolith />
-      <ForDevelopers />
-      <Closing />
-      <Footer />
+      <main id="content" tabIndex={-1} className="flex-1 focus:outline-none">
+        <SystemBar />
+        <Hero />
+        <TheGap />
+        <ScenarioPanels />
+        <VerifierMonolith />
+        <ForDevelopers />
+        <Closing />
+      </main>
     </>
   );
 }

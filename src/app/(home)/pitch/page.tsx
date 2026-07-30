@@ -1,6 +1,5 @@
 import type { Metadata } from 'next';
 import { PitchDeck } from '@/components/pitch/pitch-deck';
-import { Footer } from '@/components/landing/footer';
 
 export const metadata: Metadata = {
   title: 'Pitch',
@@ -11,14 +10,8 @@ export const metadata: Metadata = {
 /** `/pitch` — the deck judges and ecosystem contacts are pointed at. */
 export default function PitchPage() {
   return (
-    <>
-      <main className="zen-grid">
-        <PitchDeck />
-      </main>
-      {/* The footer is site chrome, not a slide — it stays out of the PDF. */}
-      <div className="print:hidden">
-        <Footer />
-      </div>
-    </>
+    <main id="content" tabIndex={-1} className="zen-grid flex-1 focus:outline-none">
+      <PitchDeck />
+    </main>
   );
 }

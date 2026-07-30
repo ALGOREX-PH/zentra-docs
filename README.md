@@ -188,7 +188,7 @@ live feed driven by contract events.
 
 ```bash
 cd contracts/zentra-action-log
-cargo test                 # 4 unit tests
+cargo test                 # 8 unit tests
 stellar contract build     # optimized wasm (wasm32v1-none)
 stellar contract deploy \
   --wasm target/wasm32v1-none/release/zentra_action_log.wasm \
@@ -242,7 +242,7 @@ passes only when the Action Log is the caller.
 | Contract deployment workflow | `contracts/deploy.sh` — build → deploy → wire both contracts |
 | Mobile responsive frontend | `/board` grid stacks on small screens |
 | Error handling & loading states | `errors.ts`, `tx-status.tsx`, feed loading / empty / error states |
-| Tests (contract + frontend) | 5 + 3 Rust unit tests; 10 Vitest tests (`bun run test`) |
+| Tests (contract + frontend) | 38 Rust tests across five contracts; 324 Vitest tests across 15 files (`bun run test`) |
 | Production architecture | typed libs, single-source config, CI, size-optimized wasm |
 
 ### Build, test, deploy
@@ -310,7 +310,7 @@ both queryable and independently verifiable.
 | Proof of wallet interactions | `/metrics` reads distinct wallets + total actions live from chain |
 | Backend architecture | layered API in [`src/lib/api/`](src/lib/api) — see below |
 | Database design | [`db/schema.sql`](db/schema.sql) + [`db/migrations/`](db/migrations) — named constraints, 4 indexes |
-| Testing | 201 Vitest + 14 Rust contract tests (all four contracts); CI runs typecheck → tests → build |
+| Testing | 324 Vitest tests across 15 files + 38 Rust tests across five contracts; CI runs typecheck → tests → build |
 | Documentation | this README + [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) + [`docs/API.md`](docs/API.md) + [`docs/BELT-CHECKLIST.md`](docs/BELT-CHECKLIST.md) |
 
 ### Backend, in production terms
@@ -362,8 +362,10 @@ and feedback.
 ## Stellar Blue Belt — Growth, iteration & pitch (`/join`, `/pitch`)
 
 Level 5 is about turning a working MVP into a product that grows and improves
-from what its users actually do. Everything below is driven by the real feedback
-already sitting in the database, not by guesswork.
+from what its users actually do. The iteration table below is driven by the real
+feedback already sitting in the database, not by guesswork. The hardening that
+follows it is **not** user-driven — it came from an internal audit and the
+security review — and is kept in a separate table for exactly that reason.
 
 - **Join the programme:** [`/join`](https://zentra-docs.vercel.app/join) — signup + live progress toward 50 users
 - **Pitch deck:** [`/pitch`](https://zentra-docs.vercel.app/pitch) — 11 slides, keyboard-navigable, print-to-PDF
@@ -372,15 +374,15 @@ already sitting in the database, not by guesswork.
 
 | Requirement | Implementation |
 | --- | --- |
-| Minimum 50 testnet users | [`/join`](https://zentra-docs.vercel.app/join) registry + `users` table; live counter on the page |
+| Minimum 50 testnet users | **Not met — 0 registered.** [`/join`](https://zentra-docs.vercel.app/join) registry + `users` table are built and live; the counter on the page reads what the table holds, which is nothing yet |
 | Real transaction activity | `/metrics` reads distinct wallets and total actions live from the contracts |
 | Active usage proof | every anchored submission links to its transaction on stellar.expert |
-| New features from feedback | the iteration table below, each row with its commit |
+| New features from feedback | the iteration table below, each row with its commit — audit-driven work is tabled separately, not counted as feedback |
 | Improve UX/UI and stability | moderation, error boundaries, 404, loading skeleton, anchor verification |
 | Optimise onboarding | 3-step Freighter → testnet → funding guide that collapses once connected |
 | Professional pitch deck | [`/pitch`](https://zentra-docs.vercel.app/pitch), content in [`src/lib/pitch.ts`](src/lib/pitch.ts) |
 | Product walkthrough demo | [youtu.be/JQapGdfgZJw](https://youtu.be/JQapGdfgZJw) |
-| 20+ meaningful commits | 100+ on this branch |
+| 20+ meaningful commits | 153 on this branch |
 | Updated documentation | this README + [`ARCHITECTURE`](docs/ARCHITECTURE.md) + [`API`](docs/API.md) |
 
 ### User feedback → what we changed
@@ -395,6 +397,34 @@ Every row started as something a real user did. The commit is the receipt.
 | 13 of 14 submissions claimed to be on-chain, but the API only checked that the hash was 64 hex characters — an invented hash earned the badge. | The hash is resolved against Horizon: it must exist, have succeeded, and be sourced from the claiming wallet. Unproven claims are downgraded, not rejected. | [`dd130f9`](https://github.com/ALGOREX-PH/zentra-docs/commit/dd130f9) · [`fd9bce0`](https://github.com/ALGOREX-PH/zentra-docs/commit/fd9bce0) |
 | Users praised onboarding ("smooth onboarding", "very easy to use") yet `/app` never mentioned Freighter, testnet, or funding — every one of them had to already know. | A 3-step guide that marks progress from observable wallet state and collapses to one line once connected, so returning users are not re-taught. | [`b341b5d`](https://github.com/ALGOREX-PH/zentra-docs/commit/b341b5d) |
 | Feedback arrived from wallets with no way to contact anyone or measure growth. | The `users` registry and `POST /api/onboard`, with a public count-only read powering the progress bar on `/join`. | [`2833600`](https://github.com/ALGOREX-PH/zentra-docs/commit/2833600) · [`eea7040`](https://github.com/ALGOREX-PH/zentra-docs/commit/eea7040) |
+
+### Audit- and security-driven hardening — *not* user feedback
+
+The 153 commits on this branch are a separate body of work with a separate
+origin: an internal code audit and the security review in
+[`docs/SECURITY-REVIEW.md`](docs/SECURITY-REVIEW.md). **No user asked for any of
+it.** It is tabled apart from the feedback above because filing it there would
+mean crediting users with requests they never made, which would make the
+feedback record worth less than nothing.
+
+| What the audit or review found | What we shipped | Commit |
+| --- | --- | --- |
+| Every contract test asserted the happy path. Nothing proved an unauthorised caller is *rejected* — pre-mainnet checklist item ZEN-14. | A `mock_auths`-scoped rejection test per state-changing function, across all five contracts. The Rust suite went from 30 tests to 38. | [`2dd9bae`](https://github.com/ALGOREX-PH/zentra-docs/commit/2dd9bae) · [`6a4b05e`](https://github.com/ALGOREX-PH/zentra-docs/commit/6a4b05e) · [`e51a6a7`](https://github.com/ALGOREX-PH/zentra-docs/commit/e51a6a7) · [`18cd634`](https://github.com/ALGOREX-PH/zentra-docs/commit/18cd634) · [`1de93ca`](https://github.com/ALGOREX-PH/zentra-docs/commit/1de93ca) |
+| **ZEN-20 (Medium)** — the fee sponsor drains through unlimited legitimately-shaped calls, which the contract allowlist does not stop and which the in-memory, per-instance rate limit reduces to a formality. | A Postgres daily spend ledger (`sponsor_spend`) with per-source and global UTC-day ceilings, charged in one conditional upsert so concurrent serverless instances cannot race the check, and the global charge gated on the source charge landing. | [`6a9e2b7`](https://github.com/ALGOREX-PH/zentra-docs/commit/6a9e2b7) · [`fa0d4b2`](https://github.com/ALGOREX-PH/zentra-docs/commit/fa0d4b2) · [`a452ec3`](https://github.com/ALGOREX-PH/zentra-docs/commit/a452ec3) · [`a2624de`](https://github.com/ALGOREX-PH/zentra-docs/commit/a2624de) |
+| **ZEN-12 (Low)** — write endpoints accepted cross-origin simple requests, and the rate-limit key was derived from a header the caller chooses. | A same-origin gate on every state-changing route plus a content-type check on the JSON body reader, so a cross-site page can neither post silently nor post at all; and a rate-limit key that no longer trusts caller-supplied headers. | [`0827d58`](https://github.com/ALGOREX-PH/zentra-docs/commit/0827d58) · [`2cd1304`](https://github.com/ALGOREX-PH/zentra-docs/commit/2cd1304) · [`606ad92`](https://github.com/ALGOREX-PH/zentra-docs/commit/606ad92) |
+| `/api/search` was the one route outside the `route()` wrapper — no request id, no log line, no rate limit, and an unbounded `query`, `limit`, `tag` and `locale` handed straight to the index. | The handler is written out inside `route()` with every parameter bounded before it reaches Orama, and failures returning the same error envelope as every other endpoint. | [`4c097b8`](https://github.com/ALGOREX-PH/zentra-docs/commit/4c097b8) |
+| `/api/health` proved only that the database answered. A build pointed at a database that `db/schema.sql` had never been applied to still reported healthy. | The probe resolves the `feedback` and `users` relations, so an unapplied schema is a `503` instead of a green light. | [`b41f822`](https://github.com/ALGOREX-PH/zentra-docs/commit/b41f822) |
+| Log redaction was one level deep, so a secret nested inside an object was written out in full, and thrown errors were logged unscrubbed. | Redaction recurses into nested fields and credentials are scrubbed from error logging, with tests covering both. | [`8fba0bc`](https://github.com/ALGOREX-PH/zentra-docs/commit/8fba0bc) · [`e832e63`](https://github.com/ALGOREX-PH/zentra-docs/commit/e832e63) · [`ad5ebe4`](https://github.com/ALGOREX-PH/zentra-docs/commit/ad5ebe4) |
+| Faint labels, status pills and idle node outlines failed WCAG AA contrast. | Contrast corrected across the landing sections, the proof engine, the scenario panels and the verifier. | [`76820dc`](https://github.com/ALGOREX-PH/zentra-docs/commit/76820dc) · [`f173a9f`](https://github.com/ALGOREX-PH/zentra-docs/commit/f173a9f) · [`11166ff`](https://github.com/ALGOREX-PH/zentra-docs/commit/11166ff) · [`8747d43`](https://github.com/ALGOREX-PH/zentra-docs/commit/8747d43) |
+| Animations ran regardless of `prefers-reduced-motion`. | Reduced-motion fallbacks on the verifier, the scenario panels, the proof-engine scenarios, the developer checklist and the proof-flow visual. | [`dd1a70d`](https://github.com/ALGOREX-PH/zentra-docs/commit/dd1a70d) · [`0e6a1e6`](https://github.com/ALGOREX-PH/zentra-docs/commit/0e6a1e6) · [`ddfaf61`](https://github.com/ALGOREX-PH/zentra-docs/commit/ddfaf61) · [`eb15570`](https://github.com/ALGOREX-PH/zentra-docs/commit/eb15570) |
+| The playground's proof progress was a timer. It advanced whether or not the prover did, and finished whether or not the proof did. | The prover reports its real pipeline stage and the lab renders that stage, so the bar cannot claim progress that is not happening. | [`24cb270`](https://github.com/ALGOREX-PH/zentra-docs/commit/24cb270) · [`cfacf8e`](https://github.com/ALGOREX-PH/zentra-docs/commit/cfacf8e) |
+| `/playground` shipped the anchor form and the proofs feed to every visitor, including the ones who never generate a proof. | Both load on demand, taking the route's first load from **1335 KB to 1033 KB**. | [`e6ad6aa`](https://github.com/ALGOREX-PH/zentra-docs/commit/e6ad6aa) · [`d256c0b`](https://github.com/ALGOREX-PH/zentra-docs/commit/d256c0b) |
+| Pages carried no `main` landmark, there was no skip link, and every route advertised the same canonical URL. | Pages own their `main` landmark, the root layout carries a skip-to-content link, and canonical and Open Graph URLs resolve per route. | [`a76130b`](https://github.com/ALGOREX-PH/zentra-docs/commit/a76130b) · [`2f1bc6d`](https://github.com/ALGOREX-PH/zentra-docs/commit/2f1bc6d) · [`113bbc7`](https://github.com/ALGOREX-PH/zentra-docs/commit/113bbc7) · [`cf56ace`](https://github.com/ALGOREX-PH/zentra-docs/commit/cf56ace) |
+
+One limitation worth stating: ZEN-12 and ZEN-20 are still listed as `Open` in
+[`docs/SECURITY-REVIEW.md`](docs/SECURITY-REVIEW.md). The fixes above landed
+after that table was written and it has not been re-triaged, so read the review's
+status column as of its own date, not as of this one.
 
 ### Onboarding data collection
 
@@ -414,6 +444,11 @@ The export is admin-gated because the registry holds names and email addresses,
 and it escapes leading `=`, `+`, `-` and `@` so a submitted value cannot execute
 as a formula when the sheet is opened in Excel. The exported sheet lives at
 [`docs/users/onboarding-responses.csv`](docs/users/onboarding-responses.csv).
+
+As of this commit that sheet is a header row and nothing else: **zero people
+have registered.** The intake paths, the export and the counter all work; the
+registry is empty because nobody has been through it yet, and an empty table is
+the honest thing to publish until they have.
 
 ### Next phase
 
@@ -439,7 +474,7 @@ and the network is now a single config switch.
 
 | Feature | Where | What it does |
 | --- | --- | --- |
-| **Multi-signature logic** | [`contracts/zentra-multisig`](contracts/zentra-multisig) | An N-of-M proposal/approval Soroban contract. Approving twice is rejected, execution is check-effects-interactions ordered, and every rejection is a typed `#[contracterror]`. 14 tests. |
+| **Multi-signature logic** | [`contracts/zentra-multisig`](contracts/zentra-multisig) | An N-of-M proposal/approval Soroban contract. Approving twice is rejected, execution is check-effects-interactions ordered, and every rejection is a typed `#[contracterror]`. 16 tests. |
 | **Fee sponsorship (gasless)** | [`src/lib/api/sponsor.ts`](src/lib/api/sponsor.ts), [`/api/sponsor`](https://zentra-docs.vercel.app/api/sponsor) | A zero-balance wallet signs an inner transaction; a sponsor account wraps it in a fee-bump and pays. Refuses anything that is not an invocation of our own contracts, so it can't be drained as an open faucet. |
 
 ### Security review
@@ -551,7 +586,7 @@ bun run build   # production build
 ### Structure
 
 ```
-contracts/                    # Soroban contracts (Rust): action-log · reputation · feedback · proof-registry + deploy.sh
+contracts/                    # Soroban contracts (Rust): action-log · reputation · feedback · proof-registry · multisig + deploy.sh
 .github/workflows/ci.yml      # CI — cargo test (contracts) + Vitest + Next build
 public/zk/                    # ZK circuit artifacts (wasm + zkey + vk) for the playground
 content/docs/                 # MDX documentation (Start Here, Concepts, Guides, Reference…)

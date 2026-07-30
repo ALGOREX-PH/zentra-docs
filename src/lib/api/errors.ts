@@ -18,6 +18,7 @@ export type ApiErrorCode =
   | 'method_not_allowed'
   | 'conflict'
   | 'payload_too_large'
+  | 'unsupported_media_type'
   | 'upstream_unavailable'
   | 'internal';
 
@@ -85,6 +86,21 @@ export function payloadTooLarge(maxBytes: number): ApiError {
     413,
     'payload_too_large',
     `Request body exceeds the ${maxBytes} byte limit.`,
+  );
+}
+
+/**
+ * 415 — the body was not sent as the media type this route parses.
+ *
+ * Separate from `bad_request` because the fix is different: the payload may be
+ * perfectly good and only the header wrong, and a client that branches on the
+ * code can correct the request rather than the data.
+ */
+export function unsupportedMediaType(expected: string): ApiError {
+  return new ApiError(
+    415,
+    'unsupported_media_type',
+    `Request body must be sent as ${expected}.`,
   );
 }
 

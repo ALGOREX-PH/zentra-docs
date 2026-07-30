@@ -32,3 +32,10 @@ next-env.d.ts
 
 # rust contracts
 /contracts/**/target
+
+# knowledge graph output
+/graphify-out/
+
+# orchestration state
+/.claude-octopus/
+/.claude/worktrees/
