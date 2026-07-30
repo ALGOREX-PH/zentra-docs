@@ -83,6 +83,7 @@ checklist in §5 says so for that reason.
 | ZEN-13 | CSP omits directives the WebAssembly constraint does not actually block | Low | `next.config.mjs` | Open |
 | ZEN-21 | `.env.example` and `ARCHITECTURE.md` still claim the server holds no signing key | Low | `.env.example`, `docs/ARCHITECTURE.md` | Fixed |
 | ZEN-06 | The wallet kit no longer hardcodes the network; wallet-id persistence is still fixed to Freighter | Informational | `src/lib/stellar/kit.ts`, `src/components/app/wallet-provider.tsx` | Mitigated |
+| ZEN-23 | Concurrent `record()` calls trap: the entry key is derived from a mutable shared counter | Medium | `contracts/zentra-action-log/src/lib.rs` | Open |
 | ZEN-14 | Contract authorisation is never negatively tested | Informational | All `src/test.rs` | Open |
 | ZEN-15 | On-chain storage grows without bound and cannot be pruned | Informational | All contracts | Open |
 | ZEN-16 | `x-request-id` is caller-controlled and echoed to logs and response headers | Informational | `src/lib/api/route.ts` | Accepted |
