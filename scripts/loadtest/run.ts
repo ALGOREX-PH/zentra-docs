@@ -809,15 +809,20 @@ async function main(argv: readonly string[], env: Env): Promise<number> {
 
   // Annotated for the same reason as the driver call above: `./report` owns the
   // aggregation, this file owns the assertion that what comes back is a report.
+  // Epoch milliseconds rather than ISO strings: `buildReport` derives the ISO
+  // stamps from these, so the timestamps and the elapsed time cannot end up
+  // describing different runs.
   const report: LoadTestReport = buildReport({
     config,
-    startedAt,
-    finishedAt: new Date(finishedAtMs).toISOString(),
+    startedAtMs,
+    finishedAtMs,
     funding,
     attempts,
-    actionLogCountBefore: countBefore,
-    actionLogCountAfter: countAfter,
-    distinctAuthorsSeen: distinctAuthors,
+    reads: {
+      actionLogCountBefore: countBefore,
+      actionLogCountAfter: countAfter,
+      distinctAuthorsSeen: distinctAuthors,
+    },
     notes,
   });
 
@@ -825,7 +830,7 @@ async function main(argv: readonly string[], env: Env): Promise<number> {
   const jsonPath = path.join(outDir, 'report.json');
   const markdownPath = path.join(outDir, 'report.md');
   writeFileSync(jsonPath, `${JSON.stringify(report, null, 2)}\n`, 'utf8');
-  writeFileSync(markdownPath, renderReportMarkdown(report), 'utf8');
+  writeFileSync(markdownPath, renderMarkdown(report), 'utf8');
 
   printSummary(report, jsonPath, markdownPath);
 
