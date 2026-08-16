@@ -152,6 +152,62 @@ fn recent_is_newest_first() {
 }
 
 #[test]
+fn recent_returns_min_of_limit_and_count() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let client = setup(&env);
+    let author = Address::generate(&env);
+
+    client.record(&author, &String::from_str(&env, "one"));
+    client.record(&author, &String::from_str(&env, "two"));
+    client.record(&author, &String::from_str(&env, "three"));
+
+    assert_eq!(client.get_recent(&2).len(), 2);
+    assert_eq!(client.get_recent(&3).len(), 3);
+    assert_eq!(client.get_recent(&10).len(), 3);
+    assert_eq!(client.get_recent(&0).len(), 0);
+}
+
+#[test]
+fn recent_limit_clamps_to_max() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let client = setup(&env);
+    let author = Address::generate(&env);
+
+    for _ in 0..(MAX_RECENT + 5) {
+        client.record(&author, &String::from_str(&env, "entry"));
+    }
+
+    let recent = client.get_recent(&50);
+    assert_eq!(recent.len(), MAX_RECENT);
+    assert_eq!(recent.get(0).unwrap().index, (MAX_RECENT + 4) as u64);
+}
+
+#[test]
+fn recent_skipped_entries_do_not_count_toward_limit() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let client = setup(&env);
+    let author = Address::generate(&env);
+
+    client.record(&author, &String::from_str(&env, "one"));
+    client.record(&author, &String::from_str(&env, "two"));
+    client.record(&author, &String::from_str(&env, "three"));
+
+    // Simulate the defensive None arm: punch a hole in storage and make sure a
+    // skipped entry does not eat a slot of the requested limit.
+    env.as_contract(&client.address, || {
+        env.storage().persistent().remove(&DataKey::Entry(1));
+    });
+
+    let recent = client.get_recent(&2);
+    assert_eq!(recent.len(), 2);
+    assert_eq!(recent.get(0).unwrap().message, String::from_str(&env, "three"));
+    assert_eq!(recent.get(1).unwrap().message, String::from_str(&env, "one"));
+}
+
+#[test]
 fn rejects_empty_message() {
     let env = Env::default();
     env.mock_all_auths();
