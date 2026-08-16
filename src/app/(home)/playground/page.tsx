@@ -10,7 +10,7 @@ import { Eyebrow } from '@/components/landing/primitives';
 export const metadata: Metadata = {
   title: 'Playground',
   description:
-    'Generate a real Groth16 zero-knowledge proof in your browser, verify it on-chain against the live Soroban verifier, and see every proof made on the platform.',
+    'Generate a real Groth16 zero-knowledge proof in your browser, anchor its commitment on-chain via the live Soroban contract, and see every proof made on the platform.',
 };
 
 export default function PlaygroundPage() {
@@ -24,8 +24,8 @@ export default function PlaygroundPage() {
           </h1>
           <p className="mt-4 max-w-2xl text-fd-muted-foreground">
             Generate an actual Groth16 / BN254 proof from the Zentra payment-policy
-            circuit, verify it locally, then verify it on-chain against the live
-            Soroban verifier — and see every proof made on the platform.
+            circuit, verify it locally, then anchor its commitment on-chain via the
+            live Soroban contract — and see every proof made on the platform.
           </p>
 
           <div className="mt-10">
