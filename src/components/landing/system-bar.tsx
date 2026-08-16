@@ -1,12 +1,11 @@
 import { cn } from '@/lib/cn';
 import { protocol } from '@/config/protocol';
 import { SIGNALS } from '@/lib/zk/education';
-
-const shortId = (id: string) => `${id.slice(0, 4)}…${id.slice(-3)}`;
+import { shorten } from '@/lib/ui';
 
 const CELLS: Array<{ k: string; v: string; tone?: string }> = [
   { k: 'NETWORK', v: 'STELLAR-TESTNET' },
-  { k: 'CONTRACT', v: shortId(protocol.contractId), tone: 'text-violet-soft' },
+  { k: 'CONTRACT', v: shorten(protocol.contractId, 4, 3), tone: 'text-violet-soft' },
   { k: 'PROOF', v: 'GROTH16·BN254' },
   // Derived from the shared signal contract, so the badge can never drift.
   { k: 'PUBLIC_INPUTS', v: String(SIGNALS.length) },
