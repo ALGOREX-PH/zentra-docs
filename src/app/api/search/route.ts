@@ -24,7 +24,7 @@
 import { upstreamUnavailable } from '@/lib/api/errors';
 import { log } from '@/lib/api/logger';
 import { countRequest, type RateLimitOptions } from '@/lib/api/rate-limit';
-import { json, route } from '@/lib/api/route';
+import { json, methodNotAllowed, route } from '@/lib/api/route';
 import { parseSearchQuery, type SearchQuery } from '@/lib/api/validation';
 import { source } from '@/lib/source';
 import { createFromSource } from 'fumadocs-core/search/server';
@@ -84,6 +84,9 @@ export const GET = route('search.query', async (request, { requestId }) => {
 
   return json(results, { headers: { 'cache-control': SEARCH_CACHE_CONTROL } });
 });
+
+/** Everything else is a 405 in the standard envelope, not Next's bare default. */
+export const { POST, PUT, PATCH, DELETE } = methodNotAllowed(['GET']);
 
 /**
  * Run the validated query against the index, mapping a failure to a 503.
