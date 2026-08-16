@@ -114,6 +114,18 @@ export function route(
 }
 
 /**
+ * The cache policy shared by the public live-dashboard reads.
+ *
+ * How long a CDN may serve the response before revalidating. These endpoints
+ * feed live numbers — the feedback summary, the signup counter — so the window
+ * is short; `stale-while-revalidate` keeps them responsive under load (and
+ * absorbs a launch-day spike) without ever showing badly stale figures. A route
+ * whose data changes on a different clock declares its own policy instead of
+ * borrowing this one.
+ */
+export const READ_CACHE_CONTROL = 'public, s-maxage=30, stale-while-revalidate=120';
+
+/**
  * Build a JSON response that is never cached unless the caller says otherwise.
  *
  * `no-store` is a default rather than a rule: anything in `init.headers` wins,
