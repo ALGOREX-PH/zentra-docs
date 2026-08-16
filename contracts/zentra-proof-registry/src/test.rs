@@ -2,9 +2,7 @@
 use super::*;
 use soroban_sdk::{
     testutils::{Address as _, Events as _},
-    vec,
-    xdr::{ScErrorCode, ScErrorType},
-    Address, BytesN, Env, Error as SdkError, Event as _,
+    vec, Address, BytesN, Env, Event as _, InvokeError,
 };
 
 fn client(env: &Env) -> ProofRegistryClient<'_> {
@@ -155,11 +153,41 @@ fn anchor_requires_prover_authorization() {
 
     let result = client.try_anchor(&prover, &commitment, &14);
 
+    // An unauthorized invocation aborts in the host before the contract can
+    // return one of its own `Error` variants, so it surfaces as
+    // `Err(Err(Abort))` — not as a contract error.
+    assert_eq!(result, Err(Err(InvokeError::Abort)));
+    assert_eq!(client.get_count(), 0);
+}
+
+#[test]
+fn rejects_zero_signals() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let client = client(&env);
+    let prover = Address::generate(&env);
+    let commitment = BytesN::from_array(&env, &[7u8; 32]);
+
     assert_eq!(
-        result,
-        Err(Ok(SdkError::from_type_and_code(
-            ScErrorType::Context,
-            ScErrorCode::InvalidAction,
-        )))
+        client.try_anchor(&prover, &commitment, &0),
+        Err(Ok(Error::NoSignals))
     );
+    assert_eq!(client.get_count(), 0);
+}
+
+#[test]
+fn accepts_max_signals_and_rejects_one_above() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let client = client(&env);
+    let prover = Address::generate(&env);
+    let commitment = BytesN::from_array(&env, &[7u8; 32]);
+
+    // MAX_SIGNALS itself is within budget; one more is not.
+    assert_eq!(client.anchor(&prover, &commitment, &MAX_SIGNALS), 0);
+    assert_eq!(
+        client.try_anchor(&prover, &commitment, &(MAX_SIGNALS + 1)),
+        Err(Ok(Error::TooManySignals))
+    );
+    assert_eq!(client.get_count(), 1);
 }

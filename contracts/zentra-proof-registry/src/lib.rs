@@ -1,6 +1,7 @@
 #![no_std]
 use soroban_sdk::{
-    contract, contractevent, contractimpl, contracttype, vec, Address, BytesN, Env, Vec,
+    contract, contracterror, contractevent, contractimpl, contracttype, vec, Address, BytesN, Env,
+    Vec,
 };
 
 const DAY_LEDGERS: u32 = 17_280; // ~1 day at 5s ledgers
@@ -9,6 +10,11 @@ const INSTANCE_THRESHOLD: u32 = INSTANCE_BUMP - DAY_LEDGERS;
 const ENTRY_BUMP: u32 = 90 * DAY_LEDGERS;
 const ENTRY_THRESHOLD: u32 = ENTRY_BUMP - DAY_LEDGERS;
 const MAX_RECENT: u32 = 20;
+/// Upper bound on a proof's public signal count. The current payment-policy
+/// circuit exposes 14 public signals; 64 leaves generous headroom for future
+/// circuits while still rejecting obviously-corrupt values a buggy client
+/// might send.
+const MAX_SIGNALS: u32 = 64;
 
 #[contracttype]
 #[derive(Clone)]
@@ -40,6 +46,15 @@ pub struct Anchored {
     pub ledger: u32,
 }
 
+#[contracterror]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[repr(u32)]
+pub enum Error {
+    NoSignals = 1,
+    TooManySignals = 2,
+    CounterOverflow = 3,
+}
+
 #[contract]
 pub struct ProofRegistry;
 
@@ -47,10 +62,31 @@ pub struct ProofRegistry;
 impl ProofRegistry {
     /// Anchor a proof committed to by `prover`. Stores it, bumps the global
     /// count, emits an `anchored` event, and returns the new entry's index.
-    pub fn anchor(env: Env, prover: Address, commitment: BytesN<32>, signals: u32) -> u64 {
+    ///
+    /// Duplicate commitments are accepted by design: a commitment is a claim,
+    /// not a proof, and the same commitment may legitimately be anchored more
+    /// than once (re-anchoring after a wallet switch, or two provers claiming
+    /// the same public signals). Consumers that need uniqueness dedupe
+    /// off-chain.
+    pub fn anchor(
+        env: Env,
+        prover: Address,
+        commitment: BytesN<32>,
+        signals: u32,
+    ) -> Result<u64, Error> {
         prover.require_auth();
 
+        if signals == 0 {
+            return Err(Error::NoSignals);
+        }
+        if signals > MAX_SIGNALS {
+            return Err(Error::TooManySignals);
+        }
+
         let index: u64 = env.storage().instance().get(&DataKey::Count).unwrap_or(0);
+        // Wrapping the counter would let a new entry overwrite an old one, so
+        // overflow is a hard error rather than a silent wrap.
+        let next = index.checked_add(1).ok_or(Error::CounterOverflow)?;
 
         let entry = Entry {
             index,
@@ -67,7 +103,7 @@ impl ProofRegistry {
             .persistent()
             .extend_ttl(&DataKey::Entry(index), ENTRY_THRESHOLD, ENTRY_BUMP);
 
-        env.storage().instance().set(&DataKey::Count, &(index + 1));
+        env.storage().instance().set(&DataKey::Count, &next);
         env.storage()
             .instance()
             .extend_ttl(INSTANCE_THRESHOLD, INSTANCE_BUMP);
@@ -81,7 +117,7 @@ impl ProofRegistry {
         }
         .publish(&env);
 
-        index
+        Ok(index)
     }
 
     /// Total number of proofs anchored.
