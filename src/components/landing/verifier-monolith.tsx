@@ -2,8 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { protocol } from '@/config/protocol';
-
-const shortId = (id: string) => `${id.slice(0, 4)}…${id.slice(-3)}`;
+import { HudPanel, Eyebrow } from '@/components/landing/primitives';
+import { shorten } from '@/lib/ui';
 
 const STEPS = [
   'verify_groth16_proof()',
@@ -75,10 +75,7 @@ export function VerifierMonolith() {
   return (
     <section ref={wrap} aria-labelledby="verification-title" className="border-t border-violet/20 px-5 py-14 sm:px-7 sm:py-20">
       <div className="mx-auto max-w-[1160px]">
-        <div className="mb-[18px] flex items-center gap-3.5">
-          <span className="font-mono text-xs tracking-[0.12em] text-violet-soft">[ 03 ] ON-CHAIN VERIFICATION</span>
-          <span className="h-px flex-1 bg-violet/25" />
-        </div>
+        <Eyebrow index="03" className="mb-[18px]">ON-CHAIN VERIFICATION</Eyebrow>
 
         <div className="grid items-center gap-12 lg:grid-cols-[1fr_0.85fr]">
           <div>
@@ -110,11 +107,10 @@ export function VerifierMonolith() {
           </div>
 
           <div className="flex h-[400px] items-center justify-center">
-            <div className="relative h-[360px] w-full max-w-[280px] overflow-hidden border border-violet/40" style={{ background: 'linear-gradient(180deg,#0e121c,#090b12)' }}>
-              <span aria-hidden className="absolute -left-px -top-px h-3.5 w-3.5 border-l-2 border-t-2 border-violet" />
-              <span aria-hidden className="absolute -right-px -top-px h-3.5 w-3.5 border-r-2 border-t-2 border-violet" />
-              <span aria-hidden className="absolute -bottom-px -left-px h-3.5 w-3.5 border-b-2 border-l-2 border-violet" />
-              <span aria-hidden className="absolute -bottom-px -right-px h-3.5 w-3.5 border-b-2 border-r-2 border-violet" />
+            <HudPanel
+              corners={4}
+              className="h-[360px] w-full max-w-[280px] overflow-hidden bg-[linear-gradient(180deg,#0e121c,#090b12)]"
+            >
               <span aria-hidden className="absolute inset-y-0 left-1/4 w-px bg-violet/15" />
               <span aria-hidden className="absolute inset-y-0 left-1/2 w-px bg-violet/20" />
               <span aria-hidden className="absolute inset-y-0 left-3/4 w-px bg-violet/15" />
@@ -138,7 +134,7 @@ export function VerifierMonolith() {
               <span className="absolute left-[30px] top-[208px] font-mono text-[9px] tracking-[0.06em] text-[#7d8ea6]">PROOF SLOT · BN254</span>
 
               <div className="absolute inset-x-0 bottom-0 flex items-center justify-between border-t border-fd-border px-3.5 py-3">
-                <span className="font-mono text-[10px] text-violet-soft">{shortId(protocol.contractId)}</span>
+                <span className="font-mono text-[10px] text-violet-soft">{shorten(protocol.contractId, 4, 3)}</span>
                 <span className="font-mono text-[10px] tracking-[0.08em] transition-colors" style={{ color: accepted ? '#22c55e' : '#7d8ea6' }}>
                   {accepted ? 'ACCEPTED' : 'AWAITING'}
                 </span>
@@ -150,7 +146,7 @@ export function VerifierMonolith() {
               >
                 <span className="font-display text-[22px] font-bold tracking-[0.08em] text-live">VERIFIED</span>
               </div>
-            </div>
+            </HudPanel>
           </div>
         </div>
       </div>
