@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { cn } from '@/lib/cn';
 import { LANDING_MESSAGES, OVERSPEND, type LandingKey } from '@/lib/scenarios';
 
 const NODES: [number, number][] = [
@@ -20,6 +21,10 @@ const V = '#7c3aed', C = '#00e5ff', G = '#22c55e', R = '#ef4444', VS = '#a78bfa'
 export function ProofEngine() {
   const root = useRef<HTMLDivElement>(null);
   const play = useRef<(s: Scenario) => void>(() => {});
+  // Mirrors the imperative run for the buttons: which scenario is playing
+  // (aria-pressed) and whether a walk is in flight (busy affordance).
+  const [playing, setPlaying] = useState<Scenario | null>(null);
+  const [running, setRunning] = useState(false);
 
   useEffect(() => {
     const el = root.current;
@@ -47,7 +52,17 @@ export function ProofEngine() {
     fill.style.strokeDashoffset = String(len);
     cap.style.transition = 'transform .55s cubic-bezier(.45,0,.3,1), opacity .3s';
 
-    const sleep = (ms: number) => new Promise<void>((res) => { const t = window.setTimeout(res, ms); timers.push(t); });
+    // Fired ids are pruned on resolve so the array holds only live timeouts,
+    // instead of growing without bound across the idle loop's lifetime.
+    const sleep = (ms: number) =>
+      new Promise<void>((res) => {
+        const t = window.setTimeout(() => {
+          const i = timers.indexOf(t);
+          if (i !== -1) timers.splice(i, 1);
+          res();
+        }, ms);
+        timers.push(t);
+      });
     const setPill = (t: string, c: string) => { const p = q('[data-z-pill]'); if (p) { p.textContent = t; p.style.color = c; p.style.borderColor = c; p.style.background = c + '1f'; } };
     const setStatus = (t: string, c?: string) => { const s = q('[data-z-status]'); if (s) { s.textContent = t; s.style.color = c || '#e2e8f0'; } };
     const setOutput = (t: string, c?: string) => { const o = q('[data-z-output]'); if (o) { o.textContent = t; o.style.color = c || '#7d8ea6'; } };
@@ -68,10 +83,16 @@ export function ProofEngine() {
       burn.style.opacity = '1'; cap.style.opacity = '0';
     };
 
+    // A click that lands while a walk is playing is never dropped: it parks in
+    // `pending`, preempts the current walk at its next step, and plays next.
+    let pending: Scenario | null = null;
+
     // Under reduced motion every wait is skipped, so the whole run resolves inside one
     // frame and only its end state is ever painted — a still, not a fast-forward.
     const run = async (scenario: Scenario) => {
-      if (busy) return; busy = true; reset();
+      if (busy) { pending = scenario; return; }
+      busy = true; setRunning(true); setPlaying(scenario);
+      reset();
       if (!reduced) await sleep(150);
       cap.style.opacity = '1';
       // The run always halts on its last shared rail entry — a blocked
@@ -79,6 +100,7 @@ export function ProofEngine() {
       const stop = MSG[scenario].length - 1;
       for (let i = 0; i <= stop; i++) {
         if (!alive) { busy = false; return; }
+        if (pending) break;
         const fail = scenario !== 'valid' && i === stop;
         activate(i, fail ? R : i >= 4 ? C : V);
         advance(i, fail ? R : undefined);
@@ -88,17 +110,21 @@ export function ProofEngine() {
         setPill(fail ? 'BLOCKED' : PILLS[i], fail ? R : i === 6 ? G : '#c4b5fd');
         if (!reduced) await sleep(640);
       }
-      if (scenario === 'valid') {
-        cap.style.opacity = '0'; seal.style.transition = 'none'; seal.style.opacity = '1'; seal.style.transform = 'scale(1)';
-        setPill('RELEASED', G); setStatus('receipt emitted', G);
-        setOutput('proof verified · payment released · receipt 0x9f3a…a3c1d7', G);
-      } else if (scenario === 'injection') {
-        burnAt(1); setStatus('recipient not in approved set', R); setOutput('no proof generated · no payment moved', R);
-      } else {
-        burnAt(3); setStatus('state mismatch', R);
-        setOutput(`claimed prev_spent=${OVERSPEND.claimed}  ≠  chain spent=${OVERSPEND.chainSpent}  ·  no payment moved`, R);
+      if (alive && !pending) {
+        if (scenario === 'valid') {
+          cap.style.opacity = '0'; seal.style.transition = 'none'; seal.style.opacity = '1'; seal.style.transform = 'scale(1)';
+          setPill('RELEASED', G); setStatus('receipt emitted', G);
+          setOutput('proof verified · payment released · receipt 0x9f3a…a3c1d7', G);
+        } else if (scenario === 'injection') {
+          burnAt(1); setStatus('recipient not in approved set', R); setOutput('no proof generated · no payment moved', R);
+        } else {
+          burnAt(3); setStatus('state mismatch', R);
+          setOutput(`claimed prev_spent=${OVERSPEND.claimed}  ≠  chain spent=${OVERSPEND.chainSpent}  ·  no payment moved`, R);
+        }
       }
       busy = false;
+      setRunning(false);
+      if (alive && pending) { const next = pending; pending = null; void run(next); }
     };
     play.current = (s: Scenario) => { loop = false; void run(s); };
 
@@ -169,10 +195,13 @@ export function ProofEngine() {
         </svg>
       </div>
 
+      {/* Buttons stay clickable mid-run — a click queues/preempts (see `pending`),
+          with cursor-progress dimming as the busy affordance and aria-pressed
+          marking the scenario currently on the rail. */}
       <div className="flex border-y border-fd-border">
-        <button type="button" onClick={() => play.current('valid')} className="flex-1 border-r border-fd-border py-2.5 font-mono text-[10px] font-semibold tracking-[0.04em] sm:py-3 sm:text-[11px] sm:tracking-[0.06em] text-live transition-colors hover:bg-live/15" style={{ background: 'rgba(34,197,94,0.06)' }}>VALID PAYMENT</button>
-        <button type="button" onClick={() => play.current('injection')} className="flex-1 border-r border-fd-border py-2.5 font-mono text-[10px] font-semibold tracking-[0.04em] sm:py-3 sm:text-[11px] sm:tracking-[0.06em] text-denied transition-colors hover:bg-denied/10" style={{ background: 'rgba(239,68,68,0.05)' }}>PROMPT INJECTION</button>
-        <button type="button" onClick={() => play.current('overspend')} className="flex-1 py-2.5 font-mono text-[10px] font-semibold tracking-[0.04em] sm:py-3 sm:text-[11px] sm:tracking-[0.06em] text-denied transition-colors hover:bg-denied/10" style={{ background: 'rgba(239,68,68,0.05)' }}>OVER-SPEND</button>
+        <button type="button" onClick={() => play.current('valid')} aria-pressed={playing === 'valid'} className={cn('flex-1 border-r border-fd-border py-2.5 font-mono text-[10px] font-semibold tracking-[0.04em] sm:py-3 sm:text-[11px] sm:tracking-[0.06em] text-live transition-colors hover:bg-live/15', running && 'cursor-progress opacity-70')} style={{ background: 'rgba(34,197,94,0.06)' }}>VALID PAYMENT</button>
+        <button type="button" onClick={() => play.current('injection')} aria-pressed={playing === 'injection'} className={cn('flex-1 border-r border-fd-border py-2.5 font-mono text-[10px] font-semibold tracking-[0.04em] sm:py-3 sm:text-[11px] sm:tracking-[0.06em] text-denied transition-colors hover:bg-denied/10', running && 'cursor-progress opacity-70')} style={{ background: 'rgba(239,68,68,0.05)' }}>PROMPT INJECTION</button>
+        <button type="button" onClick={() => play.current('overspend')} aria-pressed={playing === 'overspend'} className={cn('flex-1 py-2.5 font-mono text-[10px] font-semibold tracking-[0.04em] sm:py-3 sm:text-[11px] sm:tracking-[0.06em] text-denied transition-colors hover:bg-denied/10', running && 'cursor-progress opacity-70')} style={{ background: 'rgba(239,68,68,0.05)' }}>OVER-SPEND</button>
       </div>
 
       <div className="px-4 pb-4 pt-3.5">
