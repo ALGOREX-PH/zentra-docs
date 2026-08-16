@@ -32,12 +32,14 @@ pub struct Entry {
 }
 
 /// Emitted whenever feedback is submitted — the frontend streams these for the
-/// live feed (topic `feedback`).
-#[contractevent(topics = ["feedback"])]
+/// live feed (topic `submitted`, data carries the full entry).
+#[contractevent(topics = ["submitted"])]
 pub struct Submitted {
     pub index: u64,
     pub author: Address,
     pub rating: u32,
+    pub comment: String,
+    pub ledger: u32,
 }
 
 #[contracterror]
@@ -55,7 +57,7 @@ pub struct Feedback;
 #[contractimpl]
 impl Feedback {
     /// Submit feedback authored by `author`. Stores it, bumps the global count,
-    /// folds the rating into the running sum, emits a `feedback` event, and
+    /// folds the rating into the running sum, emits a `submitted` event, and
     /// returns the new entry's index.
     pub fn submit(env: Env, author: Address, rating: u32, comment: String) -> Result<u64, Error> {
         author.require_auth();
@@ -105,6 +107,8 @@ impl Feedback {
             index,
             author,
             rating,
+            comment,
+            ledger: entry.ledger,
         }
         .publish(&env);
 

@@ -2,7 +2,7 @@
 use super::*;
 use soroban_sdk::{
     testutils::{Address as _, Events as _},
-    Address, Env, InvokeError, String,
+    vec, Address, Env, Event as _, InvokeError, String,
 };
 
 fn client(env: &Env) -> FeedbackClient<'_> {
@@ -140,12 +140,29 @@ fn submit_requires_author_authorization() {
 }
 
 #[test]
-fn emits_feedback_event() {
+fn emits_submitted_event() {
     let env = Env::default();
     env.mock_all_auths();
     let client = client(&env);
     let author = Address::generate(&env);
 
     client.submit(&author, &5, &String::from_str(&env, "hi"));
-    assert_eq!(env.events().all().events().len(), 1);
+    let submitted = Submitted {
+        index: 0,
+        author: author.clone(),
+        rating: 5,
+        comment: String::from_str(&env, "hi"),
+        ledger: env.ledger().sequence(),
+    };
+    assert_eq!(
+        env.events().all(),
+        vec![
+            &env,
+            (
+                client.address.clone(),
+                submitted.topics(&env),
+                submitted.data(&env)
+            )
+        ]
+    );
 }

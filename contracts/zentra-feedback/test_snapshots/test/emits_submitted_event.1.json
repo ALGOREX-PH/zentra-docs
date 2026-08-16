@@ -204,7 +204,7 @@
           "v0": {
             "topics": [
               {
-                "symbol": "feedback"
+                "symbol": "submitted"
               }
             ],
             "data": {
@@ -219,10 +219,26 @@
                 },
                 {
                   "key": {
+                    "symbol": "comment"
+                  },
+                  "val": {
+                    "string": "hi"
+                  }
+                },
+                {
+                  "key": {
                     "symbol": "index"
                   },
                   "val": {
                     "u64": "0"
+                  }
+                },
+                {
+                  "key": {
+                    "symbol": "ledger"
+                  },
+                  "val": {
+                    "u32": 0
                   }
                 },
                 {
