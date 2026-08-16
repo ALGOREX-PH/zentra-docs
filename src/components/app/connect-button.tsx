@@ -26,9 +26,6 @@ export function ConnectButton() {
   const panel = useRef<HTMLDivElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
   const connected = useRef<HTMLAnchorElement>(null);
-  // Whether a connection attempt is in flight, so the result can be read off
-  // `connecting` falling back to false rather than from a stale closure.
-  const attempting = useRef(false);
 
   // The kit reports availability by probing each module, so the list is only
   // worth reading once the dialog is actually open. Opening it is also what
@@ -49,25 +46,6 @@ export function ConnectButton() {
       cancelled = true;
     };
   }, [open]);
-
-  useEffect(() => {
-    if (connecting) {
-      attempting.current = true;
-      return;
-    }
-    if (!attempting.current) return;
-    attempting.current = false;
-    setPending(null);
-    if (address) {
-      setOpen(false);
-      return;
-    }
-    // The provider swallows a decline so the rest of the dApp stays
-    // disconnected quietly; the picker is the one place that should say so.
-    setFailed(
-      'Could not connect. Check the wallet is installed, unlocked, and set to testnet.',
-    );
-  }, [connecting, address]);
 
   useEffect(() => {
     if (!open) return;
@@ -107,11 +85,27 @@ export function ConnectButton() {
     }
   }
 
-  function choose(walletId: string) {
+  /**
+   * The provider reports how the attempt ended, so the picker can answer with
+   * the right sentence instead of reverse-engineering the result from state
+   * transitions: a decline is the user's own doing and only needs pointing at
+   * the wallet, while an unavailable wallet needs troubleshooting steps.
+   */
+  async function choose(walletId: string) {
     if (connecting) return;
     setFailed(null);
     setPending(walletId);
-    void connect(walletId);
+    const outcome = await connect(walletId);
+    setPending(null);
+    if (outcome === 'connected') {
+      setOpen(false);
+      return;
+    }
+    setFailed(
+      outcome === 'declined'
+        ? 'The request was declined in the wallet. Approve it there to connect.'
+        : 'Could not connect. Check the wallet is installed, unlocked, and set to testnet.',
+    );
   }
 
   const dialog = open ? (
@@ -176,7 +170,7 @@ export function ConnectButton() {
                   {wallet.isAvailable ? (
                     <button
                       type="button"
-                      onClick={() => choose(wallet.id)}
+                      onClick={() => void choose(wallet.id)}
                       aria-disabled={connecting}
                       className={cn(
                         'flex w-full items-center justify-between gap-3 px-4 py-3 text-left font-mono text-sm text-text transition-colors hover:bg-violet/[0.07]',
