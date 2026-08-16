@@ -3,7 +3,8 @@
 import { useEffect, useId, useState, type ReactNode } from 'react';
 import { activeProfile } from '@/config/network';
 import { contractsConfigured } from '@/config/contract';
-import { readApiError } from '@/lib/api/client';
+import { SIGNUP_GOAL } from '@/config/app';
+import { isOnboardCount, readApiError } from '@/lib/api/client';
 import { getCount, getLatestLedger, getRecent } from '@/lib/stellar/action-log';
 import { getFeedbackCount, getFeedbackAuthors } from '@/lib/stellar/feedback';
 import { HudPanel, Eyebrow } from '@/components/landing/primitives';
@@ -21,29 +22,14 @@ import { cn } from '@/lib/cn';
  */
 const SAMPLE = 20;
 
-/**
- * The onboarding target this panel reports progress against — 50 testnet users
- * (`docs/users/README.md`).
- *
- * A module constant rather than a prop: it is a fixed external requirement, not a
- * display option, and a caller able to lower it could make any count look like it
- * had arrived. The goal is a target, not a ceiling — the bar tops out while the
- * count keeps climbing past it.
+/*
+ * `SIGNUP_GOAL` and `isOnboardCount` come from the shared modules rather than
+ * being declared here: /join renders the same goal and narrows the same
+ * response, and two private copies is how the two panels drift apart. The
+ * goal stays a constant, never a prop — it is a fixed external requirement
+ * (`docs/users/README.md`), and a caller able to lower it could make any
+ * count look like it had arrived.
  */
-const SIGNUP_GOAL = 50;
-
-/**
- * Whether `value` is shaped like the `/api/onboard` counter.
- *
- * Asserted rather than trusted: an edge error page or a cold-start response would
- * otherwise arrive as a count of `undefined` and render as a figure nobody can
- * account for.
- */
-function isOnboardCount(value: unknown): value is { count: number } {
-  if (typeof value !== 'object' || value === null) return false;
-  const { count } = value as { count?: unknown };
-  return typeof count === 'number' && Number.isFinite(count);
-}
 
 /**
  * The moment of a read, in UTC to the second.
