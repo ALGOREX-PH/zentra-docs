@@ -14,7 +14,7 @@
  */
 
 import { requireAdmin } from '@/lib/api/auth';
-import { ApiError, badRequest, upstreamUnavailable, validationFailed } from '@/lib/api/errors';
+import { badRequest, notFound, upstreamUnavailable, validationFailed } from '@/lib/api/errors';
 import { log } from '@/lib/api/logger';
 import { requireSameOrigin } from '@/lib/api/origin';
 import { json, route } from '@/lib/api/route';
@@ -109,6 +109,6 @@ async function setHidden(id: number, hidden: boolean, requestId: string): Promis
   // Thrown outside the `try` on purpose: a not-found is a client-side mistake
   // and must not be swallowed by the storage-failure handler above.
   if (rows.length === 0) {
-    throw new ApiError(404, 'not_found', 'No feedback row with that id.');
+    throw notFound('No feedback row with that id.');
   }
 }
