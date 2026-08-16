@@ -1,6 +1,6 @@
 #![no_std]
 use soroban_sdk::{
-    contract, contractclient, contractevent, contracterror, contractimpl, contracttype, vec,
+    contract, contractclient, contracterror, contractevent, contractimpl, contracttype, vec,
     Address, Env, String, Vec,
 };
 
@@ -74,7 +74,9 @@ pub struct ActionLog;
 impl ActionLog {
     /// Wire the reputation contract this log bumps on each recorded action.
     pub fn __constructor(env: Env, reputation: Address) {
-        env.storage().instance().set(&DataKey::Reputation, &reputation);
+        env.storage()
+            .instance()
+            .set(&DataKey::Reputation, &reputation);
     }
 
     /// The reputation contract this log calls cross-contract.
@@ -125,7 +127,9 @@ impl ActionLog {
             score,
         };
 
-        env.storage().persistent().set(&DataKey::Entry(index), &entry);
+        env.storage()
+            .persistent()
+            .set(&DataKey::Entry(index), &entry);
         env.storage()
             .persistent()
             .extend_ttl(&DataKey::Entry(index), ENTRY_THRESHOLD, ENTRY_BUMP);

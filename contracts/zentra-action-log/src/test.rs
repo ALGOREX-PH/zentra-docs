@@ -147,8 +147,14 @@ fn recent_is_newest_first() {
 
     let recent = client.get_recent(&2);
     assert_eq!(recent.len(), 2);
-    assert_eq!(recent.get(0).unwrap().message, String::from_str(&env, "three"));
-    assert_eq!(recent.get(1).unwrap().message, String::from_str(&env, "two"));
+    assert_eq!(
+        recent.get(0).unwrap().message,
+        String::from_str(&env, "three")
+    );
+    assert_eq!(
+        recent.get(1).unwrap().message,
+        String::from_str(&env, "two")
+    );
 }
 
 #[test]
@@ -203,8 +209,14 @@ fn recent_skipped_entries_do_not_count_toward_limit() {
 
     let recent = client.get_recent(&2);
     assert_eq!(recent.len(), 2);
-    assert_eq!(recent.get(0).unwrap().message, String::from_str(&env, "three"));
-    assert_eq!(recent.get(1).unwrap().message, String::from_str(&env, "one"));
+    assert_eq!(
+        recent.get(0).unwrap().message,
+        String::from_str(&env, "three")
+    );
+    assert_eq!(
+        recent.get(1).unwrap().message,
+        String::from_str(&env, "one")
+    );
 }
 
 #[test]
