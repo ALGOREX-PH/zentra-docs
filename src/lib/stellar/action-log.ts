@@ -17,7 +17,6 @@ import { InvokeFailedError, SubmitTimeoutError } from './errors';
 import type { ActionEntry } from './types';
 
 const contract = new Contract(actionLog.contractId);
-const reputation = new Contract(actionLog.reputationId);
 
 interface RawEntry {
   index: bigint | number;
@@ -108,14 +107,6 @@ export async function simulateRead(
 /** Total number of actions recorded on-chain. */
 export async function getCount(): Promise<number> {
   const value = await simulateRead(contract, 'get_count', []);
-  return Number(value ?? 0);
-}
-
-/** The on-chain reputation score for an author (from the reputation contract). */
-export async function scoreOf(author: string): Promise<number> {
-  const value = await simulateRead(reputation, 'score_of', [
-    Address.fromString(author).toScVal(),
-  ]);
   return Number(value ?? 0);
 }
 
