@@ -18,6 +18,8 @@ This is a **code-quality** audit against best practices — distinct from `docs/
 
 **Suite counts at audit time:** 438 Vitest tests across 18 files, all passing; 38 Rust tests across 5 contracts, all passing; typecheck clean; one live clippy warning.
 
+> **Status (2026-08-16): every phase below is executed.** All seven HIGHs fixed; Biome lint + strict TS flags gate CI alongside typecheck/tests/build; the contracts are one cargo workspace with fmt/clippy gates; every dedup landed with its single source tested for divergence. Suite grew 438 → **781 Vitest tests across 47 files** and 38 → **72 Rust tests**, including route-handler tests for all seven routes, real-Postgres budget tests (which caught an invalid-SQL bug the mocks had hidden — fixed), component tests for the five riskiest components, and an `.env.example` drift test. Migration 004 applied to the live database. The companion zentra-protocol plan is likewise fully executed (verifier: 25 tests incl. a real-proof settlement suite).
+
 ---
 
 ## 1. Backend / API — findings
@@ -142,44 +144,44 @@ Phases are ordered by leverage: fix what's broken, then make regressions impossi
 
 ### Phase 0 — Critical correctness (do first)
 
-- [ ] BE-01 Anchor verification: require `wallet` when `onChain: true`; verify the tx invoked the feedback contract
-- [ ] DA-01 Feedback dual-write: retry resumes at the API step, never re-signs; surface the partial-failure hash
-- [ ] DA-02 Payment submit: timeout → poll for the client-side hash before declaring failure; in-flight guard on the form
-- [ ] DA-03 Action feed: failure counter → reseed; skip overlapping ticks
-- [ ] IN-01 CI: `bun install --frozen-lockfile`
+- [x] BE-01 Anchor verification: require `wallet` when `onChain: true`; verify the tx invoked the feedback contract
+- [x] DA-01 Feedback dual-write: retry resumes at the API step, never re-signs; surface the partial-failure hash
+- [x] DA-02 Payment submit: timeout → poll for the client-side hash before declaring failure; in-flight guard on the form
+- [x] DA-03 Action feed: failure counter → reseed; skip overlapping ticks
+- [x] IN-01 CI: `bun install --frozen-lockfile`
 
 ### Phase 1 — Guardrails (toolchain & CI; makes every later phase safer)
 
-- [ ] IN-03 Add a linter (Biome or ESLint flat config) + `lint` script + CI step
-- [ ] IN-04/CT-11 `cargo fmt --check` + `cargo clippy -- -D warnings` in CI (fix CT-12's live warning first)
-- [ ] CT-03 Cargo workspace: one lockfile (resolves the 26.1.0/26.1.1 drift), one profile, one test/clippy invocation
-- [ ] IN-02 Pin Bun in CI + `packageManager` field
-- [ ] IN-05 CI concurrency cancellation; restrict push triggers to main
-- [ ] IN-06 Fix cargo cache (multisig target, key on Cargo.lock) or adopt rust-cache
-- [ ] IN-07 Aggregate `check` script; CI calls it
-- [ ] IN-09 Gitignore plain `.env`
-- [ ] IN-11 Dependabot (npm + cargo + actions) + audit step
-- [ ] IN-08 `noUncheckedIndexedAccess` + unused-code flags
-- [ ] IN-17 Vitest coverage provider + thresholds
+- [x] IN-03 Add a linter (Biome or ESLint flat config) + `lint` script + CI step
+- [x] IN-04/CT-11 `cargo fmt --check` + `cargo clippy -- -D warnings` in CI (fix CT-12's live warning first)
+- [x] CT-03 Cargo workspace: one lockfile (resolves the 26.1.0/26.1.1 drift), one profile, one test/clippy invocation
+- [x] IN-02 Pin Bun in CI + `packageManager` field
+- [x] IN-05 CI concurrency cancellation; restrict push triggers to main
+- [x] IN-06 Fix cargo cache (multisig target, key on Cargo.lock) or adopt rust-cache
+- [x] IN-07 Aggregate `check` script; CI calls it
+- [x] IN-09 Gitignore plain `.env`
+- [x] IN-11 Dependabot (npm + cargo + actions) + audit step
+- [x] IN-08 `noUncheckedIndexedAccess` + unused-code flags
+- [x] IN-17 Vitest coverage provider + thresholds
 
 ### Phase 2 — Correctness & robustness (behind the guardrails)
 
-- [ ] BE-02 Gate the budget INSERT branch on the ceiling (both scopes)
-- [ ] BE-03 `readJsonBody({ maxBytes })`; delete the sponsor route's copy
-- [ ] CT-01 Fix `get_recent` counting in all three contracts
-- [ ] CT-04 True `Result` signature on the Reputation client trait
-- [ ] DA-04 `submitInvoke`: map send statuses, carry the hash in errors, decode failure results
-- [ ] DA-05 Topic filter + shape validation in `pollEvents`
-- [ ] DA-06 Runtime guards for all decoded chain data (match the API-boundary standard)
-- [ ] DA-08 Re-verify persisted wallet address on mount; typed `connect` outcome
-- [ ] DA-11 Wire `hasFriendbot` and `contractsConfigured` into the UI they were built for
-- [ ] FX-02 Prover worker: watchdog timeout, `messageerror`, Cancel button
-- [ ] FX-03 Queue/preempt scenario clicks during autoplay
-- [ ] BE-11 Logger: widen PII regex, normalise nested Errors
-- [ ] BE-14 DB client cache keyed on URL
-- [ ] BE-12 One sponsor log event per outcome; deliberate shadow-mode outage decision
-- [ ] BE-10 Brand `isApiError` with `Symbol.for`
-- [ ] DA-19 Dynamic base fee (required before mainnet cutover)
+- [x] BE-02 Gate the budget INSERT branch on the ceiling (both scopes)
+- [x] BE-03 `readJsonBody({ maxBytes })`; delete the sponsor route's copy
+- [x] CT-01 Fix `get_recent` counting in all three contracts
+- [x] CT-04 True `Result` signature on the Reputation client trait
+- [x] DA-04 `submitInvoke`: map send statuses, carry the hash in errors, decode failure results
+- [x] DA-05 Topic filter + shape validation in `pollEvents`
+- [x] DA-06 Runtime guards for all decoded chain data (match the API-boundary standard)
+- [x] DA-08 Re-verify persisted wallet address on mount; typed `connect` outcome
+- [x] DA-11 Wire `hasFriendbot` and `contractsConfigured` into the UI they were built for
+- [x] FX-02 Prover worker: watchdog timeout, `messageerror`, Cancel button
+- [x] FX-03 Queue/preempt scenario clicks during autoplay
+- [x] BE-11 Logger: widen PII regex, normalise nested Errors
+- [x] BE-14 DB client cache keyed on URL
+- [x] BE-12 One sponsor log event per outcome; deliberate shadow-mode outage decision
+- [x] BE-10 Brand `isApiError` with `Symbol.for`
+- [x] DA-19 Dynamic base fee (required before mainnet cutover)
 
 ### Phase 3 — Deduplication & structure
 
@@ -202,7 +204,7 @@ Priority order:
 
 ### Phase 5 — Polish & copy accuracy
 
-- [ ] FX-05 Fix the on-chain-verification claim (trust-product copy bug) · FX-09/DA-12/FX-13 a11y announcements · DA-16/FX-14 dead code · FX-11/IN-10 snarkjs dep decision · IN-12/CT-10 deploy.sh all contracts + mainnet prompt · IN-13 size budgets · IN-14 image dedupe · IN-15 README counts · IN-16 SDK passphrase constant · BE-09 `notFound()` + 405 envelope · BE-13 schema doc/index cleanup · CT-12 clippy idioms · CT-14 byte-unit docs · CT-16 toolchain pin · DA-18 small fixes · FX-12 progress clamp · FX-15 timer hygiene
+- [x] FX-05 Fix the on-chain-verification claim (trust-product copy bug) · FX-09/DA-12/FX-13 a11y announcements · DA-16/FX-14 dead code · FX-11/IN-10 snarkjs dep decision · IN-12/CT-10 deploy.sh all contracts + mainnet prompt · IN-13 size budgets · IN-14 image dedupe · IN-15 README counts · IN-16 SDK passphrase constant · BE-09 `notFound()` + 405 envelope · BE-13 schema doc/index cleanup · CT-12 clippy idioms · CT-14 byte-unit docs · CT-16 toolchain pin · DA-18 small fixes · FX-12 progress clamp · FX-15 timer hygiene
 
 ## What NOT to change
 
