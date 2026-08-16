@@ -20,7 +20,7 @@
 import { contractsConfigured } from '@/config/contract';
 import { activeProfile } from '@/config/network';
 import { log } from '@/lib/api/logger';
-import { json, route } from '@/lib/api/route';
+import { json, methodNotAllowed, route } from '@/lib/api/route';
 import { soroban } from '@/lib/stellar/rpc';
 import { query } from '@/lib/db';
 
@@ -76,6 +76,9 @@ export const GET = route('health', async (_request, { requestId }) => {
     },
   );
 });
+
+/** Everything else is a 405 in the standard envelope, not Next's bare default. */
+export const { POST, PUT, PATCH, DELETE } = methodNotAllowed(['GET']);
 
 /**
  * Confirm the Soroban RPC for the configured network is reachable and is that
