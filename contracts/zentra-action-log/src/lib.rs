@@ -48,6 +48,7 @@ pub struct Recorded {
 pub enum Error {
     EmptyMessage = 1,
     MessageTooLong = 2,
+    CounterOverflow = 3,
 }
 
 /// Mirror of the reputation contract's `Error` enum. Kept in lockstep by a
@@ -59,6 +60,7 @@ pub enum Error {
 pub enum ReputationError {
     LoggerNotSet = 1,
     Unauthorized = 2,
+    ScoreOverflow = 3,
 }
 
 /// The slice of the Reputation contract this log calls cross-contract.
@@ -98,6 +100,9 @@ impl ActionLog {
         }
 
         let index: u64 = env.storage().instance().get(&DataKey::Count).unwrap_or(0);
+        // Wrapping the counter would let a new entry overwrite an old one, so
+        // overflow is a hard error rather than a silent wrap.
+        let next = index.checked_add(1).ok_or(Error::CounterOverflow)?;
 
         // Cross-contract call: bump the author's reputation and fold the new
         // score into the entry. Soroban auto-authorizes this log for the call,
@@ -134,7 +139,7 @@ impl ActionLog {
             .persistent()
             .extend_ttl(&DataKey::Entry(index), ENTRY_THRESHOLD, ENTRY_BUMP);
 
-        env.storage().instance().set(&DataKey::Count, &(index + 1));
+        env.storage().instance().set(&DataKey::Count, &next);
         env.storage()
             .instance()
             .extend_ttl(INSTANCE_THRESHOLD, INSTANCE_BUMP);

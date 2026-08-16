@@ -166,6 +166,45 @@ fn rejects_empty_comment() {
 }
 
 #[test]
+fn submit_rejects_counter_overflow() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let client = client(&env);
+    let author = Address::generate(&env);
+
+    // Seed the counter at its ceiling; the next submit must fail with a typed
+    // error rather than wrap and overwrite entry 0.
+    env.as_contract(&client.address, || {
+        env.storage().instance().set(&DataKey::Count, &u64::MAX);
+    });
+
+    assert_eq!(
+        client.try_submit(&author, &5, &String::from_str(&env, "one too many")),
+        Err(Ok(Error::CounterOverflow))
+    );
+    assert_eq!(client.get_count(), u64::MAX);
+}
+
+#[test]
+fn submit_rejects_rating_sum_overflow() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let client = client(&env);
+    let author = Address::generate(&env);
+
+    // A wrapped rating sum would falsify the average silently.
+    env.as_contract(&client.address, || {
+        env.storage().instance().set(&DataKey::RatingSum, &u64::MAX);
+    });
+
+    assert_eq!(
+        client.try_submit(&author, &5, &String::from_str(&env, "x")),
+        Err(Ok(Error::CounterOverflow))
+    );
+    assert_eq!(client.summary().rating_sum, u64::MAX);
+}
+
+#[test]
 fn submit_requires_author_authorization() {
     let env = Env::default();
     let client = client(&env);

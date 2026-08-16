@@ -39,6 +39,7 @@ pub struct LoggerSet {
 pub enum Error {
     LoggerNotSet = 1,
     Unauthorized = 2,
+    ScoreOverflow = 3,
 }
 
 #[contract]
@@ -78,7 +79,15 @@ impl Reputation {
         }
 
         let key = DataKey::Score(author.clone());
-        let score: u32 = env.storage().persistent().get(&key).unwrap_or(0) + 1;
+        // No author reaches u32::MAX organically, but a silent wrap to 0 would
+        // erase a reputation; overflow is a typed error rather than a wrap.
+        let score: u32 = env
+            .storage()
+            .persistent()
+            .get(&key)
+            .unwrap_or(0u32)
+            .checked_add(1)
+            .ok_or(Error::ScoreOverflow)?;
         env.storage().persistent().set(&key, &score);
         env.storage().persistent().extend_ttl(&key, THRESHOLD, BUMP);
 

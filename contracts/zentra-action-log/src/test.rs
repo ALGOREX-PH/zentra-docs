@@ -232,6 +232,26 @@ fn rejects_empty_message() {
 }
 
 #[test]
+fn record_rejects_counter_overflow() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let client = setup(&env);
+    let author = Address::generate(&env);
+
+    // Seed the counter at its ceiling; the next record must fail with a typed
+    // error rather than wrap and overwrite entry 0.
+    env.as_contract(&client.address, || {
+        env.storage().instance().set(&DataKey::Count, &u64::MAX);
+    });
+
+    assert_eq!(
+        client.try_record(&author, &String::from_str(&env, "one too many")),
+        Err(Ok(Error::CounterOverflow))
+    );
+    assert_eq!(client.get_count(), u64::MAX);
+}
+
+#[test]
 fn emits_recorded_event() {
     let env = Env::default();
     env.mock_all_auths();
@@ -253,5 +273,9 @@ fn reputation_error_mirror_matches_real_contract() {
     assert_eq!(
         ReputationError::Unauthorized as u32,
         zentra_reputation::Error::Unauthorized as u32
+    );
+    assert_eq!(
+        ReputationError::ScoreOverflow as u32,
+        zentra_reputation::Error::ScoreOverflow as u32
     );
 }

@@ -59,6 +59,7 @@ pub enum Error {
     InvalidRating = 1,
     EmptyComment = 2,
     CommentTooLong = 3,
+    CounterOverflow = 4,
 }
 
 #[contract]
@@ -85,6 +86,17 @@ impl Feedback {
         }
 
         let index: u64 = env.storage().instance().get(&DataKey::Count).unwrap_or(0);
+        // Wrapping either accumulator would corrupt history — a wrapped counter
+        // lets a new entry overwrite an old one, a wrapped rating sum falsifies
+        // the average — so overflow is a hard error rather than a silent wrap.
+        let next = index.checked_add(1).ok_or(Error::CounterOverflow)?;
+        let sum: u64 = env
+            .storage()
+            .instance()
+            .get(&DataKey::RatingSum)
+            .unwrap_or(0u64)
+            .checked_add(rating as u64)
+            .ok_or(Error::CounterOverflow)?;
 
         let entry = Entry {
             index,
@@ -101,13 +113,7 @@ impl Feedback {
             .persistent()
             .extend_ttl(&DataKey::Entry(index), ENTRY_THRESHOLD, ENTRY_BUMP);
 
-        env.storage().instance().set(&DataKey::Count, &(index + 1));
-        let sum: u64 = env
-            .storage()
-            .instance()
-            .get(&DataKey::RatingSum)
-            .unwrap_or(0)
-            + rating as u64;
+        env.storage().instance().set(&DataKey::Count, &next);
         env.storage().instance().set(&DataKey::RatingSum, &sum);
         env.storage()
             .instance()

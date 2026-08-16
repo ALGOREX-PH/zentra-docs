@@ -74,6 +74,31 @@ fn set_logger_emits_event() {
 }
 
 #[test]
+fn bump_rejects_score_overflow() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (client, _admin) = deploy(&env);
+
+    let logger = Address::generate(&env);
+    client.set_logger(&logger);
+    let author = Address::generate(&env);
+
+    // Seed the score at its ceiling; the next bump must fail with a typed
+    // error rather than wrap the author back to zero.
+    env.as_contract(&client.address, || {
+        env.storage()
+            .persistent()
+            .set(&DataKey::Score(author.clone()), &u32::MAX);
+    });
+
+    assert_eq!(
+        client.try_bump(&logger, &author),
+        Err(Ok(Error::ScoreOverflow))
+    );
+    assert_eq!(client.score_of(&author), u32::MAX);
+}
+
+#[test]
 fn bump_requires_logger_authorization() {
     let env = Env::default();
     let (client, _admin) = deploy(&env);
