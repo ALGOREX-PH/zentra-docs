@@ -1,17 +1,15 @@
 import type { CSSProperties, SVGProps } from 'react';
 
-export type ZentraTone = 'primary' | 'violet' | 'mono' | 'onlight';
+export type ZentraTone = 'primary' | 'violet';
 
 /**
  * Color treatments for the mark. `primary` is the official lockup — the gate
- * and rail in violet, the verified settle node in cyan. `mono` inherits
- * `currentColor` so the mark can sit inside text.
+ * and rail in violet, the verified settle node in cyan; `violet` flattens the
+ * settle node into the rail for single-color placements.
  */
 const TONES: Record<ZentraTone, { ink: string; node: string; settle: string }> = {
   primary: { ink: '#7c3aed', node: '#7c3aed', settle: '#00e5ff' },
   violet: { ink: '#7c3aed', node: '#7c3aed', settle: '#7c3aed' },
-  mono: { ink: 'currentColor', node: 'currentColor', settle: 'currentColor' },
-  onlight: { ink: '#3b1e78', node: '#3b1e78', settle: '#0891a8' },
 };
 
 export interface ZentraMarkProps {
