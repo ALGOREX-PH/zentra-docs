@@ -105,17 +105,23 @@ function loadCircuit(onProgress: (loaded: number, total: number) => void): Promi
 
   let loaded = 0;
   let total = 0;
+  let sized = 0;
+  // Until every artefact has reported its size the running total is a lie —
+  // a percent computed against it would leap backwards as later sizes land.
+  // Report 0 (indeterminate) instead, and a real total only once complete.
+  const report = () => onProgress(loaded, sized === CIRCUIT_FILES.length ? total : 0);
   const ready = Promise.all(
     CIRCUIT_FILES.map((url) =>
       primeFile(
         url,
         (bytes) => {
           total += bytes;
-          onProgress(loaded, total);
+          sized += 1;
+          report();
         },
         (bytes) => {
           loaded += bytes;
-          onProgress(loaded, total);
+          report();
         },
       ),
     ),
