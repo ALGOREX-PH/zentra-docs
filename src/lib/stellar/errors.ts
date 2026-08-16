@@ -1,15 +1,36 @@
 /**
- * Thrown when a submission times out with the outcome unknown: Horizon can
+ * Thrown when a submission times out with the outcome unknown: the network can
  * still apply the transaction after the connection died, so "failed" would be
  * a lie and an invitation to double-pay. Carries the client-computed hash so
  * the UI can link the explorer instead of asking the user to retry blind.
+ *
+ * The default copy speaks about payments; a caller submitting something else
+ * (a contract invoke, say) passes its own equally honest wording.
  */
 export class SubmitTimeoutError extends Error {
-  constructor(public readonly hash: string) {
-    super(
-      'Submission timed out — the payment may still have gone through. Check the explorer before sending again.',
-    );
+  constructor(
+    public readonly hash: string,
+    message = 'Submission timed out — the payment may still have gone through. Check the explorer before sending again.',
+  ) {
+    super(message);
     this.name = 'SubmitTimeoutError';
+  }
+}
+
+/**
+ * Thrown when the network gives a definite verdict against a Soroban invoke:
+ * refused at submission, failed on-chain, or a duplicate of one already in
+ * flight. Carries the transaction hash whenever one exists so the UI can
+ * render the explorer link next to the failure ({@link TxState} in
+ * `./types` supports `hash` on failure for exactly this).
+ */
+export class InvokeFailedError extends Error {
+  constructor(
+    message: string,
+    public readonly hash?: string,
+  ) {
+    super(message);
+    this.name = 'InvokeFailedError';
   }
 }
 
@@ -24,6 +45,13 @@ export class SubmitTimeoutError extends Error {
  */
 export function describeError(err: unknown): string {
   if (err instanceof SubmitTimeoutError) {
+    return err.message;
+  }
+
+  // Its message may embed contract diagnostics whose free text ("cancelled",
+  // "denied", …) would otherwise trip the wallet-rejection regex below and
+  // misreport an on-chain failure as a declined signature.
+  if (err instanceof InvokeFailedError) {
     return err.message;
   }
 

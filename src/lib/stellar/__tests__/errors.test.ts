@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { describeError, SubmitTimeoutError } from '@/lib/stellar/errors';
+import { describeError, InvokeFailedError, SubmitTimeoutError } from '@/lib/stellar/errors';
 
 describe('describeError', () => {
   it('treats wallet rejections as a declined signature', () => {
@@ -75,5 +75,25 @@ describe('describeError', () => {
     const result = describeError('boom');
     expect(typeof result).toBe('string');
     expect(result.length).toBeGreaterThan(0);
+  });
+
+  it('accepts an invoke-specific message for a submit timeout, keeping the hash', () => {
+    const hash = 'cd'.repeat(32);
+    const err = new SubmitTimeoutError(hash, 'The invoke may still land. Check the explorer.');
+    expect(err.hash).toBe(hash);
+    expect(describeError(err)).toBe('The invoke may still land. Check the explorer.');
+  });
+
+  // Diagnostics quoted inside an invoke failure are free text from a contract;
+  // words like "cancelled" in them must not be misread as a wallet rejection.
+  it('passes an invoke failure through verbatim even when diagnostics mention cancellation', () => {
+    const err = new InvokeFailedError('The transaction failed on-chain (order was cancelled).');
+    expect(describeError(err)).toBe('The transaction failed on-chain (order was cancelled).');
+  });
+
+  it('carries an optional hash on an invoke failure for the explorer link', () => {
+    const hash = 'ef'.repeat(32);
+    expect(new InvokeFailedError('failed', hash).hash).toBe(hash);
+    expect(new InvokeFailedError('refused').hash).toBeUndefined();
   });
 });
