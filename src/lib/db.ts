@@ -13,15 +13,23 @@ import { neon } from '@neondatabase/serverless';
  * The instance is still cached because building it parses the URL and sets up
  * the fetch wrapper, and there is no reason to repeat that per request.
  *
+ * The cache is keyed on the connection string's value, not on "have we built
+ * one yet": a rotated `DATABASE_URL` (a credential swap after a suspected
+ * leak, a branch promotion) then takes effect on the next request, instead of
+ * a warm instance keeping the retired credential in play until it happens to
+ * scale to zero. Comparing one string per call is free next to the HTTPS round
+ * trip that follows it, and construction stays lazy either way.
+ *
  * The schema these queries assume lives in `db/schema.sql`.
  */
-let cached: ReturnType<typeof neon> | null = null;
+let cached: { url: string; client: ReturnType<typeof neon> } | null = null;
 
 /** Connection string schemes the Neon driver accepts. */
 const VALID_SCHEME = /^postgres(ql)?:\/\//;
 
 /**
- * Return the shared SQL client, creating it on first use.
+ * Return the shared SQL client, creating it on first use and re-creating it
+ * whenever `DATABASE_URL` has changed since the last call.
  *
  * Throws when `DATABASE_URL` is missing or is not a Postgres URL. The error
  * deliberately never quotes the value: it is a credential, and this message
@@ -29,16 +37,16 @@ const VALID_SCHEME = /^postgres(ql)?:\/\//;
  * letting it reach the client.
  */
 export function sql() {
-  if (cached) return cached;
-
   const url = process.env.DATABASE_URL;
   if (!url) throw new Error('DATABASE_URL is not set.');
   if (!VALID_SCHEME.test(url)) {
     throw new Error('DATABASE_URL is not a postgres:// connection string.');
   }
 
-  cached = neon(url);
-  return cached;
+  if (cached === null || cached.url !== url) {
+    cached = { url, client: neon(url) };
+  }
+  return cached.client;
 }
 
 /**
