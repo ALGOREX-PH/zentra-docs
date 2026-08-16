@@ -76,19 +76,6 @@ function mentionedInExample(name: string): boolean {
   return exampleText.includes(name);
 }
 
-/**
- * Known drift, pinned rather than papered over: sponsor-budget.ts reads these
- * three variables, but .env.example does not document them yet. Fix by adding
- * them to .env.example, then deleting them from this list — the ratchet test
- * below fails the moment either side changes, so the exception cannot outlive
- * the problem or hide a new one.
- */
-const KNOWN_UNDOCUMENTED = [
-  'SPONSOR_DAILY_SOURCE_BUDGET_XLM',
-  'SPONSOR_DAILY_GLOBAL_BUDGET_XLM',
-  'SPONSOR_BUDGET_ENFORCE',
-];
-
 describe('the .env.example contract', () => {
   it('finds the known lookups, so the scan itself is not silently broken', () => {
     const referenced = referencedEnvNames();
@@ -108,7 +95,6 @@ describe('the .env.example contract', () => {
   it('documents every variable the source tree reads', () => {
     const undocumented = [...referencedEnvNames()]
       .filter((name) => !mentionedInExample(name))
-      .filter((name) => !KNOWN_UNDOCUMENTED.includes(name))
       .sort();
     expect(
       undocumented,
@@ -123,19 +109,5 @@ describe('the .env.example contract', () => {
       unreferenced,
       'these env vars are declared in .env.example but never read by src/ — remove them',
     ).toEqual([]);
-  });
-
-  it('keeps the known-drift list honest', () => {
-    const referenced = referencedEnvNames();
-    for (const name of KNOWN_UNDOCUMENTED) {
-      expect(
-        referenced.has(name),
-        `${name} is no longer read by src/ — remove it from KNOWN_UNDOCUMENTED`,
-      ).toBe(true);
-      expect(
-        mentionedInExample(name),
-        `${name} is now documented in .env.example — remove it from KNOWN_UNDOCUMENTED`,
-      ).toBe(false);
-    }
   });
 });
