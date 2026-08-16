@@ -12,6 +12,7 @@ import {
 import { stellar } from '@/config/stellar';
 import { actionLog } from '@/config/contract';
 import { soroban } from './rpc';
+import { InvokeFailedError, SubmitTimeoutError } from './errors';
 import type { ActionEntry } from './types';
 
 const contract = new Contract(actionLog.contractId);
@@ -105,23 +106,103 @@ export async function buildRecordXdr(author: string, message: string): Promise<s
   return SorobanRpc.assembleTransaction(tx, sim).build().toXDR();
 }
 
-/** Submit a wallet-signed invoke XDR and wait for it to settle. Returns the hash. */
+/** How long a submitted invoke is polled before its outcome is declared unknown. */
+const CONFIRM_ATTEMPTS = 30;
+const CONFIRM_INTERVAL_MS = 1_000;
+
+/**
+ * The ledger-level result code from a transaction result, e.g. `txSorobanInvalid`.
+ * Best-effort: an undecodable result must never mask the failure it describes.
+ */
+function resultCode(result: xdr.TransactionResult | undefined): string {
+  try {
+    return result?.result().switch().name ?? 'unknown';
+  } catch {
+    return 'unknown';
+  }
+}
+
+/**
+ * Flatten an ERROR send response into human-readable detail: the result code
+ * plus the first few diagnostic event payloads the RPC attached. Diagnostics
+ * are free text from the failing host call — usually the only line that tells
+ * the user *why* (budget exceeded, auth failed, …) — so they belong in the
+ * message rather than in a devtools-only dump.
+ */
+function describeSendError(sent: SorobanRpc.Api.SendTransactionResponse): string {
+  const parts: string[] = [resultCode(sent.errorResult)];
+  for (const event of (sent.diagnosticEvents ?? []).slice(0, 3)) {
+    try {
+      const data = scValToNative(event.event().body().v0().data());
+      parts.push(
+        typeof data === 'string'
+          ? data
+          : JSON.stringify(data, (_key, value: unknown) =>
+              typeof value === 'bigint' ? value.toString() : value,
+            ),
+      );
+    } catch {
+      // A diagnostic that does not decode is advisory only — skip it.
+    }
+  }
+  return parts.join('; ');
+}
+
+/**
+ * Submit a wallet-signed invoke XDR and wait for it to settle. Returns the hash.
+ *
+ * Every send status gets an explicit verdict — only `PENDING` earns the
+ * confirmation poll. Definite failures throw {@link InvokeFailedError}, which
+ * carries the hash whenever the transaction reached the network so the UI can
+ * link the explorer; a poll that never finds the transaction throws
+ * {@link SubmitTimeoutError} because "did not succeed" would be a lie — the
+ * invoke may still land in a later ledger.
+ */
 export async function submitInvoke(signedXdr: string): Promise<string> {
   const tx = TransactionBuilder.fromXDR(signedXdr, stellar.networkPassphrase);
   const sent = await soroban.sendTransaction(tx);
+
   if (sent.status === 'ERROR') {
-    throw new Error('The network rejected the transaction.');
+    // Refused at the door: never entered a ledger, so there is no hash worth
+    // linking — but the decoded result and diagnostics say why.
+    throw new InvokeFailedError(
+      `The network refused the transaction (${describeSendError(sent)}).`,
+    );
+  }
+  if (sent.status === 'TRY_AGAIN_LATER') {
+    throw new InvokeFailedError(
+      'The network is congested and did not accept the transaction. Nothing was submitted — try again in a moment.',
+    );
+  }
+  if (sent.status === 'DUPLICATE') {
+    // The same envelope is already in flight (a double-click, usually). The
+    // first submission is the live one; polling here would race it and could
+    // report a stale verdict, so point at the explorer instead.
+    throw new InvokeFailedError(
+      'This transaction was already submitted. Check the explorer for its result before signing again.',
+      sent.hash,
+    );
   }
 
   let got = await soroban.getTransaction(sent.hash);
   let tries = 0;
-  while (got.status === SorobanRpc.Api.GetTransactionStatus.NOT_FOUND && tries < 30) {
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+  while (got.status === SorobanRpc.Api.GetTransactionStatus.NOT_FOUND && tries < CONFIRM_ATTEMPTS) {
+    await new Promise((resolve) => setTimeout(resolve, CONFIRM_INTERVAL_MS));
     got = await soroban.getTransaction(sent.hash);
     tries += 1;
   }
+  if (got.status === SorobanRpc.Api.GetTransactionStatus.FAILED) {
+    throw new InvokeFailedError(
+      `The transaction failed on-chain (${resultCode(got.resultXdr)}). Only the network fee was charged.`,
+      sent.hash,
+    );
+  }
   if (got.status !== SorobanRpc.Api.GetTransactionStatus.SUCCESS) {
-    throw new Error('The transaction did not succeed.');
+    // Still NOT_FOUND after the whole window: the outcome is unknown, not failed.
+    throw new SubmitTimeoutError(
+      sent.hash,
+      'Confirmation timed out — the transaction may still go through. Check the explorer before signing again.',
+    );
   }
   return sent.hash;
 }
