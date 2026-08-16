@@ -4,10 +4,7 @@ import { Fragment, useId, useState } from 'react';
 import { SIGNALS, type SignalKind } from '@/lib/zk/education';
 import { HudPanel, Eyebrow } from '@/components/landing/primitives';
 import { cn } from '@/lib/cn';
-
-function shorten(v: string): string {
-  return v.length > 14 ? `${v.slice(0, 8)}…${v.slice(-4)}` : v;
-}
+import { shorten } from '@/lib/ui';
 
 /** Rendered in its own column, and again beside the label once that column is
  *  dropped for narrow screens. */
@@ -102,7 +99,7 @@ export function SignalsTable({ publicSignals }: { publicSignals: string[] }) {
                         kind === 'hash' ? 'text-violet-soft' : 'text-text',
                       )}
                     >
-                      {shorten(value)}
+                      {shorten(value, 8, 4)}
                     </td>
                   </tr>
                   <tr id={descId} hidden={!isOpen}>
