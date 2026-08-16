@@ -111,6 +111,30 @@ This is a **code-quality** audit against best practices — distinct from `docs/
 | IN-16 | LOW | `src/config/protocol.ts:22` | Hand-typed passphrase contradicts network.ts's own "passphrases come from the SDK" rule. → Use `Networks.TESTNET`. | S |
 | IN-17 | LOW | vitest.config.ts | No coverage provider/thresholds (gitignore already anticipates `/coverage`). → `@vitest/coverage-v8` + modest thresholds. | S |
 
+---
+
+## 5. Soroban contracts — findings
+
+| ID | Sev | Where | Problem → Fix | Effort |
+| --- | --- | --- | --- | --- |
+| CT-01 | MED | `zentra-action-log/src/lib.rs:158-164` (+feedback:131, +proof-registry:97) | `get_recent` counts skipped entries toward `limit` — copy-pasted into three contracts; the `None` branch is simultaneously dead in practice and wrong if it ever fires. → Fix once (`taken += 1` inside the `Some` arm or drop the dead branch with a comment), propagate to all three. | S |
+| CT-02 | MED | all five crates | TTL constants, `get_recent`, and the Count/Entry pattern copy-pasted with no shared module or written convention (reputation even renames the constants). → Tiny shared non-contract crate, or `contracts/CONVENTIONS.md` stating canonical constants/topics/pagination. | M |
+| CT-03 | MED | `contracts/` (no manifest) | No cargo workspace: five duplicated release profiles, five lockfiles **already drifted** (multisig pins soroban-sdk 26.1.1, the rest 26.1.0), five CI steps. → `[workspace]` with shared profile + `workspace.dependencies`, one lockfile. | S |
+| CT-04 | MED | `zentra-action-log/src/lib.rs:54-57` | Hand-maintained `Reputation` client trait declares `-> u32` but the real contract returns `Result<u32, Error>` — works only because the caller uses `try_bump`; nothing prevents drift. → Declare the true signature or `contractimport!` the wasm. | S |
+| CT-05 | MED | feedback:36, proof-registry:34 | Event payloads inconsistent (`Submitted` omits comment+ledger, `Anchored` omits signals+ledger, forcing indexer follow-up reads) and topic style drifts (noun `"feedback"` vs past-tense everywhere else). → Complete payloads; settle topic naming **before mainnet** (rename is a breaking change). | S |
+| CT-06 | MED | feedback, proof-registry | Only action-log exposes `get_entry`; entries older than the newest 20 are stored (and rent-paid) forever but unreachable via API in two contracts; `summary` returns a bare tuple. → Add `get_entry` parity (3 lines each); named struct for summary. | S |
+| CT-07 | MED | `zentra-proof-registry/src/lib.rs:48` | The only contract with no error enum and no input validation (`signals: 0` or `u32::MAX` accepted silently). → `Result` return + a `signals` bound, matching the other four's convention. | S |
+| CT-08 | MED | action-log:120, feedback:90, proof-registry:66, reputation:81 | Counter arithmetic inconsistent: multisig uses `checked_add` + typed error (the review's own "better pattern"); the other four rely on the profile's overflow trap. → Apply uniformly or comment why the trap is accepted. | S |
+| CT-09 | MED | `zentra-reputation/src/lib.rs:7,83` | TTL drift: scores bumped 30 days while the entries referencing them live 90 — an inactive author's score archives two months early. → Align on `ENTRY_BUMP` or document the shorter life. | S |
+| CT-10 | MED | `contracts/deploy.sh` | Covers two of five contracts (see IN-12). → Scripted, reviewable path for every deployed contract. | M |
+| CT-11 | MED | ci.yml:30-38 | No clippy/fmt gate (live warning proves it); cache omits multisig target (see IN-04/IN-06). → Gate after CT-03's workspace lands. | S |
+| CT-12 | LOW | `zentra-feedback/src/lib.rs:63` | Clippy `manual_range_contains` (the one live warning); the `if limit > MAX_RECENT` clamps read better as `limit.min(MAX_RECENT)`. → Idiomatic forms. | S |
+| CT-13 | MED | four of five test suites | Event tests assert only `events().len() == 1` — a renamed topic or dropped payload field passes CI. Multisig asserts full topics/payloads. → Copy multisig's pattern into the other four. | S |
+| CT-14 | LOW | action-log:79, feedback:67 | Length caps are UTF-8 **byte** budgets documented as if characters — the frontend must enforce the same unit. → Say "bytes"; rename to `MAX_MESSAGE_BYTES`. | S |
+| CT-15 | LOW | action-log:71,99; reputation:57 | Undocumented `unwrap()`s on constructor-guaranteed keys; multisig shows the documented helper pattern. → Adopt it so every non-test unwrap states its invariant. | S |
+| CT-16 | LOW | Cargo.tomls, doc comments | No toolchain/MSRV pin under a floating `stable`; `get_recent` docstrings hardcode "capped at 20". → `rust-toolchain.toml`; reference the constant. | S |
+
+
 
 
 
