@@ -148,7 +148,9 @@ impl MultiSig {
         }
 
         env.storage().instance().set(&DataKey::Signers, &signers);
-        env.storage().instance().set(&DataKey::Threshold, &threshold);
+        env.storage()
+            .instance()
+            .set(&DataKey::Threshold, &threshold);
         env.storage()
             .instance()
             .extend_ttl(INSTANCE_THRESHOLD, INSTANCE_BUMP);
@@ -163,7 +165,12 @@ impl MultiSig {
     /// Proposing does *not* imply approving — the proposer must still call
     /// `approve` to be counted, which keeps the tally honest for a 1-of-M as
     /// well as an N-of-M.
-    pub fn propose(env: Env, proposer: Address, kind: Symbol, payload: Bytes) -> Result<u64, Error> {
+    pub fn propose(
+        env: Env,
+        proposer: Address,
+        kind: Symbol,
+        payload: Bytes,
+    ) -> Result<u64, Error> {
         proposer.require_auth();
 
         if !signers_of(&env).contains(&proposer) {

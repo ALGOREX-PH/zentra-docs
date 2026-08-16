@@ -75,7 +75,10 @@ fn exposes_constructed_signers_and_threshold() {
     let (client, _) = deploy(&env, vec![&env, a.clone(), b.clone(), c.clone()], 2);
 
     assert_eq!(client.get_threshold(), 2);
-    assert_eq!(client.get_signers(), vec![&env, a.clone(), b.clone(), c.clone()]);
+    assert_eq!(
+        client.get_signers(),
+        vec![&env, a.clone(), b.clone(), c.clone()]
+    );
     assert!(client.is_signer(&a));
     assert!(client.is_signer(&b));
     assert!(client.is_signer(&c));
@@ -141,21 +144,13 @@ fn approve_requires_signer_authorization() {
         invoke: &MockAuthInvoke {
             contract: &contract,
             fn_name: "propose",
-            args: (
-                a.clone(),
-                proposal_kind.clone(),
-                proposal_payload.clone(),
-            )
-                .into_val(&env),
+            args: (a.clone(), proposal_kind.clone(), proposal_payload.clone()).into_val(&env),
             sub_invokes: &[],
         },
     }]);
     let id = client.propose(&a, &proposal_kind, &proposal_payload);
 
-    assert_eq!(
-        client.try_approve(&b, &id),
-        Err(MISSING_AUTHORIZATION)
-    );
+    assert_eq!(client.try_approve(&b, &id), Err(MISSING_AUTHORIZATION));
     assert_eq!(client.approvals_of(&id).len(), 0);
 }
 
@@ -273,7 +268,10 @@ fn rejects_approval_of_missing_proposal() {
     let (a, b, c) = signers(&env);
     let (client, _) = deploy(&env, vec![&env, a.clone(), b, c], 2);
 
-    assert_eq!(client.try_approve(&a, &99), Err(Ok(Error::ProposalNotFound)));
+    assert_eq!(
+        client.try_approve(&a, &99),
+        Err(Ok(Error::ProposalNotFound))
+    );
     assert_eq!(client.try_execute(&7), Err(Ok(Error::ProposalNotFound)));
     // `Proposal` is not `Debug`/`PartialEq` (house style keeps `contracttype`
     // structs to `Clone`), so this one is matched rather than compared.
@@ -305,11 +303,7 @@ fn emits_proposed_approved_and_executed_events() {
         env.events().all(),
         vec![
             &env,
-            (
-                contract.clone(),
-                proposed.topics(&env),
-                proposed.data(&env)
-            )
+            (contract.clone(), proposed.topics(&env), proposed.data(&env))
         ]
     );
 
@@ -324,11 +318,7 @@ fn emits_proposed_approved_and_executed_events() {
         env.events().all(),
         vec![
             &env,
-            (
-                contract.clone(),
-                approved.topics(&env),
-                approved.data(&env)
-            )
+            (contract.clone(), approved.topics(&env), approved.data(&env))
         ]
     );
 
@@ -347,11 +337,7 @@ fn emits_proposed_approved_and_executed_events() {
         env.events().all(),
         vec![
             &env,
-            (
-                contract.clone(),
-                executed.topics(&env),
-                executed.data(&env)
-            )
+            (contract.clone(), executed.topics(&env), executed.data(&env))
         ]
     );
 }
