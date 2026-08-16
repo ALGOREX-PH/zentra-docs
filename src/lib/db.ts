@@ -42,6 +42,22 @@ export function sql() {
 }
 
 /**
+ * Run one tagged-template query and hand the rows back as `T[]`.
+ *
+ *     const rows = await query<{ count: number }>`SELECT count(*)::int AS count FROM users`;
+ *
+ * The Neon driver types every result as a broad union of row shapes, so each
+ * call site was asserting its own shape with a private `as unknown as` pair.
+ * This wrapper is where that cast lives — once, audited — and the type
+ * parameter is where a caller states what its statement actually selects. The
+ * assertion is exactly as trustworthy as the SQL beside it: the driver cannot
+ * verify it, so a statement and its `T` must be reviewed together.
+ */
+export function query<T>(strings: TemplateStringsArray, ...values: unknown[]): Promise<T[]> {
+  return sql()(strings, ...values) as unknown as Promise<T[]>;
+}
+
+/**
  * Whether a database is configured, without connecting to it.
  *
  * Lets a caller choose to degrade — rendering an empty state instead of an
