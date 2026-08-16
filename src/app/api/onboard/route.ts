@@ -20,7 +20,7 @@ import { conflict } from '@/lib/api/errors';
 import { log } from '@/lib/api/logger';
 import { requireSameOrigin } from '@/lib/api/origin';
 import { countRequest, enforceRateLimit, type RateLimitOptions } from '@/lib/api/rate-limit';
-import { json, READ_CACHE_CONTROL, route } from '@/lib/api/route';
+import { json, methodNotAllowed, READ_CACHE_CONTROL, route } from '@/lib/api/route';
 import { parseUserInput, readJsonBody, type UserInput } from '@/lib/api/validation';
 import { query, sql } from '@/lib/db';
 
@@ -73,6 +73,9 @@ export const POST = route('onboard.create', async (request, { requestId }) => {
 
   return json({ ok: true }, { status: 201, headers });
 });
+
+/** Everything else is a 405 in the standard envelope, not Next's bare default. */
+export const { PUT, PATCH, DELETE } = methodNotAllowed(['GET', 'POST']);
 
 /** Fetch the number of registered users, and nothing else about them. */
 async function readUserCount(): Promise<number> {
