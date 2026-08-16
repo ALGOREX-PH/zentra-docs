@@ -16,6 +16,14 @@ import { cn } from '@/lib/cn';
 const POLL_MS = 6000;
 const MAX_SHOWN = 25;
 
+/**
+ * Consecutive poll failures tolerated before reseeding. One or two are RPC
+ * hiccups; a third in a row usually means the cursor has aged out of the RPC's
+ * event retention (a laptop waking from sleep), and every further tick would
+ * fail identically forever.
+ */
+const FAILURES_BEFORE_RESEED = 3;
+
 const focusRing =
   'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan';
 
@@ -30,6 +38,8 @@ export function ActionFeed({ refreshSignal = 0 }: { refreshSignal?: number }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const cursor = useRef<number | null>(null);
+  const tickBusy = useRef(false);
+  const failures = useRef(0);
 
   const merge = useCallback((incoming: ActionEntry[]) => {
     if (incoming.length === 0) return;
@@ -68,7 +78,10 @@ export function ActionFeed({ refreshSignal = 0 }: { refreshSignal?: number }) {
 
   useEffect(() => {
     const id = setInterval(async () => {
-      if (cursor.current == null) return;
+      // One tick at a time: a slow tick that outlives the interval would race
+      // the next one, and whichever resolved last would win the cursor.
+      if (cursor.current == null || tickBusy.current) return;
+      tickBusy.current = true;
       try {
         const { entries: incoming, latestLedger } = await pollEvents(cursor.current);
         merge(incoming);
@@ -76,13 +89,31 @@ export function ActionFeed({ refreshSignal = 0 }: { refreshSignal?: number }) {
           const highest = Math.max(...incoming.map((e) => e.index));
           setCount((c) => Math.max(c ?? 0, highest + 1));
         }
-        cursor.current = latestLedger + 1;
+        // Monotonic only: a lagging RPC node (or a reseed that finished while
+        // this tick was in flight) may answer with an older latestLedger, and
+        // rewinding the cursor would re-fetch and re-merge ledgers already seen.
+        const next = latestLedger + 1;
+        if (cursor.current === null || next > cursor.current) {
+          cursor.current = next;
+        }
+        failures.current = 0;
+        setError(null);
       } catch {
-        // no new ledger yet, or a transient RPC hiccup — retry next tick
+        // A hiccup heals on the next tick; three identical failures in a row
+        // will not (see FAILURES_BEFORE_RESEED), so reseed to rebuild both the
+        // list and the cursor. If the reseed itself fails, the stale banner
+        // states it while the counter starts over.
+        failures.current += 1;
+        if (failures.current >= FAILURES_BEFORE_RESEED) {
+          failures.current = 0;
+          await seed();
+        }
+      } finally {
+        tickBusy.current = false;
       }
     }, POLL_MS);
     return () => clearInterval(id);
-  }, [merge]);
+  }, [merge, seed]);
 
   return (
     <HudPanel accent="cyan">
