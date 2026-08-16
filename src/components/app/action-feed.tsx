@@ -10,10 +10,10 @@ import {
 import { stellar } from '@/config/stellar';
 import { truncateAddress } from '@/lib/stellar/format';
 import { HudPanel, Eyebrow } from '@/components/landing/primitives';
+import { LIVE_POLL_MS } from '@/config/app';
 import type { ActionEntry } from '@/lib/stellar/types';
 import { cn } from '@/lib/cn';
 
-const POLL_MS = 6000;
 const MAX_SHOWN = 25;
 
 /**
@@ -78,6 +78,12 @@ export function ActionFeed({ refreshSignal = 0 }: { refreshSignal?: number }) {
 
   useEffect(() => {
     const id = setInterval(async () => {
+      // A hidden tab polls for nobody: skip the tick rather than hit the RPC
+      // every six seconds behind a closed laptop lid. The cursor is untouched,
+      // so the first tick after the tab returns picks up from where it left
+      // off — and if the pause outlived the RPC's event retention, the
+      // existing failure counter reseeds exactly as it would after sleep.
+      if (document.visibilityState === 'hidden') return;
       // One tick at a time: a slow tick that outlives the interval would race
       // the next one, and whichever resolved last would win the cursor.
       if (cursor.current == null || tickBusy.current) return;
@@ -111,7 +117,7 @@ export function ActionFeed({ refreshSignal = 0 }: { refreshSignal?: number }) {
       } finally {
         tickBusy.current = false;
       }
-    }, POLL_MS);
+    }, LIVE_POLL_MS);
     return () => clearInterval(id);
   }, [merge, seed]);
 
@@ -121,7 +127,7 @@ export function ActionFeed({ refreshSignal = 0 }: { refreshSignal?: number }) {
         <Eyebrow accent="cyan">LIVE ON-CHAIN FEED</Eyebrow>
         <div className="mb-4 flex items-center gap-2 font-mono text-[11px] text-faint">
           <span aria-hidden className="size-1.5 rounded-full bg-live animate-pulse" />
-          {count === null ? '—' : count} action{count === 1 ? '' : 's'} recorded · polling every 6s
+          {count === null ? '—' : count} action{count === 1 ? '' : 's'} recorded · polling every {LIVE_POLL_MS / 1000}s
         </div>
 
         {loading && entries.length === 0 ? (
