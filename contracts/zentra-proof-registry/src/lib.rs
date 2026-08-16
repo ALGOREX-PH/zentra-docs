@@ -97,10 +97,11 @@ impl ProofRegistry {
         while i > 0 && taken < capped {
             i -= 1;
             let entry: Option<Entry> = env.storage().persistent().get(&DataKey::Entry(i));
+            // The None arm is defensive: entries are never deleted (an archived entry traps rather than reading None).
             if let Some(entry) = entry {
                 out.push_back(entry);
+                taken += 1;
             }
-            taken += 1;
         }
         out
     }
