@@ -66,7 +66,7 @@ export function FeedbackForm({ onSubmitted }: { onSubmitted?: () => void }) {
     const trimmed = comment.trim();
     if (!anchored && (rating < 1 || !trimmed || trimmed.length > MAX)) {
       setStatus('error');
-      setError('Pick a rating (1–5) and a comment up to 280 characters.');
+      setError(`Pick a rating (1–5) and a comment up to ${MAX} characters.`);
       return;
     }
 
@@ -197,7 +197,7 @@ export function FeedbackForm({ onSubmitted }: { onSubmitted?: () => void }) {
               id="feedback-comment-count"
               className={cn('shrink-0 text-faint', over && 'text-denied')}
             >
-              {comment.length}/280
+              {comment.length}/{MAX}
             </span>
           </div>
 
