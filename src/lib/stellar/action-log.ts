@@ -7,7 +7,7 @@ import {
   rpc as SorobanRpc,
   scValToNative,
   TransactionBuilder,
-  type xdr,
+  xdr,
 } from '@stellar/stellar-sdk';
 import { log } from '@/lib/api/logger';
 import { stellar } from '@/config/stellar';
@@ -259,13 +259,30 @@ export async function getLatestLedger(): Promise<number> {
   return sequence;
 }
 
+/**
+ * The `recorded` topic the deployed action-log contract stamps on every entry
+ * event (`#[contractevent(topics = ["recorded"])]` in
+ * `contracts/zentra-action-log/src/lib.rs`), pre-encoded once as the base64
+ * ScVal segment the RPC topic filter takes.
+ */
+const RECORDED_TOPIC = xdr.ScVal.scvSymbol('recorded').toXDR('base64');
+
 /** Fetch `recorded` events from `startLedger` onward for the live feed. */
 export async function pollEvents(
   startLedger: number,
 ): Promise<{ entries: ActionEntry[]; latestLedger: number }> {
   const res = await soroban.getEvents({
     startLedger,
-    filters: [{ type: 'contract', contractIds: [actionLog.contractId] }],
+    filters: [
+      {
+        type: 'contract',
+        contractIds: [actionLog.contractId],
+        // Only `recorded` events decode into entries; filtering server-side
+        // keeps any other event the contract may one day emit out of the
+        // response instead of arriving here as guard-rejected noise.
+        topics: [[RECORDED_TOPIC]],
+      },
+    ],
   });
   // Decode first, guard second: an event payload that is not even valid ScVal
   // must fail the same way as one with the wrong shape — skipped, not thrown.
