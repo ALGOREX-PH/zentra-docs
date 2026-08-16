@@ -9,10 +9,8 @@ import { describeError } from '@/lib/stellar/errors';
 import { stellar } from '@/config/stellar';
 import { activeProfile } from '@/config/network';
 import { HudPanel, Eyebrow } from '@/components/landing/primitives';
+import { focusRing } from '@/lib/ui';
 import { cn } from '@/lib/cn';
-
-const focusRing =
-  'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan';
 
 const buttonClass = cn(
   'border border-fd-border px-3 py-2 font-mono text-[11px] uppercase tracking-[0.08em] text-muted transition-colors hover:border-cyan/40 hover:text-cyan disabled:opacity-50',
@@ -71,9 +69,39 @@ export function BalanceCard({ refreshSignal }: BalanceCardProps) {
   // different fixes; whichever happened most recently is the one shown.
   const error = fundError ?? readError;
 
+  /**
+   * The visual states of this card flattened to one sentence each, for the
+   * live regions below. Funding outranks loading — a Friendbot request is the
+   * thing the user just did — and a settled read speaks its figure, so the
+   * loading→balance transition is heard, not just drawn.
+   */
+  const spoken = !address
+    ? ''
+    : funding
+      ? 'Requesting lumens from Friendbot…'
+      : loading
+        ? 'Reading the balance…'
+        : error
+          ? '' // the alert region carries failures
+          : balance === null
+            ? 'This account is not funded yet.'
+            : `Balance: ${formatXlm(balance)} XLM.`;
+
   return (
     <HudPanel accent="cyan">
       <div className="p-5 sm:p-6">
+        {/*
+          Mounted for the life of the card, as in tx-status: a live region that
+          appears in the same render as its text is routinely missed by screen
+          readers. Status transitions go out politely; failures interrupt.
+        */}
+        <span aria-live="polite" aria-atomic="true" className="sr-only">
+          {spoken}
+        </span>
+        <span role="alert" className="sr-only">
+          {address && !funding && !loading && error ? error : ''}
+        </span>
+
         {/* Named for the chain actually being read, so a mainnet build never
             captions real funds as a testnet figure. */}
         <Eyebrow accent="cyan">{activeProfile.label.toUpperCase()} BALANCE</Eyebrow>
