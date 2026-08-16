@@ -99,8 +99,10 @@ async function primeFile(
  * from the HTTP cache — so this adds no extra transfer and turns the largest
  * slice of a cold run (~5.5 MB) into a stage with real byte progress rather
  * than dead time. Memoised, so a second proof skips it entirely.
+ *
+ * Exported for the prover boundary tests; the app reaches it via generateProof.
  */
-function loadCircuit(onProgress: (loaded: number, total: number) => void): Promise<void> {
+export function loadCircuit(onProgress: (loaded: number, total: number) => void): Promise<void> {
   if (circuitReady) return circuitReady;
 
   let loaded = 0;
@@ -148,7 +150,8 @@ function isStringArray(value: unknown): value is string[] {
   return Array.isArray(value) && value.every((item) => typeof item === 'string');
 }
 
-function isGroth16Proof(value: unknown): value is Groth16Proof {
+/** Structural check on the worker's proof object. Exported for tests. */
+export function isGroth16Proof(value: unknown): value is Groth16Proof {
   if (typeof value !== 'object' || value === null) return false;
   const proof = value as Record<string, unknown>;
   return (
@@ -160,7 +163,7 @@ function isGroth16Proof(value: unknown): value is Groth16Proof {
 }
 
 /** The worker is untyped JS, so its reply is checked before it reaches the UI. */
-function isWorkerPayload(value: unknown): value is WorkerPayload {
+export function isWorkerPayload(value: unknown): value is WorkerPayload {
   if (typeof value !== 'object' || value === null) return false;
   const data = value as Record<string, unknown>;
   return (
@@ -174,7 +177,7 @@ function isWorkerPayload(value: unknown): value is WorkerPayload {
 }
 
 /** The worker's own failure text — a bad witness is the usual cause. */
-function workerError(value: unknown): string {
+export function workerError(value: unknown): string {
   if (typeof value === 'object' && value !== null) {
     const { error } = value as Record<string, unknown>;
     if (typeof error === 'string' && error.trim() !== '') return error;
