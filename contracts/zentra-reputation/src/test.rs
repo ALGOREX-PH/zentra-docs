@@ -1,7 +1,7 @@
 #![cfg(test)]
 use super::*;
 use soroban_sdk::{
-    testutils::{Address as _, Events as _},
+    testutils::{storage::Persistent as _, Address as _, Events as _},
     xdr::{ScErrorCode, ScErrorType},
     Address, Env, InvokeError,
 };
@@ -71,6 +71,27 @@ fn set_logger_emits_event() {
     client.set_logger(&logger);
 
     assert_eq!(env.events().all().events().len(), 1);
+}
+
+#[test]
+fn bump_extends_score_ttl_to_entry_bump() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (client, _admin) = deploy(&env);
+
+    let logger = Address::generate(&env);
+    client.set_logger(&logger);
+    let author = Address::generate(&env);
+    client.bump(&logger, &author);
+
+    // The score must live as long as the 90-day Action Log entries that embed
+    // it, not the 30-day instance bump.
+    let ttl = env.as_contract(&client.address, || {
+        env.storage()
+            .persistent()
+            .get_ttl(&DataKey::Score(author.clone()))
+    });
+    assert_eq!(ttl, ENTRY_BUMP);
 }
 
 #[test]
