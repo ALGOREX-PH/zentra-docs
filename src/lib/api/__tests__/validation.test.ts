@@ -555,6 +555,38 @@ describe('readJsonBody', () => {
     expect(err.message).not.toContain('secret');
     expect(err.message).not.toContain('text/plain');
   });
+
+  it('accepts a body over the default ceiling when maxBytes raises it', async () => {
+    const value = 'x'.repeat(MAX_BODY_BYTES + 1000);
+    const body = { value };
+
+    expect(await readJsonBody(jsonRequest(body), { maxBytes: 65536 })).toEqual(body);
+  });
+
+  it('rejects a body over a raised maxBytes ceiling with a 413 naming that ceiling', async () => {
+    const request = jsonRequest('x'.repeat(70000));
+
+    const err = await rejection(readJsonBody(request, { maxBytes: 65536 }));
+    expect(err.status).toBe(413);
+    expect(err.code).toBe('payload_too_large');
+    expect(err.message).toContain('65536');
+  });
+
+  it('applies a raised maxBytes to the declared content-length check too', async () => {
+    const request = jsonRequest('{}', { 'content-length': '70000' });
+
+    const err = await rejection(readJsonBody(request, { maxBytes: 65536 }));
+    expect(err.status).toBe(413);
+    expect(err.code).toBe('payload_too_large');
+  });
+
+  it('still applies the content-type gate when maxBytes is raised', async () => {
+    const request = jsonRequest('{}', { 'content-type': 'text/plain' });
+
+    const err = await rejection(readJsonBody(request, { maxBytes: 65536 }));
+    expect(err.status).toBe(415);
+    expect(err.code).toBe('unsupported_media_type');
+  });
 });
 describe('parseSearchQuery', () => {
   /** Build the parameters as they arrive on the URL. */

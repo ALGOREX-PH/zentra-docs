@@ -36,8 +36,18 @@ export const MAX_TAGS = 8;
 /** Longest single search tag or locale we will accept. */
 export const MAX_FACET_LENGTH = 64;
 
-/** Largest request body we will read, in bytes. */
+/** Largest request body we will read by default, in bytes. */
 export const MAX_BODY_BYTES = 4096;
+
+/** Options accepted by `readJsonBody`. */
+export interface ReadJsonBodyOptions {
+  /**
+   * Byte ceiling for this route's bodies. The default fits every form this API
+   * accepts; a route whose payloads are legitimately larger (a base64
+   * transaction envelope, say) raises it here rather than growing everyone's.
+   */
+  maxBytes?: number;
+}
 
 /** The media type a JSON body must be labelled with, as told to the caller. */
 export const JSON_MEDIA_TYPE = 'application/json';
@@ -343,22 +353,30 @@ export function parseSearchQuery(params: URLSearchParams): SearchQuery {
  *
  * The `content-length` header is checked next so an oversized upload is
  * rejected before the stream is touched, then the decoded text is measured
- * again in case that header was absent or lying.
+ * again in case that header was absent or lying. The ceiling defaults to
+ * `MAX_BODY_BYTES` and is raised per route via `options.maxBytes`, so a route
+ * with legitimately large payloads still gets the content-type gate above
+ * rather than rolling its own reader without it.
  */
-export async function readJsonBody(request: Request): Promise<unknown> {
+export async function readJsonBody(
+  request: Request,
+  options?: ReadJsonBodyOptions,
+): Promise<unknown> {
+  const maxBytes = options?.maxBytes ?? MAX_BODY_BYTES;
+
   const contentType = request.headers.get('content-type');
   if (contentType === null || !JSON_CONTENT_TYPE.test(contentType.trim())) {
     throw unsupportedMediaType(JSON_MEDIA_TYPE);
   }
 
   const declared = Number(request.headers.get('content-length'));
-  if (Number.isFinite(declared) && declared > MAX_BODY_BYTES) {
-    throw payloadTooLarge(MAX_BODY_BYTES);
+  if (Number.isFinite(declared) && declared > maxBytes) {
+    throw payloadTooLarge(maxBytes);
   }
 
   const text = await request.text();
-  if (new TextEncoder().encode(text).length > MAX_BODY_BYTES) {
-    throw payloadTooLarge(MAX_BODY_BYTES);
+  if (new TextEncoder().encode(text).length > maxBytes) {
+    throw payloadTooLarge(maxBytes);
   }
   if (text.trim().length === 0) {
     throw badRequest('Request body is required.');
