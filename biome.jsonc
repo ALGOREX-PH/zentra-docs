@@ -55,9 +55,23 @@
     "rules": {
       "preset": "recommended",
       "correctness": {
-        "useExhaustiveDependencies": "error",
+        "useExhaustiveDependencies": {
+          "level": "error",
+          "options": {
+            // `refreshSignal` counter props are deliberately listed as effect
+            // re-run triggers without being read inside the body (action-feed,
+            // proofs-feed, metrics-stats, feedback-summary). Missing deps —
+            // the stale-closure direction — still error.
+            "reportUnnecessaryDependencies": false
+          }
+        },
         "noUnusedImports": "error",
         "noUnusedVariables": "error"
+      },
+      "suspicious": {
+        // The brand's terminal aesthetic renders literal `// LABEL` eyebrows
+        // as visible JSX text; the rule's fix would turn copy into comments.
+        "noCommentText": "off"
       }
     }
   },
@@ -76,6 +90,19 @@
       ],
       "formatter": {
         "enabled": false
+      }
+    },
+    {
+      // `!important` in global.css is confined to the two places that cannot
+      // win otherwise: beating react-remove-scroll's inline styles, and the
+      // reduced-motion kill switch that must override every animation.
+      "includes": ["src/app/global.css"],
+      "linter": {
+        "rules": {
+          "complexity": {
+            "noImportantStyles": "off"
+          }
+        }
       }
     }
   ],
