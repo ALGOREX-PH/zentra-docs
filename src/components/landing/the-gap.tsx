@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { ZentraMark } from '@/components/brand/zentra-mark';
 
 const Check = () => (
@@ -12,10 +13,22 @@ const Cross = () => (
   </svg>
 );
 
-const ROWS = [
+// `desc` is what each row renders — the unsolved question carries its own
+// emphasis in the data rather than being re-written inline at the render site.
+const ROWS: Array<{ n: string; ok: boolean; label: string; desc: ReactNode; tag: string }> = [
   { n: '01', ok: true, label: 'Identity', desc: 'Who is this agent?', tag: '// ERC-8004' },
   { n: '02', ok: true, label: 'Permission', desc: 'What may it access?', tag: '// ERC-7715' },
-  { n: '03', ok: false, label: 'Compliance', desc: 'Did this action obey the rule right now?', tag: '' },
+  {
+    n: '03',
+    ok: false,
+    label: 'Compliance',
+    desc: (
+      <>
+        Did this action obey the rule <span className="font-semibold text-white">right now</span>?
+      </>
+    ),
+    tag: '',
+  },
 ];
 
 export function TheGap() {
@@ -52,7 +65,7 @@ export function TheGap() {
               <div className="flex flex-1 flex-wrap items-center gap-x-3 gap-y-1 py-5 pr-5">
                 <span className="w-[96px] shrink-0 font-display font-semibold sm:w-[120px]">{r.label}</span>
                 <span className="text-[15px] text-[#cbd5e1]">
-                  {r.ok ? r.desc : <>Did this action obey the rule <span className="font-semibold text-white">right now</span>?</>}
+                  {r.desc}
                   {r.tag && <span className="ml-2 font-mono text-xs text-[#7d8ea6]">{r.tag}</span>}
                 </span>
               </div>
