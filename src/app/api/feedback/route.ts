@@ -13,6 +13,7 @@
  * driver message that could carry the connection string.
  */
 
+import { actionLog } from '@/config/contract';
 import { conflict, rateLimited, upstreamUnavailable } from '@/lib/api/errors';
 import { log } from '@/lib/api/logger';
 import { moderateComment } from '@/lib/api/moderation';
@@ -107,23 +108,26 @@ export const POST = route('feedback.create', async (request, { requestId }) => {
  *
  * `parseFeedbackInput` can only check that a hash is well-formed, and 64 hex
  * characters are free to invent. Left unchecked, anyone could post a fabricated
- * hash and inflate the on-chain totals the dashboard reports. A claim that does
- * not verify is downgraded rather than rejected: the feedback is real and worth
- * keeping, only the badge is not earned. The hash is cleared along with it, so
- * an invented value can neither be stored nor occupy the unique index that
+ * hash and inflate the on-chain totals the dashboard reports. The verification
+ * is pinned to the feedback contract: existing and succeeding is not enough,
+ * the transaction must be the claimed wallet's own invocation of that contract,
+ * or the badge names an event that never happened. A claim that does not verify
+ * is downgraded rather than rejected: the feedback is real and worth keeping,
+ * only the badge is not earned. The hash is cleared along with it, so an
+ * invented value can neither be stored nor occupy the unique index that
  * reserves one row per anchoring transaction.
  */
 async function confirmAnchor(input: FeedbackInput, requestId: string): Promise<FeedbackInput> {
   if (!input.onChain || input.txHash === null) return input;
 
-  let verdict = await verifyAnchor(input.txHash, input.wallet);
+  let verdict = await verifyAnchor(input.txHash, input.wallet, actionLog.feedbackId);
 
   // The client polls the RPC until the transaction succeeds before posting, but
   // Horizon ingests closed ledgers on its own schedule and can be a beat
   // behind. One retry absorbs that lag instead of penalising an honest user.
   if (!verdict.verified && verdict.reason === 'not_found') {
     await delay(ANCHOR_RETRY_DELAY_MS);
-    verdict = await verifyAnchor(input.txHash, input.wallet);
+    verdict = await verifyAnchor(input.txHash, input.wallet, actionLog.feedbackId);
   }
 
   if (verdict.verified) return input;
