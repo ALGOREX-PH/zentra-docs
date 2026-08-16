@@ -75,7 +75,8 @@ function stepState(
 export function ProofLab({ onAnchored }: { onAnchored?: () => void }) {
   const [phase, setPhase] = useState<Phase>('idle');
   const [stage, setStage] = useState<ProofStage>('circuit');
-  const [percent, setPercent] = useState(0);
+  /** Download percent, or `null` while the total is still unknown (indeterminate). */
+  const [percent, setPercent] = useState<number | null>(null);
   const [elapsed, setElapsed] = useState(0);
   const [result, setResult] = useState<ProofResult | null>(null);
   const [error, setError] = useState<RunError | null>(null);
@@ -99,7 +100,7 @@ export function ProofLab({ onAnchored }: { onAnchored?: () => void }) {
     run.current = controller;
     setPhase('proving');
     setStage('circuit');
-    setPercent(0);
+    setPercent(null);
     setElapsed(0);
     setResult(null);
     setError(null);
@@ -110,10 +111,12 @@ export function ProofLab({ onAnchored }: { onAnchored?: () => void }) {
         // Same-value updates bail out in React, so per-chunk calls are cheap.
         onProgress: (progress) => {
           setStage(progress.stage);
-          if (progress.stage === 'circuit') {
-            setPercent(
-              progress.total > 0 ? Math.round((progress.loaded / progress.total) * 100) : 0,
-            );
+          if (progress.stage === 'circuit' && progress.total > 0) {
+            // Clamped and monotonic: a shifting total (or an over-reporting
+            // stream) must never show >100% or walk the bar backwards. While
+            // the total is unreported the bar simply stays indeterminate.
+            const next = Math.min(100, Math.round((progress.loaded / progress.total) * 100));
+            setPercent((prev) => (prev === null ? next : Math.max(prev, next)));
           }
         },
       });
@@ -153,7 +156,7 @@ export function ProofLab({ onAnchored }: { onAnchored?: () => void }) {
     run.current = null;
     setPhase('idle');
     setStage('circuit');
-    setPercent(0);
+    setPercent(null);
     setElapsed(0);
   }
 
@@ -235,22 +238,30 @@ export function ProofLab({ onAnchored }: { onAnchored?: () => void }) {
                 </p>
                 <span aria-hidden className="shrink-0 font-mono text-[11px] text-faint">
                   {stage === 'circuit'
-                    ? `${percent}%`
+                    ? percent === null
+                      ? '…'
+                      : `${percent}%`
                     : `${(elapsed / 1000).toFixed(1)}s`}
                 </span>
               </div>
               {stage === 'circuit' ? (
+                // Omitting aria-valuenow while percent is null is the ARIA
+                // idiom for an indeterminate progressbar — it matches the
+                // visible "…" instead of announcing a made-up number.
                 <div
                   role="progressbar"
                   aria-label="Circuit download"
-                  aria-valuenow={percent}
+                  aria-valuenow={percent ?? undefined}
                   aria-valuemin={0}
                   aria-valuemax={100}
-                  className="mt-2 h-px w-full bg-fd-border"
+                  className={cn(
+                    'mt-2 h-px w-full bg-fd-border',
+                    percent === null && 'motion-safe:animate-pulse',
+                  )}
                 >
                   <span
                     className="block h-full bg-cyan transition-[width] duration-200"
-                    style={{ width: `${percent}%` }}
+                    style={{ width: `${percent ?? 0}%` }}
                   />
                 </div>
               ) : null}
