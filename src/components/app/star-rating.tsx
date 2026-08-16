@@ -28,6 +28,7 @@ export function StarRating({
   disabled?: boolean;
 }) {
   return (
+    // biome-ignore lint/a11y/useSemanticElements: a fieldset would impose legend/border semantics; this stays a plain group labelled by the form's own heading, per the component comment above.
     <div role="group" aria-labelledby={labelledBy} className="flex items-center gap-1">
       {[1, 2, 3, 4, 5].map((star) => {
         const filled = star <= value;

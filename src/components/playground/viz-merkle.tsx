@@ -65,7 +65,8 @@ export function VizMerkle() {
     <div>
       {/* Below ~560px the node labels would render too small to read, so the
           diagram keeps its size and the frame scrolls instead. */}
-      <div role="region" aria-label="Merkle tree diagram" tabIndex={0} className="overflow-x-auto">
+      {/* biome-ignore lint/a11y/noNoninteractiveTabindex: a horizontally scrollable region must be focusable so keyboard users can scroll it. */}
+      <section aria-label="Merkle tree diagram" tabIndex={0} className="overflow-x-auto">
         <svg
           viewBox="0 0 660 300"
           className="w-full min-w-[560px]"
@@ -121,7 +122,7 @@ export function VizMerkle() {
             </g>
           ))}
         </svg>
-      </div>
+      </section>
 
       <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 font-mono text-[11px] text-faint">
         <span className="flex items-center gap-1.5">
