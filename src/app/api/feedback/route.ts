@@ -14,17 +14,13 @@
  */
 
 import { actionLog } from '@/config/contract';
-import { conflict, rateLimited, upstreamUnavailable } from '@/lib/api/errors';
+import { isUniqueViolation, storageUnavailable } from '@/lib/api/db-errors';
+import { conflict } from '@/lib/api/errors';
 import { log } from '@/lib/api/logger';
 import { moderateComment } from '@/lib/api/moderation';
 import { requireSameOrigin } from '@/lib/api/origin';
-import {
-  clientKey,
-  rateLimit,
-  rateLimitHeaders,
-  type RateLimitOptions,
-} from '@/lib/api/rate-limit';
-import { json, route } from '@/lib/api/route';
+import { countRequest, enforceRateLimit, type RateLimitOptions } from '@/lib/api/rate-limit';
+import { json, READ_CACHE_CONTROL, route } from '@/lib/api/route';
 import { parseFeedbackInput, readJsonBody, type FeedbackInput } from '@/lib/api/validation';
 import { verifyAnchor } from '@/lib/api/verify-anchor';
 import { sql } from '@/lib/db';
@@ -41,19 +37,11 @@ const WRITE_LIMIT: RateLimitOptions = { limit: 5, windowMs: 10 * 60_000 };
 /** How many comments the summary carries. */
 const RECENT_LIMIT = 10;
 
-/**
- * How long a CDN may serve the summary before revalidating.
- *
- * The page is a live dashboard, so the window is short; `stale-while-revalidate`
- * keeps it responsive under load without ever showing badly stale numbers.
- */
-const READ_CACHE_CONTROL = 'public, s-maxage=30, stale-while-revalidate=120';
-
-/** Postgres unique-violation code, raised by the one-row-per-transaction index. */
-const UNIQUE_VIOLATION = '23505';
-
 /** Pause before the second anchor lookup, covering Horizon's ingestion lag. */
 const ANCHOR_RETRY_DELAY_MS = 1_500;
+
+/** What the client is told when a query fails; the real error goes to the log. */
+const STORAGE_MESSAGE = 'Feedback storage is temporarily unavailable.';
 
 interface Summary {
   count: number;
@@ -148,37 +136,6 @@ function delay(ms: number): Promise<void> {
 }
 
 /**
- * Count one request against the caller's budget, or reject it with a 429.
- *
- * Returns the `X-RateLimit-*` headers to attach to a successful response so a
- * well-behaved client can back off before it is turned away.
- */
-function enforceRateLimit(
-  request: Request,
-  scope: string,
-  options: RateLimitOptions,
-): Record<string, string> {
-  const result = rateLimit(clientKey(request, scope), options);
-  if (!result.ok) throw rateLimited(result.retryAfterSeconds);
-  return rateLimitHeaders(result);
-}
-
-/**
- * Count one request without reporting the budget back.
- *
- * The read response is `public` and cached at the edge, and `X-RateLimit-*`
- * describes one caller — so attaching them here would store one visitor's
- * remaining allowance in a shared cache and hand it to every visitor served
- * from that entry until it expired. Counters that describe nobody are worse
- * than no counters, and the response they belong on is the 429, which the
- * wrapper marks `no-store` and which still carries `Retry-After`.
- */
-function countRequest(request: Request, scope: string, options: RateLimitOptions): void {
-  const result = rateLimit(clientKey(request, scope), options);
-  if (!result.ok) throw rateLimited(result.retryAfterSeconds);
-}
-
-/**
  * Fetch the aggregate summary and the latest comments.
  *
  * The two statements are issued together because neither depends on the other;
@@ -224,7 +181,7 @@ async function readFeedback(): Promise<{ summary: Summary; recent: unknown[] }> 
     };
     return { summary, recent: recentRows as unknown as unknown[] };
   } catch (error) {
-    throw storageUnavailable(error, 'feedback.read');
+    throw storageUnavailable(error, 'feedback.read', STORAGE_MESSAGE);
   }
 }
 
@@ -243,26 +200,6 @@ async function insertFeedback(input: FeedbackInput, hidden: boolean): Promise<vo
     if (isUniqueViolation(error)) {
       throw conflict('This transaction has already been recorded.');
     }
-    throw storageUnavailable(error, 'feedback.write');
+    throw storageUnavailable(error, 'feedback.write', STORAGE_MESSAGE);
   }
-}
-
-/**
- * Log the real database failure and return the error to send in its place.
- *
- * Driver messages routinely quote the failing statement and the connection
- * target, so the client only ever learns that storage is unavailable.
- */
-function storageUnavailable(error: unknown, event: string) {
-  log('error', event, { err: error });
-  return upstreamUnavailable('Feedback storage is temporarily unavailable.');
-}
-
-/** Whether `error` is the Postgres unique-violation this table can raise. */
-function isUniqueViolation(error: unknown): boolean {
-  return (
-    typeof error === 'object' &&
-    error !== null &&
-    (error as { code?: unknown }).code === UNIQUE_VIOLATION
-  );
 }
