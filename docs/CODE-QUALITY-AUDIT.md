@@ -65,4 +65,27 @@ This is a **code-quality** audit against best practices — distinct from `docs/
 | DA-18 | LOW | wallet-provider, record-form, tx-status | Async `disconnect` rejection unhandled; `/200` hardcoded next to a `MAX` constant; hardcoded `#22c55e` instead of the theme token. → Small fixes. | S |
 | DA-19 | LOW | `payment.ts:24` et al. | Static `BASE_FEE` everywhere — fine on testnet, strands txs under mainnet surge pricing. → `fetchBaseFee()` or config multiplier before cutover. | S |
 
+---
+
+## 3. Presentation & ZK playground — findings
+
+| ID | Sev | Where | Problem → Fix | Effort |
+| --- | --- | --- | --- | --- |
+| FX-01 | MED | `playground/layout.tsx:6` → `kit.ts` | Playground eagerly bundles the entire Stellar Wallets Kit (barrel re-exports its modal stack) before a visitor generates any proof. → Make `getKit` async-import, or lazy-load `WalletProvider`. | M |
+| FX-02 | MED | `src/lib/zk/prover.ts:195-209`, `proof-lab.tsx:163` | No cancel, no timeout, no `messageerror` handler — a hung worker locks the lab at "Proving…" until navigation. → Watchdog timeout, `messageerror`, swap disabled button for Cancel. | S/M |
+| FX-03 | MED | `proof-engine.tsx:76-112`, `scenario-panels.tsx:43` | Scenario clicks silently dropped while autoplay is busy (most of the visible time); buttons never disabled. → Queue/preempt the requested scenario; mark buttons busy. | M |
+| FX-04 | MED | `src/lib/scenarios.ts` vs landing copies | The self-declared "single source" is only used by the playground; landing carries two more copies which have diverged (400 vs 500; visible `STATEMISMATCH` typo). → Derive landing configs from `SCENARIOS`; fix the typo. | M |
+| FX-05 | MED | `playground/page.tsx:12-28` | Copy claims "verify it on-chain against the live Soroban verifier" — the flow anchors a commitment; the pitch deck explicitly disclaims re-verification. Trust-product copy bug. → Reword to "anchor its commitment on-chain". | S |
+| FX-06 | MED | `proof-engine.tsx:32-71` | Imperative querySelector/style animation duplicates the declarative sibling in scenario-panels; untyped `data-z-*` contract fails silently at runtime. → Converge on one state-driven rail component. | L |
+| FX-07 | MED | `education.ts`, `public-inputs-table.tsx`, `system-bar.tsx:10` | Three hand-maintained copies of the 14-public-signal contract (numbered differently; count hardcoded as `'14'`). → Render the docs table from `SIGNALS`; derive the count. | S/M |
+| FX-08 | MED | `for-developers.tsx:29-48` vs `:133-150` | The SDK code sample is maintained twice: clipboard string + hand-tokenized JSX transcription. → Render from the single string. | M |
+| FX-09 | MED | `proof-engine.tsx:180`, `scenario-panels.tsx:162` | Animated blocked/released outcomes invisible to screen readers (no `aria-live`/`role="status"`), though scenario-player already shows the right pattern. → Add the roles. | S |
+| FX-10 | MED | multiple landing files | Primitives not absorbing duplication: 4-corner bracket cluster ×4, numbered-eyebrow header ×4, five ad-hoc truncation helpers. → `HudPanel corners` variant, `Eyebrow index` prop, one `shorten()` export. | M |
+| FX-11 | MED | `package.json`, `public/zk/zk-worker.js:5` | `snarkjs` + `@types/snarkjs` deps are dead weight; the vendored 688KB UMD can silently drift from the documented 0.7.6. → Remove deps, or add a postinstall copy from node_modules so the manifest is the source of truth. | S |
+| FX-12 | LOW | `prover.ts:79-122`, `proof-lab.tsx:113` | Download progress can exceed 100% and regress (headers arrive late; decompressed bytes vs content-length). → Clamp; report percent only once all sizes known. | S |
+| FX-13 | LOW | `pitch-deck.tsx:165` | `scrollIntoView({ smooth })` ignores reduced-motion; slide changes not announced. → `matchMedia` check; `aria-live` counter. | S |
+| FX-14 | LOW | `shared.ts`, `zentra-mark.tsx`, `logo.tsx`, `the-gap.tsx` | Dead exports (`appName`, `docsImageRoute`, `docsContentRoute`), dead props (`mono`/`onlight`, `showProtocolTag`), ignored `desc` field. → Delete or wire up. | S |
+| FX-15 | LOW | `verifier-monolith.tsx:29`, `proof-engine.tsx:52` | Untracked timers fire after unmount in the monolith; the engine's timer array grows unbounded for the page's life. → Track-and-clear; prune fired ids. | S |
+
+
 
