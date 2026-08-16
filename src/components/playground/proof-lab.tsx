@@ -325,6 +325,7 @@ function Point({ label, values }: { label: string; values: string[] }) {
       <dt className="text-faint">{label}</dt>
       <dd className="mt-0.5 space-y-0.5">
         {values.map((v, i) => (
+          // biome-ignore lint/suspicious/noArrayIndexKey: proof point coordinates are positional (pi_a[0], pi_a[1], ...); the slot is the identity.
           <div key={i} className="break-all text-violet-soft">
             {shorten(v, 12, 8)}
           </div>

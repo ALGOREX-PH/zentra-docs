@@ -13,6 +13,7 @@ function PanelSkeleton({ lines = 3 }: { lines?: number }) {
         <div className="mt-4 space-y-2.5">
           {Array.from({ length: lines }, (_, i) => (
             <div
+              // biome-ignore lint/suspicious/noArrayIndexKey: skeleton rows generated from a length constant; the index is the row's only identity.
               key={i}
               className="h-3 animate-pulse bg-panel-2"
               style={{ width: `${92 - i * 14}%` }}

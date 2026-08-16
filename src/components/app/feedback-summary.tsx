@@ -156,9 +156,14 @@ export function FeedbackSummary({ refreshSignal = 0 }: { refreshSignal?: number 
 
             <ul className="divide-y divide-fd-border border border-fd-border">
               {data.recent.map((item, index) => (
+                // biome-ignore lint/suspicious/noArrayIndexKey: the index only tiebreaks rows sharing txHash/createdAt; the list is replaced wholesale on refresh, never reordered.
                 <li key={`${item.txHash ?? item.createdAt}-${index}`} className="px-4 py-3">
                   <div className="flex items-center justify-between gap-3 font-mono text-[11px] text-faint">
-                    <span role="img" className="text-cyan" aria-label={`${item.rating} out of 5 stars`}>
+                    <span
+                      role="img"
+                      className="text-cyan"
+                      aria-label={`${item.rating} out of 5 stars`}
+                    >
                       {'★'.repeat(item.rating)}
                     </span>
                     <span className="flex items-center gap-2">

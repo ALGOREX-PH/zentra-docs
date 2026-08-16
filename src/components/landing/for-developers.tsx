@@ -191,6 +191,7 @@ console.log(result.status); // released`;
             <pre className="overflow-x-auto p-4 font-mono text-[11px] leading-[1.7] text-[#e2e8f0] sm:p-5 sm:text-[12.5px]">
               <code>
                 {code.split('\n').map((line, i) => (
+                  // biome-ignore lint/suspicious/noArrayIndexKey: lines of a constant code string can repeat, so the line number is the identity; the list never reorders.
                   <Fragment key={i}>
                     {highlightLine(line)}
                     {'\n'}

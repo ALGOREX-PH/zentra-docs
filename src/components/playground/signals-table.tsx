@@ -67,6 +67,7 @@ export function SignalsTable({ publicSignals }: { publicSignals: string[] }) {
               const descId = `${uid}-${i}`;
 
               return (
+                // biome-ignore lint/suspicious/noArrayIndexKey: public signals are positional by circuit definition; SIGNALS[i] is read off the same index.
                 <Fragment key={i}>
                   <tr className="border-t border-fd-border align-top">
                     <td className="hidden px-4 py-2.5 font-mono text-[11px] text-faint sm:table-cell">

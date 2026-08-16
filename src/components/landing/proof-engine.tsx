@@ -64,10 +64,10 @@ export function ProofEngine() {
         }, ms);
         timers.push(t);
       });
-    const setPill = (t: string, c: string) => { const p = q('[data-z-pill]'); if (p) { p.textContent = t; p.style.color = c; p.style.borderColor = c; p.style.background = c + '1f'; } };
+    const setPill = (t: string, c: string) => { const p = q('[data-z-pill]'); if (p) { p.textContent = t; p.style.color = c; p.style.borderColor = c; p.style.background = `${c}1f`; } };
     const setStatus = (t: string, c?: string) => { const s = q('[data-z-status]'); if (s) { s.textContent = t; s.style.color = c || '#e2e8f0'; } };
     const setOutput = (t: string, c?: string) => { const o = q('[data-z-output]'); if (o) { o.textContent = t; o.style.color = c || '#7d8ea6'; } };
-    const activate = (i: number, c: string) => { const r = rect(i); if (r) { r.style.stroke = c; r.style.fill = c + '26'; r.style.filter = `drop-shadow(0 0 6px ${c})`; } };
+    const activate = (i: number, c: string) => { const r = rect(i); if (r) { r.style.stroke = c; r.style.fill = `${c}26`; r.style.filter = `drop-shadow(0 0 6px ${c})`; } };
     const advance = (i: number, c?: string) => { fill.style.strokeDashoffset = String(len * (1 - cum[i] / total)); if (c) fill.style.stroke = c; };
     const reset = () => {
       for (let i = 0; i < 7; i++) { const r = rect(i); if (r) { r.style.stroke = 'rgba(148,163,184,0.6)'; r.style.fill = '#0d111a'; r.style.filter = 'none'; } }
@@ -174,6 +174,7 @@ export function ProofEngine() {
           <path data-z-fill d="M90,70 L430,70 L90,270 L430,270" fill="none" stroke="url(#zgrad)" strokeWidth="6" strokeLinecap="square" strokeLinejoin="miter" style={{ filter: 'drop-shadow(0 0 5px rgba(124,58,237,0.7))' }} />
           <line data-z-burn x1="0" y1="0" x2="0" y2="0" stroke="#ef4444" strokeWidth="6" strokeLinecap="square" opacity="0" style={{ filter: 'drop-shadow(0 0 5px rgba(239,68,68,0.8))' }} />
           {RECTS.map(([x, y], i) => (
+            // biome-ignore lint/suspicious/noArrayIndexKey: static coordinate table; the index doubles as the data-i animation target.
             <g data-z-node="" data-i={i} key={i}>
               <rect x={x} y={y} width="18" height="18" fill="#0d111a" stroke="rgba(148,163,184,0.6)" strokeWidth="2" style={{ transition: 'all .3s' }} />
             </g>

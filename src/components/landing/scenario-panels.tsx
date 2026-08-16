@@ -98,7 +98,7 @@ function Panel({ cfg }: { cfg: LandingPanelConfig }) {
     <div ref={wrap} className="flex flex-col bg-panel p-6">
       <div className="mb-[18px] flex items-center justify-between">
         <span className="font-mono text-[11px] tracking-[0.1em]" style={{ color: accent }}>{cfg.label}</span>
-        <span className="flex size-6 items-center justify-center font-display text-[13px] font-bold" style={{ color: accent, background: accent + '18' }}>{cfg.id}</span>
+        <span className="flex size-6 items-center justify-center font-display text-[13px] font-bold" style={{ color: accent, background: `${accent}18` }}>{cfg.id}</span>
       </div>
       <h3 className="mb-3 font-display text-lg font-semibold">{cfg.title}</h3>
       <div className="mb-[22px] flex flex-wrap gap-1.5">
@@ -119,6 +119,7 @@ function Panel({ cfg }: { cfg: LandingPanelConfig }) {
             const on = i <= active;
             const col = nodeColor(cfg, i, failed);
             return (
+              // biome-ignore lint/suspicious/noArrayIndexKey: rail nodes generated from a length constant; the position is the identity.
               <span key={i} className="flex size-[18px] items-center justify-center border-2 bg-panel transition-all" style={{ borderColor: on ? col : 'rgba(148,163,184,0.6)', boxShadow: on ? `0 0 12px ${col}aa` : 'none' }}>
                 <span className="size-[5px] transition-opacity" style={{ background: on ? col : '#94a3b8', opacity: on ? 1 : 0 }} />
               </span>
@@ -174,7 +175,7 @@ function Panel({ cfg }: { cfg: LandingPanelConfig }) {
           'mt-auto border px-4 py-2.5 font-mono text-xs font-semibold tracking-[0.08em] transition-colors',
           running && 'cursor-progress opacity-60',
         )}
-        style={{ borderColor: accent + '73', background: accent + '12', color: accent }}
+        style={{ borderColor: `${accent}73`, background: `${accent}12`, color: accent }}
       >
         RUN SEQUENCE →
       </button>
