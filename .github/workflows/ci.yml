@@ -40,6 +40,9 @@ jobs:
           bun-version: 1.3.13
       - name: Install
         run: bun install --frozen-lockfile
+      - name: Audit dependencies (non-blocking)
+        run: bun audit
+        continue-on-error: true
       - name: Typecheck and unit tests
         run: bun run check
       - name: Build
