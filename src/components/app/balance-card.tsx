@@ -1,8 +1,9 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useWallet } from '@/components/app/wallet-provider';
-import { getXlmBalance, fundWithFriendbot } from '@/lib/stellar/account';
+import { useXlmBalance } from '@/components/app/use-xlm-balance';
+import { fundWithFriendbot } from '@/lib/stellar/account';
 import { formatXlm, truncateAddress } from '@/lib/stellar/format';
 import { describeError } from '@/lib/stellar/errors';
 import { stellar } from '@/config/stellar';
@@ -23,58 +24,51 @@ type BalanceCardProps = {
 
 export function BalanceCard({ refreshSignal }: BalanceCardProps) {
   const { address } = useWallet();
-  const [balance, setBalance] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  // The read itself lives in the shared hook, so this card and the onboarding
+  // guide watch one poll instead of hitting Horizon independently — and a
+  // funding triggered here is visible to the guide the moment it lands.
+  const { balance, funded, loading, error: readError, refresh } = useXlmBalance(address);
   const [funding, setFunding] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [localSignal, setLocalSignal] = useState(0);
+  const [fundError, setFundError] = useState<string | null>(null);
 
+  // A Friendbot failure stops mattering the moment the account turns out to be
+  // funded anyway — from a retry, or from the CLI in another window. Without
+  // this, the shared poll could show a balance beside a stale funding error.
   useEffect(() => {
-    if (!address) {
-      setBalance(null);
-      return;
-    }
+    if (funded) setFundError(null);
+  }, [funded]);
 
-    let cancelled = false;
-    setLoading(true);
-    setError(null);
-
-    getXlmBalance(address)
-      .then((result) => {
-        if (cancelled) return;
-        setBalance(result);
-      })
-      .catch((err) => {
-        if (cancelled) return;
-        setError(describeError(err));
-      })
-      .finally(() => {
-        if (cancelled) return;
-        setLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [address, refreshSignal, localSignal]);
-
-  const refresh = useCallback(() => {
-    setLocalSignal((value) => value + 1);
-  }, []);
+  /**
+   * The parent bumps `refreshSignal` after a send settles. The ref keeps the
+   * initial value from forcing a second read on mount — the hook already reads
+   * when it first sees the address.
+   */
+  const lastSignal = useRef(refreshSignal);
+  useEffect(() => {
+    if (refreshSignal === lastSignal.current) return;
+    lastSignal.current = refreshSignal;
+    refresh();
+  }, [refreshSignal, refresh]);
 
   const handleFund = useCallback(async () => {
     if (!address) return;
     setFunding(true);
-    setError(null);
+    setFundError(null);
     try {
       await fundWithFriendbot(address);
-      setLocalSignal((value) => value + 1);
+      // The shared refresh, so every consumer of the balance sees the funding
+      // at once rather than on its own next poll.
+      refresh();
     } catch (err) {
-      setError(describeError(err));
+      setFundError(describeError(err));
     } finally {
       setFunding(false);
     }
-  }, [address]);
+  }, [address, refresh]);
+
+  // Friendbot failing and the read failing are different problems with
+  // different fixes; whichever happened most recently is the one shown.
+  const error = fundError ?? readError;
 
   return (
     <HudPanel accent="cyan">
