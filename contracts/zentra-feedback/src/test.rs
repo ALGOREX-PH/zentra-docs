@@ -21,7 +21,9 @@ fn submits_and_summarizes() {
     client.submit(&author, &3, &String::from_str(&env, "could be better"));
 
     assert_eq!(client.get_count(), 2);
-    assert_eq!(client.summary(), (2, 8));
+    let summary = client.summary();
+    assert_eq!(summary.count, 2);
+    assert_eq!(summary.rating_sum, 8);
 
     let recent = client.get_recent(&2);
     assert_eq!(recent.len(), 2);
@@ -33,6 +35,42 @@ fn submits_and_summarizes() {
         recent.get(1).unwrap().comment,
         String::from_str(&env, "love it")
     );
+}
+
+#[test]
+fn summary_is_zero_before_any_submission() {
+    let env = Env::default();
+    let client = client(&env);
+
+    let summary = client.summary();
+    assert_eq!(summary.count, 0);
+    assert_eq!(summary.rating_sum, 0);
+}
+
+#[test]
+fn gets_entry_by_index() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let client = client(&env);
+    let author = Address::generate(&env);
+
+    client.submit(&author, &4, &String::from_str(&env, "solid"));
+
+    let entry = client.get_entry(&0).unwrap();
+    assert_eq!(entry.index, 0);
+    assert_eq!(entry.author, author);
+    assert_eq!(entry.rating, 4);
+    assert_eq!(entry.comment, String::from_str(&env, "solid"));
+}
+
+#[test]
+fn get_entry_returns_none_for_missing_index() {
+    let env = Env::default();
+    let client = client(&env);
+
+    // `Entry` is not `Debug`/`PartialEq` (house style keeps `contracttype`
+    // structs to `Clone`), so the missing case is matched rather than compared.
+    assert!(client.get_entry(&99).is_none());
 }
 
 #[test]

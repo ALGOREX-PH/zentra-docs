@@ -31,6 +31,16 @@ pub struct Entry {
     pub ledger: u32,
 }
 
+/// Aggregate feedback state: the entry count paired with the running rating
+/// sum. A named struct rather than a bare tuple so the contract spec is
+/// self-describing — clients decode fields by name, not by position.
+#[contracttype]
+#[derive(Clone)]
+pub struct Summary {
+    pub count: u64,
+    pub rating_sum: u64,
+}
+
 /// Emitted whenever feedback is submitted — the frontend streams these for the
 /// live feed (topic `submitted`, data carries the full entry).
 #[contractevent(topics = ["submitted"])]
@@ -120,16 +130,21 @@ impl Feedback {
         env.storage().instance().get(&DataKey::Count).unwrap_or(0)
     }
 
+    /// Fetch a single entry by index, if it exists.
+    pub fn get_entry(env: Env, index: u64) -> Option<Entry> {
+        env.storage().persistent().get(&DataKey::Entry(index))
+    }
+
     /// The entry count paired with the running rating sum; the frontend divides
     /// these to show the average.
-    pub fn summary(env: Env) -> (u64, u64) {
+    pub fn summary(env: Env) -> Summary {
         let count: u64 = env.storage().instance().get(&DataKey::Count).unwrap_or(0);
-        let sum: u64 = env
+        let rating_sum: u64 = env
             .storage()
             .instance()
             .get(&DataKey::RatingSum)
             .unwrap_or(0);
-        (count, sum)
+        Summary { count, rating_sum }
     }
 
     /// The most recent entries, newest first (capped at 20 to bound the read).
