@@ -67,15 +67,18 @@ export async function reserveSponsorBudget(input: BudgetReservation): Promise<Bu
         DO UPDATE SET spent_stroops = sponsor_spend.spent_stroops + EXCLUDED.spent_stroops
         WHERE sponsor_spend.spent_stroops + EXCLUDED.spent_stroops <= ${sourceCeiling}
         RETURNING budget_scope
+      ),
+      global_charge AS (
+        INSERT INTO sponsor_spend (spend_day, budget_scope, source_account, spent_stroops)
+        SELECT ${day}::date, 'global', '', ${input.feeStroops}::bigint
+        WHERE EXISTS (SELECT 1 FROM source_charge)
+          AND ${input.feeStroops}::bigint <= ${globalCeiling}::bigint
+        ON CONFLICT (spend_day, budget_scope, source_account)
+        DO UPDATE SET spent_stroops = sponsor_spend.spent_stroops + EXCLUDED.spent_stroops
+        WHERE sponsor_spend.spent_stroops + EXCLUDED.spent_stroops <= ${globalCeiling}
+        RETURNING budget_scope
       )
-      INSERT INTO sponsor_spend (spend_day, budget_scope, source_account, spent_stroops)
-      SELECT ${day}::date, 'global', '', ${input.feeStroops}::bigint
-      WHERE EXISTS (SELECT 1 FROM source_charge)
-        AND ${input.feeStroops}::bigint <= ${globalCeiling}::bigint
-      ON CONFLICT (spend_day, budget_scope, source_account)
-      DO UPDATE SET spent_stroops = sponsor_spend.spent_stroops + EXCLUDED.spent_stroops
-      WHERE sponsor_spend.spent_stroops + EXCLUDED.spent_stroops <= ${globalCeiling}
-      RETURNING budget_scope
+      SELECT budget_scope FROM global_charge
       UNION ALL
       SELECT budget_scope FROM source_charge
     `;
