@@ -9,9 +9,8 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { FREIGHTER_ID } from '@creit.tech/stellar-wallets-kit/modules/freighter';
 import { stellar } from '@/config/stellar';
-import { getKit } from '@/lib/stellar/kit';
+import { FREIGHTER_ID, getKit, type WalletKit } from '@/lib/stellar/kit';
 
 const STORAGE_KEY = 'zentra:wallet';
 
@@ -57,9 +56,9 @@ function readPersisted(raw: string): PersistedWallet | null {
  * user actually picked rather than assuming Freighter. `selectedModule` throws
  * when nothing is selected, hence the guard.
  */
-function selectedWalletId(): string {
+function selectedWalletId(kit: WalletKit): string {
   try {
-    return getKit().selectedModule.productId;
+    return kit.selectedModule.productId;
   } catch {
     return FREIGHTER_ID;
   }
@@ -71,6 +70,11 @@ function selectedWalletId(): string {
  * The connection survives a refresh: the selected wallet id + address are
  * persisted to localStorage and rehydrated on mount, so the dApp doesn't make
  * the user reconnect every navigation.
+ *
+ * The kit itself loads lazily (see `@/lib/stellar/kit`), so every kit call in
+ * here crosses an async boundary. Rehydration shows the persisted address
+ * immediately and lets the kit catch up when its chunks arrive — a returning
+ * user should not watch their own address pop in after a network round-trip.
  */
 export function WalletProvider({ children }: { children: ReactNode }) {
   const [address, setAddress] = useState<string | null>(null);
@@ -79,20 +83,46 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const saved = window.localStorage.getItem(STORAGE_KEY);
     if (!saved) return;
+    let persisted: PersistedWallet | null = null;
     try {
-      const persisted = readPersisted(saved);
-      if (!persisted) throw new Error('Unrecognised wallet entry.');
-      getKit().setWallet(persisted.walletId);
-      setAddress(persisted.address);
+      persisted = readPersisted(saved);
     } catch {
-      window.localStorage.removeItem(STORAGE_KEY);
+      persisted = null;
     }
+    if (!persisted) {
+      window.localStorage.removeItem(STORAGE_KEY);
+      return;
+    }
+    // Optimistic: the address renders now, and the kit is pointed at the saved
+    // module once its lazy chunks land.
+    setAddress(persisted.address);
+    const target = persisted;
+    let cancelled = false;
+    getKit()
+      .then((kit) => {
+        if (cancelled) return;
+        try {
+          kit.setWallet(target.walletId);
+        } catch {
+          // The saved id names a module that no longer exists — a stale entry,
+          // so drop it and stay disconnected rather than sign with a guess.
+          window.localStorage.removeItem(STORAGE_KEY);
+          setAddress(null);
+        }
+      })
+      .catch(() => {
+        // The kit itself failed to load. The optimistic address stands — any
+        // later signing attempt will surface its own error.
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const connect = useCallback(async (walletId?: string) => {
     setConnecting(true);
     try {
-      const kit = getKit();
+      const kit = await getKit();
       // A wallet id means the caller already ran its own picker, so the kit's
       // modal is skipped and the chosen module is asked for the address direct.
       if (walletId) kit.setWallet(walletId);
@@ -102,7 +132,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       setAddress(addr);
       window.localStorage.setItem(
         STORAGE_KEY,
-        JSON.stringify({ walletId: selectedWalletId(), address: addr }),
+        JSON.stringify({ walletId: selectedWalletId(kit), address: addr }),
       );
     } catch {
       // user dismissed the modal or declined — stay disconnected
@@ -114,17 +144,15 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const disconnect = useCallback(() => {
     setAddress(null);
     window.localStorage.removeItem(STORAGE_KEY);
-    try {
-      void getKit().disconnect();
-    } catch {
-      // nothing to tear down
-    }
+    // Fire-and-forget: the wallet's own teardown is best-effort.
+    void getKit().then((kit) => kit.disconnect());
   }, []);
 
   const signTransaction = useCallback(
     async (xdr: string) => {
       if (!address) throw new Error('Connect your wallet first.');
-      const { signedTxXdr } = await getKit().signTransaction(xdr, {
+      const kit = await getKit();
+      const { signedTxXdr } = await kit.signTransaction(xdr, {
         address,
         networkPassphrase: stellar.networkPassphrase,
       });

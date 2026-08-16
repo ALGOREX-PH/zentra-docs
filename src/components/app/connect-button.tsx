@@ -1,10 +1,9 @@
 'use client';
 
 import { useEffect, useId, useRef, useState } from 'react';
-import type { ISupportedWallet } from '@creit.tech/stellar-wallets-kit';
 import { useWallet } from '@/components/app/wallet-provider';
 import { truncateAddress } from '@/lib/stellar/format';
-import { getKit } from '@/lib/stellar/kit';
+import { getKit, type ISupportedWallet } from '@/lib/stellar/kit';
 import { stellar } from '@/config/stellar';
 import { cn } from '@/lib/cn';
 
@@ -32,13 +31,14 @@ export function ConnectButton() {
   const attempting = useRef(false);
 
   // The kit reports availability by probing each module, so the list is only
-  // worth reading once the dialog is actually open.
+  // worth reading once the dialog is actually open. Opening it is also what
+  // triggers the kit's lazy download on a first visit, hence the await chain.
   useEffect(() => {
     if (!open) return;
     let cancelled = false;
     setListError(null);
     getKit()
-      .refreshSupportedWallets()
+      .then((kit) => kit.refreshSupportedWallets())
       .then((supported) => {
         if (!cancelled) setWallets(supported);
       })
