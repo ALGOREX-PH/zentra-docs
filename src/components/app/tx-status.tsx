@@ -3,12 +3,16 @@
 import type { TxState } from '@/lib/stellar/types';
 import { stellar } from '@/config/stellar';
 import { truncateAddress } from '@/lib/stellar/format';
+import { focusRing } from '@/lib/ui';
 import { cn } from '@/lib/cn';
 
-const focusRing =
-  'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan';
-
-const inFlightLabels = {
+/**
+ * What each in-flight phase says while the outcome is still open.
+ *
+ * Exported so a form that manages its own pipeline (feedback's anchored retry)
+ * can announce the same words at the same moments instead of paraphrasing.
+ */
+export const inFlightLabels = {
   building: 'Building transaction…',
   signing: 'Awaiting signature in your wallet…',
   submitting: 'Submitting to testnet…',
@@ -19,6 +23,31 @@ type InFlightPhase = keyof typeof inFlightLabels;
 function isInFlight(phase: TxState['phase']): phase is InFlightPhase {
   return phase === 'building' || phase === 'signing' || phase === 'submitting';
 }
+
+/**
+ * Outcome copy, overridable per flow.
+ *
+ * The panel was written for payments and its headings said so — a contract
+ * invoke that ends in "Payment settled" reports something that did not happen.
+ * Callers recording anything other than a payment pass their own copy; the
+ * defaults keep every existing payment surface word-for-word.
+ */
+export interface TxStatusLabels {
+  /** Heading over the success panel, e.g. "Payment settled". */
+  success: string;
+  /** Heading over the failure panel, e.g. "Payment failed". */
+  failure: string;
+  /**
+   * Sentence opener for the spoken success announcement. Defaults to
+   * `${success}.` — override it when the heading alone reads oddly as speech.
+   */
+  successAnnounce?: string;
+}
+
+const paymentLabels: TxStatusLabels = {
+  success: 'Payment settled',
+  failure: 'Payment failed',
+};
 
 function HashLink({ hash }: { hash: string }) {
   return (
@@ -40,17 +69,24 @@ function HashLink({ hash }: { hash: string }) {
  * would report, even though "awaiting signature" is exactly when the user needs
  * to be told to look at their wallet.
  */
-function announce(state: TxState): string {
+function announce(state: TxState, labels: TxStatusLabels): string {
   if (state.phase === 'idle') return '';
   if (isInFlight(state.phase)) return state.message ?? inFlightLabels[state.phase];
   if (state.phase === 'success') {
-    return state.message ? `Payment settled. ${state.message}` : 'Payment settled.';
+    const opener = labels.successAnnounce ?? `${labels.success}.`;
+    return state.message ? `${opener} ${state.message}` : opener;
   }
-  return `Payment failed. ${state.message ?? 'Something went wrong.'}`;
+  return `${labels.failure}. ${state.message ?? 'Something went wrong.'}`;
 }
 
-export function TxStatus({ state }: { state: TxState }) {
-  const spoken = announce(state);
+export function TxStatus({
+  state,
+  labels = paymentLabels,
+}: {
+  state: TxState;
+  labels?: TxStatusLabels;
+}) {
+  const spoken = announce(state, labels);
 
   return (
     <>
@@ -65,12 +101,12 @@ export function TxStatus({ state }: { state: TxState }) {
       <span role="alert" className="sr-only">
         {state.phase === 'error' ? spoken : ''}
       </span>
-      <StatusPanel state={state} />
+      <StatusPanel state={state} labels={labels} />
     </>
   );
 }
 
-function StatusPanel({ state }: { state: TxState }) {
+function StatusPanel({ state, labels }: { state: TxState; labels: TxStatusLabels }) {
   if (state.phase === 'idle') return null;
 
   if (isInFlight(state.phase)) {
@@ -93,16 +129,18 @@ function StatusPanel({ state }: { state: TxState }) {
             fill="none"
             aria-hidden="true"
           >
+            {/* stroke-live rather than a literal hex, so the checkmark follows
+                the theme token the border and heading already read from. */}
             <polyline
               points="2,8 6,12 13,3"
               fill="none"
-              stroke="#22c55e"
+              className="stroke-live"
               strokeWidth="2.2"
               strokeLinecap="round"
               strokeLinejoin="round"
             />
           </svg>
-          Payment settled
+          {labels.success}
         </h3>
         {state.message ? (
           <p className="mt-1 font-mono text-[13px] text-muted">{state.message}</p>
@@ -119,7 +157,7 @@ function StatusPanel({ state }: { state: TxState }) {
   return (
     <div className="border border-denied/40 bg-denied/[0.06] px-4 py-3">
       <h3 className="font-mono uppercase tracking-wide text-denied">
-        Payment failed
+        {labels.failure}
       </h3>
       <p className="mt-1 font-mono text-[13px] text-muted">
         {state.message ?? 'Something went wrong.'}
