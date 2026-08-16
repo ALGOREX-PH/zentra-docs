@@ -8,6 +8,7 @@
     "build": "next build",
     "start": "next start",
     "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
     "check": "bun run types:check && bun run test",
     "loadtest": "bun scripts/loadtest/run.ts",
     "postinstall": "fumadocs-mdx",
