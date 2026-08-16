@@ -130,8 +130,21 @@ describe('isApiError', () => {
     expect(isApiError(badRequest('nope'))).toBe(true);
   });
 
-  it('is true for a structurally shaped plain object', () => {
-    expect(isApiError({ status: 429, code: 'rate_limited' })).toBe(true);
+  it('is true for a branded error from a duplicated copy of the module', () => {
+    // What a second bundled copy of errors.ts produces: not our prototype,
+    // but the same registry symbol, because Symbol.for is process-wide.
+    const foreign = Object.assign(new Error('nope'), {
+      status: 429,
+      code: 'rate_limited',
+      [Symbol.for('zentra.apiError')]: true,
+    });
+
+    expect(foreign).not.toBeInstanceOf(ApiError);
+    expect(isApiError(foreign)).toBe(true);
+  });
+
+  it('is false for an unbranded object merely shaped like an ApiError', () => {
+    expect(isApiError({ status: 429, code: 'rate_limited' })).toBe(false);
   });
 
   it('is false for null', () => {
