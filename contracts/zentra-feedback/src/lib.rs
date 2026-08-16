@@ -9,7 +9,10 @@ const INSTANCE_BUMP: u32 = 30 * DAY_LEDGERS;
 const INSTANCE_THRESHOLD: u32 = INSTANCE_BUMP - DAY_LEDGERS;
 const ENTRY_BUMP: u32 = 90 * DAY_LEDGERS;
 const ENTRY_THRESHOLD: u32 = ENTRY_BUMP - DAY_LEDGERS;
-const MAX_COMMENT_LEN: u32 = 280;
+/// Comment budget in bytes (UTF-8), not characters — `String::len` counts
+/// bytes, so multi-byte characters consume more of the budget. Any frontend
+/// cap must enforce the same unit.
+const MAX_COMMENT_BYTES: u32 = 280;
 const MAX_RECENT: u32 = 20;
 
 #[contracttype]
@@ -81,7 +84,7 @@ impl Feedback {
         if len == 0 {
             return Err(Error::EmptyComment);
         }
-        if len > MAX_COMMENT_LEN {
+        if len > MAX_COMMENT_BYTES {
             return Err(Error::CommentTooLong);
         }
 
@@ -153,7 +156,8 @@ impl Feedback {
         Summary { count, rating_sum }
     }
 
-    /// The most recent entries, newest first (capped at 20 to bound the read).
+    /// The most recent entries, newest first (capped at `MAX_RECENT` to bound
+    /// the read).
     pub fn get_recent(env: Env, limit: u32) -> Vec<Entry> {
         let count: u64 = env.storage().instance().get(&DataKey::Count).unwrap_or(0);
         let mut out: Vec<Entry> = vec![&env];

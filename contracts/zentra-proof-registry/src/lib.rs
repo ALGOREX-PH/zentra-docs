@@ -130,7 +130,8 @@ impl ProofRegistry {
         env.storage().persistent().get(&DataKey::Entry(index))
     }
 
-    /// The most recent entries, newest first (capped at 20 to bound the read).
+    /// The most recent entries, newest first (capped at `MAX_RECENT` to bound
+    /// the read).
     pub fn get_recent(env: Env, limit: u32) -> Vec<Entry> {
         let count: u64 = env.storage().instance().get(&DataKey::Count).unwrap_or(0);
         let mut out: Vec<Entry> = vec![&env];
