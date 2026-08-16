@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { cn } from '@/lib/cn';
 import {
   LANDING_PANELS,
   OVERSPEND,
@@ -28,25 +29,30 @@ function Panel({ cfg }: { cfg: LandingPanelConfig }) {
   const wrap = useRef<HTMLDivElement>(null);
   const cancel = useRef(false);
   const busy = useRef(false);
+  // A click that lands mid-run queues one replay instead of vanishing.
+  const pending = useRef(false);
+  const [running, setRunning] = useState(false);
 
   const run = useCallback(async () => {
-    if (busy.current) return;
+    if (busy.current) { pending.current = true; return; }
     busy.current = true;
+    setRunning(true);
     cancel.current = false;
+    const finish = () => { busy.current = false; setRunning(false); };
     setActive(-1); setFailed(false); setOutcome('');
     // reduced motion skips every wait, so the run stays synchronous and React commits
     // one render — the resting outcome — instead of stepping the rail at zero delay.
     const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
     const sleep = (ms: number) => new Promise<void>((res) => setTimeout(res, ms));
     for (let i = 0; i <= cfg.stop; i++) {
-      if (cancel.current) { busy.current = false; return; }
+      if (cancel.current) { finish(); return; }
       const fail = !cfg.settles && i === cfg.stop;
       if (fail) setFailed(true);
       setActive(i);
       setStat({ t: (cfg.steps[i] ?? '').toUpperCase(), c: fail ? R : '#e2e8f0' });
       if (!reduced) await sleep(cfg.settles ? 560 : 640);
     }
-    if (cancel.current) { busy.current = false; return; }
+    if (cancel.current) { finish(); return; }
     if (cfg.key === 'valid') {
       setOutcome('valid'); setStat({ t: 'RECEIPT EMITTED', c: G });
     } else if (cfg.key === 'injection') {
@@ -58,7 +64,9 @@ function Panel({ cfg }: { cfg: LandingPanelConfig }) {
       setStat({ t: 'STATE MISMATCH', c: R }); setOutcome('overspend'); if (!reduced) await sleep(1100);
       setStat({ t: 'NO PAYMENT MOVED', c: '#7d8ea6' });
     }
-    busy.current = false;
+    finish();
+    // Replay once for the clicks that queued while this run was playing.
+    if (pending.current && !cancel.current) { pending.current = false; void run(); }
   }, [cfg]);
 
   useEffect(() => {
@@ -153,11 +161,17 @@ function Panel({ cfg }: { cfg: LandingPanelConfig }) {
 
       <div className="mb-4 min-h-[18px] text-center font-mono text-xs tracking-[0.04em]" style={{ color: stat.c }}>{stat.t}</div>
       <p className="mb-[18px] text-[13px] leading-relaxed text-muted">{cfg.desc}</p>
+      {/* Stays clickable while a run plays — a mid-run click queues a replay,
+          and the dimmed cursor-progress treatment signals the wait. */}
       <button
         type="button"
         onClick={() => run()}
-        className="mt-auto border px-4 py-2.5 font-mono text-xs font-semibold tracking-[0.08em] transition-colors"
-        style={{ borderColor: cfg.accent + '73', background: cfg.accent + '12', color: cfg.accent }}
+        aria-busy={running}
+        className={cn(
+          'mt-auto border px-4 py-2.5 font-mono text-xs font-semibold tracking-[0.08em] transition-colors',
+          running && 'cursor-progress opacity-60',
+        )}
+        style={{ borderColor: accent + '73', background: accent + '12', color: accent }}
       >
         RUN SEQUENCE →
       </button>
