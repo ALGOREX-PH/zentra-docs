@@ -1,14 +1,12 @@
 'use client';
 
-import { useEffect, useId, useState, type ReactNode } from 'react';
+import { useId, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { useWallet } from '@/components/app/wallet-provider';
-import { getXlmBalance } from '@/lib/stellar/account';
+import { useXlmBalance } from '@/components/app/use-xlm-balance';
 import { HudPanel, Eyebrow } from '@/components/landing/primitives';
+import { focusRing } from '@/lib/ui';
 import { cn } from '@/lib/cn';
-
-const focusRing =
-  'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan';
 
 /** What we can honestly say about a step: finished, up next, or unknown. */
 type StepStatus = 'done' | 'current' | 'pending';
@@ -117,16 +115,6 @@ const STEPS: ReadonlyArray<{ title: string; body: ReactNode }> = [
 const FUND_STEP = 2;
 
 /**
- * How often the balance is re-read while the account still cannot transact.
- *
- * Funding is triggered in the balance panel next door, which has no channel back
- * to this guide, so the guide watches the chain rather than a sibling's state.
- * That also means it notices an account funded from the CLI, the laboratory, or
- * a second tab. Same cadence as the live feed on /board.
- */
-const FUND_POLL_MS = 6000;
-
-/**
  * Only claim what observable state proves. A live address means a wallet is
  * installed and pointed at testnet (steps 1 and 2). Funding is proven by the
  * chain and nothing else, so a read that is pending, failed, or zero leaves the
@@ -218,50 +206,34 @@ export function GetStarted() {
   const { address } = useWallet();
   // null = follow the wallet; true/false = the user overrode it via the toggle.
   const [override, setOverride] = useState<boolean | null>(null);
-  const [funding, setFunding] = useState<Funding>('unknown');
   const panelId = useId();
 
-  useEffect(() => {
-    const account = address;
-    if (!account) {
-      setFunding('unknown');
-      return;
-    }
+  /**
+   * The shared balance read (`useXlmBalance`) rather than a poll of this
+   * guide's own: funding is triggered in the balance panel next door, and the
+   * shared store is what lets its `refresh()` land here in the same tick. The
+   * hook keeps the old semantics — it watches the chain, not a sibling's
+   * state, so an account funded from the CLI, the laboratory or a second tab
+   * is noticed on the next poll, and the poll stops once funding lands.
+   */
+  const { funded: fundedRead, error: readError } = useXlmBalance(address);
 
-    let cancelled = false;
-    let timer: ReturnType<typeof setInterval> | null = null;
-
-    // The address is passed in rather than closed over: a captured `const` is
-    // still `string | null` to the checker inside this nested function.
-    async function read(target: string) {
-      try {
-        const balance = await getXlmBalance(target);
-        if (cancelled) return;
-        // null is an account Horizon has never seen; '0' is one that exists with
-        // nothing to spend. Neither can pay a fee, so both read as unfunded.
-        const amount = balance === null ? 0 : Number(balance);
-        const funded = Number.isFinite(amount) && amount > 0;
-        setFunding(funded ? 'funded' : 'unfunded');
-        // Funding only travels one way in this flow, so once it lands the poll
-        // stops rather than hitting Horizon for the rest of the session.
-        if (funded && timer !== null) {
-          clearInterval(timer);
-          timer = null;
-        }
-      } catch {
-        if (cancelled) return;
-        setFunding('unreadable');
-      }
-    }
-
-    void read(account);
-    timer = setInterval(() => void read(account), FUND_POLL_MS);
-
-    return () => {
-      cancelled = true;
-      if (timer !== null) clearInterval(timer);
-    };
-  }, [address]);
+  /**
+   * Collapse the hook's state into the guide's vocabulary. A failed read
+   * outranks a stale success: the old figure may still be on screen in the
+   * balance card, but this guide's job is to say whether the gate is *known*
+   * to be clear, and right now it is not.
+   */
+  const funding: Funding =
+    address === null
+      ? 'unknown'
+      : readError !== null
+        ? 'unreadable'
+        : fundedRead === null
+          ? 'unknown'
+          : fundedRead
+            ? 'funded'
+            : 'unfunded';
 
   const connected = address !== null;
   // Guarded on `connected` so a disconnect cannot leave a stale "funded" frame
