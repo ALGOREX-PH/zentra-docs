@@ -45,7 +45,7 @@ jobs:
         with:
           bun-version: latest
       - name: Install
-        run: bun install
+        run: bun install --frozen-lockfile
       - name: Typecheck
         run: bun run types:check
       - name: Unit tests
