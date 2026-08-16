@@ -9,12 +9,11 @@ import { readApiError } from '@/lib/api/client';
 import { stellar } from '@/config/stellar';
 import { truncateAddress } from '@/lib/stellar/format';
 import { HudPanel, Eyebrow } from '@/components/landing/primitives';
+import { inFlightLabels } from '@/components/app/tx-status';
+import { focusRing } from '@/lib/ui';
 import { cn } from '@/lib/cn';
 
 const MAX = 280;
-
-const focusRing =
-  'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan';
 
 type Status = 'idle' | 'sending' | 'success' | 'error';
 
@@ -40,6 +39,13 @@ export function FeedbackForm({ onSubmitted }: { onSubmitted?: () => void }) {
   const [status, setStatus] = useState<Status>('idle');
   const [error, setError] = useState<string | null>(null);
   const [anchored, setAnchored] = useState<Anchor | null>(null);
+  // What the in-flight leg is doing right now, in TxStatus's exact words.
+  // This form runs its own pipeline (the anchored retry must skip build, sign
+  // and submit, which the shared hook never does), so it borrows the shared
+  // vocabulary instead of the shared machinery: without this, "awaiting
+  // signature" — the moment the user must look at their wallet — was a button
+  // caption change no screen reader would report.
+  const [note, setNote] = useState('');
 
   const inFlight = status === 'sending';
   const over = comment.length > MAX;
@@ -72,13 +78,17 @@ export function FeedbackForm({ onSubmitted }: { onSubmitted?: () => void }) {
 
     try {
       if (!anchor && address) {
+        setNote(inFlightLabels.building);
         const xdr = await buildFeedbackXdr(address, rating, trimmed);
+        setNote(inFlightLabels.signing);
         const signed = await signTransaction(xdr);
+        setNote(inFlightLabels.submitting);
         const txHash = await submitInvoke(signed);
         anchor = { txHash, wallet: address, rating, comment: trimmed };
         setAnchored(anchor);
       }
 
+      setNote('Saving feedback…');
       const res = await fetch('/api/feedback', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
@@ -225,10 +235,16 @@ export function FeedbackForm({ onSubmitted }: { onSubmitted?: () => void }) {
           </button>
 
           {/*
-            Both outcomes live in regions that are mounted from the first
-            render. A live region created at the same instant as its text is
-            routinely missed, and this form's only feedback is these two lines.
+            All three regions are mounted from the first render. A live region
+            created at the same instant as its text is routinely missed, and
+            this form's only feedback is these lines. The first is sr-only:
+            sighted users already have the button caption, but the leg changes
+            — especially "awaiting signature" — are otherwise silent.
           */}
+          <p aria-live="polite" aria-atomic="true" className="sr-only">
+            {status === 'sending' ? note : ''}
+          </p>
+
           <p
             aria-live="polite"
             aria-atomic="true"
