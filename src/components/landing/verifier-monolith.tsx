@@ -19,6 +19,10 @@ export function VerifierMonolith() {
   const [stamped, setStamped] = useState(false);
   const wrap = useRef<HTMLDivElement>(null);
   const ran = useRef(false);
+  // Live timeout ids from the chained reveal, cleared on unmount so a
+  // half-played sequence can never keep firing into a gone component.
+  const timers = useRef<number[]>([]);
+  const alive = useRef(true);
 
   /** The finished verification, with no intermediate frames — the reduced-motion view. */
   const settle = useCallback(() => {
@@ -26,7 +30,18 @@ export function VerifierMonolith() {
   }, []);
 
   const run = useCallback(async () => {
-    const sleep = (ms: number) => new Promise<void>((res) => setTimeout(res, ms));
+    // Fired ids are pruned as they resolve, so the array only ever holds the
+    // (single) pending timeout; unmount clears whatever is left.
+    const sleep = (ms: number) =>
+      new Promise<void>((res) => {
+        if (!alive.current) return;
+        const t = window.setTimeout(() => {
+          const i = timers.current.indexOf(t);
+          if (i !== -1) timers.current.splice(i, 1);
+          res();
+        }, ms);
+        timers.current.push(t);
+      });
     await sleep(300); setDropped(true);
     await sleep(700); setRevealed(1);
     await sleep(450); setRevealed(2);
@@ -36,11 +51,17 @@ export function VerifierMonolith() {
   }, []);
 
   useEffect(() => {
-    const el = wrap.current; if (!el) return;
+    alive.current = true;
+    const clear = () => {
+      alive.current = false;
+      timers.current.forEach(clearTimeout);
+      timers.current = [];
+    };
+    const el = wrap.current; if (!el) return clear;
     // reduced motion never plays the sequence — show the settled panel straight away
     // rather than waiting on a scroll that would leave it frozen at frame zero.
     if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false) {
-      ran.current = true; settle(); return;
+      ran.current = true; settle(); return clear;
     }
     const io = new IntersectionObserver((entries) => {
       for (const e of entries) {
@@ -48,7 +69,7 @@ export function VerifierMonolith() {
       }
     }, { threshold: 0.35 });
     io.observe(el);
-    return () => io.disconnect();
+    return () => { io.disconnect(); clear(); };
   }, [run, settle]);
 
   return (
