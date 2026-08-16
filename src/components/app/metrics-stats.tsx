@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useState, type ReactNode } from 'react';
 import { activeProfile } from '@/config/network';
+import { contractsConfigured } from '@/config/contract';
 import { readApiError } from '@/lib/api/client';
 import { getCount, getLatestLedger, getRecent } from '@/lib/stellar/action-log';
 import { getFeedbackCount, getFeedbackAuthors } from '@/lib/stellar/feedback';
@@ -86,6 +87,14 @@ export function MetricsStats({ refreshSignal = 0 }: { refreshSignal?: number }) 
   const goalLabelId = useId();
 
   useEffect(() => {
+    // A network with nothing deployed has nothing to simulate against: every
+    // read below would be issued with an empty contract id and fail opaquely.
+    // The render states the gap instead (see below); the signup registry is
+    // Postgres, not the chain, so its effect still runs untouched.
+    if (!contractsConfigured) {
+      setLoading(false);
+      return;
+    }
     let cancelled = false;
     setLoading(true);
     setError(null);
@@ -259,7 +268,16 @@ export function MetricsStats({ refreshSignal = 0 }: { refreshSignal?: number }) 
             refused to answer, or genuinely hold nothing. One line above them
             says which.
           */}
-          {loading ? (
+          {!contractsConfigured ? (
+            // A visible statement, not a silent skip: em dashes below would
+            // otherwise read as an outage when the truth is that this network
+            // has no contracts deployed to read from yet.
+            <p className="font-mono text-xs text-denied">
+              Contracts are not configured for {activeProfile.label} yet, so
+              the on-chain figures cannot be read. Registry signups above are
+              unaffected.
+            </p>
+          ) : loading ? (
             <p className="font-mono text-xs text-muted">Reading the contracts…</p>
           ) : error ? (
             <p className="font-mono text-xs text-denied">{error}</p>
