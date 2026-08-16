@@ -8,6 +8,7 @@
     "build": "next build",
     "start": "next start",
     "test": "vitest run",
+    "check": "bun run types:check && bun run test",
     "loadtest": "bun scripts/loadtest/run.ts",
     "postinstall": "fumadocs-mdx",
     "types:check": "fumadocs-mdx && next typegen && tsc --noEmit"
