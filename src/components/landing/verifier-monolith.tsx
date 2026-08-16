@@ -1,9 +1,9 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { Eyebrow, HudPanel } from '@/components/landing/primitives';
 import { protocol } from '@/config/protocol';
-
-const shortId = (id: string) => `${id.slice(0, 4)}…${id.slice(-3)}`;
+import { shorten } from '@/lib/ui';
 
 const STEPS = [
   'verify_groth16_proof()',
@@ -19,6 +19,10 @@ export function VerifierMonolith() {
   const [stamped, setStamped] = useState(false);
   const wrap = useRef<HTMLDivElement>(null);
   const ran = useRef(false);
+  // Live timeout ids from the chained reveal, cleared on unmount so a
+  // half-played sequence can never keep firing into a gone component.
+  const timers = useRef<number[]>([]);
+  const alive = useRef(true);
 
   /** The finished verification, with no intermediate frames — the reduced-motion view. */
   const settle = useCallback(() => {
@@ -26,7 +30,18 @@ export function VerifierMonolith() {
   }, []);
 
   const run = useCallback(async () => {
-    const sleep = (ms: number) => new Promise<void>((res) => setTimeout(res, ms));
+    // Fired ids are pruned as they resolve, so the array only ever holds the
+    // (single) pending timeout; unmount clears whatever is left.
+    const sleep = (ms: number) =>
+      new Promise<void>((res) => {
+        if (!alive.current) return;
+        const t = window.setTimeout(() => {
+          const i = timers.current.indexOf(t);
+          if (i !== -1) timers.current.splice(i, 1);
+          res();
+        }, ms);
+        timers.current.push(t);
+      });
     await sleep(300); setDropped(true);
     await sleep(700); setRevealed(1);
     await sleep(450); setRevealed(2);
@@ -36,11 +51,17 @@ export function VerifierMonolith() {
   }, []);
 
   useEffect(() => {
-    const el = wrap.current; if (!el) return;
+    alive.current = true;
+    const clear = () => {
+      alive.current = false;
+      timers.current.forEach(clearTimeout);
+      timers.current = [];
+    };
+    const el = wrap.current; if (!el) return clear;
     // reduced motion never plays the sequence — show the settled panel straight away
     // rather than waiting on a scroll that would leave it frozen at frame zero.
     if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false) {
-      ran.current = true; settle(); return;
+      ran.current = true; settle(); return clear;
     }
     const io = new IntersectionObserver((entries) => {
       for (const e of entries) {
@@ -48,16 +69,13 @@ export function VerifierMonolith() {
       }
     }, { threshold: 0.35 });
     io.observe(el);
-    return () => io.disconnect();
+    return () => { io.disconnect(); clear(); };
   }, [run, settle]);
 
   return (
     <section ref={wrap} aria-labelledby="verification-title" className="border-t border-violet/20 px-5 py-14 sm:px-7 sm:py-20">
       <div className="mx-auto max-w-[1160px]">
-        <div className="mb-[18px] flex items-center gap-3.5">
-          <span className="font-mono text-xs tracking-[0.12em] text-violet-soft">[ 03 ] ON-CHAIN VERIFICATION</span>
-          <span className="h-px flex-1 bg-violet/25" />
-        </div>
+        <Eyebrow index="03" className="mb-[18px]">ON-CHAIN VERIFICATION</Eyebrow>
 
         <div className="grid items-center gap-12 lg:grid-cols-[1fr_0.85fr]">
           <div>
@@ -78,7 +96,7 @@ export function VerifierMonolith() {
                     className="flex items-center gap-3 border-b border-fd-border px-4 py-3 font-mono text-[13px] transition-opacity duration-500 last:border-b-0"
                     style={{ opacity: i < revealed ? 1 : 0, color: last ? '#22c55e' : '#e2e8f0', fontWeight: last ? 600 : 400 }}
                   >
-                    <svg width="14" height="14" viewBox="0 0 15 15" className="shrink-0" aria-hidden>
+                    <svg width="14" height="14" viewBox="0 0 15 15" className="shrink-0" aria-hidden="true">
                       <polyline points="2,8 6,12 13,3" fill="none" stroke="#22c55e" strokeWidth="2.2" strokeLinecap="square" strokeLinejoin="miter" />
                     </svg>
                     {s}
@@ -89,11 +107,10 @@ export function VerifierMonolith() {
           </div>
 
           <div className="flex h-[400px] items-center justify-center">
-            <div className="relative h-[360px] w-full max-w-[280px] overflow-hidden border border-violet/40" style={{ background: 'linear-gradient(180deg,#0e121c,#090b12)' }}>
-              <span aria-hidden className="absolute -left-px -top-px h-3.5 w-3.5 border-l-2 border-t-2 border-violet" />
-              <span aria-hidden className="absolute -right-px -top-px h-3.5 w-3.5 border-r-2 border-t-2 border-violet" />
-              <span aria-hidden className="absolute -bottom-px -left-px h-3.5 w-3.5 border-b-2 border-l-2 border-violet" />
-              <span aria-hidden className="absolute -bottom-px -right-px h-3.5 w-3.5 border-b-2 border-r-2 border-violet" />
+            <HudPanel
+              corners={4}
+              className="h-[360px] w-full max-w-[280px] overflow-hidden bg-[linear-gradient(180deg,#0e121c,#090b12)]"
+            >
               <span aria-hidden className="absolute inset-y-0 left-1/4 w-px bg-violet/15" />
               <span aria-hidden className="absolute inset-y-0 left-1/2 w-px bg-violet/20" />
               <span aria-hidden className="absolute inset-y-0 left-3/4 w-px bg-violet/15" />
@@ -117,7 +134,7 @@ export function VerifierMonolith() {
               <span className="absolute left-[30px] top-[208px] font-mono text-[9px] tracking-[0.06em] text-[#7d8ea6]">PROOF SLOT · BN254</span>
 
               <div className="absolute inset-x-0 bottom-0 flex items-center justify-between border-t border-fd-border px-3.5 py-3">
-                <span className="font-mono text-[10px] text-violet-soft">{shortId(protocol.contractId)}</span>
+                <span className="font-mono text-[10px] text-violet-soft">{shorten(protocol.contractId, 4, 3)}</span>
                 <span className="font-mono text-[10px] tracking-[0.08em] transition-colors" style={{ color: accepted ? '#22c55e' : '#7d8ea6' }}>
                   {accepted ? 'ACCEPTED' : 'AWAITING'}
                 </span>
@@ -129,7 +146,7 @@ export function VerifierMonolith() {
               >
                 <span className="font-display text-[22px] font-bold tracking-[0.08em] text-live">VERIFIED</span>
               </div>
-            </div>
+            </HudPanel>
           </div>
         </div>
       </div>

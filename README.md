@@ -19,7 +19,7 @@ before any money moves. The rules stay secret; compliance is provable.
 
 **Repos:** [zentra-docs](https://github.com/ALGOREX-PH/zentra-docs) (this app + contracts) · [zentra-protocol](https://github.com/ALGOREX-PH/zentra-protocol) (circuit + SDK + CLI)
 
-![Zentra landing](docs/screenshots/landing.png)
+![Zentra landing](public/img/landing.png)
 
 ## The one question
 
@@ -242,7 +242,7 @@ passes only when the Action Log is the caller.
 | Contract deployment workflow | `contracts/deploy.sh` — build → deploy → wire both contracts |
 | Mobile responsive frontend | `/board` grid stacks on small screens |
 | Error handling & loading states | `errors.ts`, `tx-status.tsx`, feed loading / empty / error states |
-| Tests (contract + frontend) | 38 Rust tests across five contracts; 324 Vitest tests across 15 files (`bun run test`) |
+| Tests (contract + frontend) | Rust suites across all five contracts (`cargo test`) + the Vitest suite (`bun run test`) — the CI run carries the current counts |
 | Production architecture | typed libs, single-source config, CI, size-optimized wasm |
 
 ### Build, test, deploy
@@ -310,7 +310,7 @@ both queryable and independently verifiable.
 | Proof of wallet interactions | `/metrics` reads distinct wallets + total actions live from chain |
 | Backend architecture | layered API in [`src/lib/api/`](src/lib/api) — see below |
 | Database design | [`db/schema.sql`](db/schema.sql) + [`db/migrations/`](db/migrations) — named constraints, 4 indexes |
-| Testing | 324 Vitest tests across 15 files + 38 Rust tests across five contracts; CI runs typecheck → tests → build |
+| Testing | Vitest + Rust contract suites gated on every push; CI runs typecheck → tests → build and is the source of truth for test counts |
 | Documentation | this README + [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) + [`docs/API.md`](docs/API.md) + [`docs/BELT-CHECKLIST.md`](docs/BELT-CHECKLIST.md) |
 
 ### Backend, in production terms
@@ -545,7 +545,7 @@ you **anchor it on-chain**.
 
 _A real proof being anchored on-chain through Freighter:_
 
-![Anchoring a proof on-chain](docs/screenshots/playground-anchor.png)
+![Anchoring a proof on-chain](public/img/playground-anchor.png)
 
 …and confirmed on-chain — wallet `GA7A…5OQV` invoking `anchor(commitment, 14 signals)`
 on the registry,

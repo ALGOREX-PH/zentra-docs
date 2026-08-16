@@ -1,6 +1,6 @@
 import type { MetadataRoute } from 'next';
-import { source } from '@/lib/source';
 import { siteUrl } from '@/lib/site';
+import { source } from '@/lib/source';
 
 /**
  * Every route the `(home)` group serves, in nav order. Kept explicit rather

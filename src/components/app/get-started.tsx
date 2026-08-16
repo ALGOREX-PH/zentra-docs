@@ -1,14 +1,12 @@
 'use client';
 
-import { useEffect, useId, useState, type ReactNode } from 'react';
 import Link from 'next/link';
+import { type ReactNode, useId, useState } from 'react';
+import { useXlmBalance } from '@/components/app/use-xlm-balance';
 import { useWallet } from '@/components/app/wallet-provider';
-import { getXlmBalance } from '@/lib/stellar/account';
-import { HudPanel, Eyebrow } from '@/components/landing/primitives';
+import { Eyebrow, HudPanel } from '@/components/landing/primitives';
 import { cn } from '@/lib/cn';
-
-const focusRing =
-  'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan';
+import { focusRing } from '@/lib/ui';
 
 /** What we can honestly say about a step: finished, up next, or unknown. */
 type StepStatus = 'done' | 'current' | 'pending';
@@ -28,23 +26,19 @@ const STEPS: ReadonlyArray<{ title: string; body: ReactNode }> = [
     title: 'Install a Stellar wallet',
     body: (
       <>
-        Signing goes through the Stellar Wallets Kit, so Freighter, xBull, Albedo,
-        LOBSTR, Hana Wallet and Rabet all work — the picker lists all six and
-        flags which of them this browser has. With none of them installed,{' '}
+        Signing goes through the Stellar Wallets Kit, so Freighter, xBull, Albedo, LOBSTR, Hana
+        Wallet and Rabet all work — the picker lists all six and flags which of them this browser
+        has. With none of them installed,{' '}
         <a
           href="https://www.freighter.app/"
           target="_blank"
           rel="noreferrer"
-          className={cn(
-            'text-cyan underline-offset-4 hover:underline',
-            focusRing,
-          )}
+          className={cn('text-cyan underline-offset-4 hover:underline', focusRing)}
         >
           Freighter
         </a>{' '}
-        is the shortest route: add the extension, create or import an account,
-        then reload this page. Done when your wallet appears as{' '}
-        <span className="text-text">Detected</span> — not{' '}
+        is the shortest route: add the extension, create or import an account, then reload this
+        page. Done when your wallet appears as <span className="text-text">Detected</span> — not{' '}
         <span className="text-text">Install</span> — under{' '}
         <span className="text-text">Connect Wallet</span>.
       </>
@@ -54,14 +48,13 @@ const STEPS: ReadonlyArray<{ title: string; body: ReactNode }> = [
     title: 'Switch it to Test Net, then connect',
     body: (
       <>
-        Every contract behind this page lives on the Stellar testnet, and a wallet
-        left on Mainnet cannot sign for it — no real funds are involved either
-        way. Pick <span className="text-text">Test Net</span> in the wallet
-        (Freighter keeps that selector at the top of its window), then press{' '}
-        <span className="text-text">Connect Wallet</span> above and approve.
-        Done when the button becomes your{' '}
-        <span className="text-text">G…</span> address. If the picker says it could
-        not connect instead, the wallet is locked or still on Mainnet.
+        Every contract behind this page lives on the Stellar testnet, and a wallet left on Mainnet
+        cannot sign for it — no real funds are involved either way. Pick{' '}
+        <span className="text-text">Test Net</span> in the wallet (Freighter keeps that selector at
+        the top of its window), then press <span className="text-text">Connect Wallet</span> above
+        and approve. Done when the button becomes your <span className="text-text">G…</span>{' '}
+        address. If the picker says it could not connect instead, the wallet is locked or still on
+        Mainnet.
       </>
     ),
   },
@@ -69,21 +62,16 @@ const STEPS: ReadonlyArray<{ title: string; body: ReactNode }> = [
     title: 'Fund the account from Friendbot',
     body: (
       <>
-        A fresh testnet account holds nothing, and an account with no XLM cannot
-        pay a transaction fee — nothing here can be signed until that is cleared.
-        One action clears it:{' '}
+        A fresh testnet account holds nothing, and an account with no XLM cannot pay a transaction
+        fee — nothing here can be signed until that is cleared. One action clears it:{' '}
         <a
           href="#testnet-balance"
-          className={cn(
-            'text-cyan underline-offset-4 hover:underline',
-            focusRing,
-          )}
+          className={cn('text-cyan underline-offset-4 hover:underline', focusRing)}
         >
           Fund with Friendbot
         </a>{' '}
-        in the Testnet balance panel below. Done when that panel stops saying the
-        account isn&apos;t funded and shows an XLM figure; if Friendbot is
-        unreachable it states the error and offers{' '}
+        in the Testnet balance panel below. Done when that panel stops saying the account isn&apos;t
+        funded and shows an XLM figure; if Friendbot is unreachable it states the error and offers{' '}
         <span className="text-text">Retry</span>.
       </>
     ),
@@ -95,19 +83,15 @@ const STEPS: ReadonlyArray<{ title: string; body: ReactNode }> = [
         A funded wallet is the prerequisite, not the point.{' '}
         <Link
           href="/board"
-          className={cn(
-            'text-cyan underline-offset-4 hover:underline',
-            focusRing,
-          )}
+          className={cn('text-cyan underline-offset-4 hover:underline', focusRing)}
         >
           Open the board
         </Link>
-        , write up to 200 characters and sign: the Action Log contract stores the
-        entry, a cross-contract call bumps your score in the Reputation contract,
-        and a <span className="text-text">recorded</span> event goes out. Done when
-        the form hands back a transaction hash you can open on stellar.expert —
-        your entry heads the live feed the moment the transaction settles, and
-        anyone else watching picks it up on the next six-second poll.
+        , write up to 200 characters and sign: the Action Log contract stores the entry, a
+        cross-contract call bumps your score in the Reputation contract, and a{' '}
+        <span className="text-text">recorded</span> event goes out. Done when the form hands back a
+        transaction hash you can open on stellar.expert — your entry heads the live feed the moment
+        the transaction settles, and anyone else watching picks it up on the next six-second poll.
       </>
     ),
   },
@@ -115,16 +99,6 @@ const STEPS: ReadonlyArray<{ title: string; body: ReactNode }> = [
 
 /** The step the on-chain balance answers for. */
 const FUND_STEP = 2;
-
-/**
- * How often the balance is re-read while the account still cannot transact.
- *
- * Funding is triggered in the balance panel next door, which has no channel back
- * to this guide, so the guide watches the chain rather than a sibling's state.
- * That also means it notices an account funded from the CLI, the laboratory, or
- * a second tab. Same cadence as the live feed on /board.
- */
-const FUND_POLL_MS = 6000;
 
 /**
  * Only claim what observable state proves. A live address means a wallet is
@@ -181,16 +155,16 @@ function FundingNote({ funding }: { funding: Funding }) {
   if (funding === 'unfunded') {
     return (
       <p className="mt-2.5 border border-denied/40 bg-denied/[0.06] px-3 py-2 font-mono text-[11px] leading-relaxed text-denied">
-        Checked on-chain: this account holds no XLM, so every signature it
-        attempts would fail. Nothing else matters until this is cleared.
+        Checked on-chain: this account holds no XLM, so every signature it attempts would fail.
+        Nothing else matters until this is cleared.
       </p>
     );
   }
   if (funding === 'unreadable') {
     return (
       <p className="mt-2.5 border border-fd-border bg-abyss px-3 py-2 font-mono text-[11px] leading-relaxed text-muted">
-        The balance read failed, so this step can&apos;t be confirmed either way.
-        Retry it from the balance panel below.
+        The balance read failed, so this step can&apos;t be confirmed either way. Retry it from the
+        balance panel below.
       </p>
     );
   }
@@ -218,50 +192,34 @@ export function GetStarted() {
   const { address } = useWallet();
   // null = follow the wallet; true/false = the user overrode it via the toggle.
   const [override, setOverride] = useState<boolean | null>(null);
-  const [funding, setFunding] = useState<Funding>('unknown');
   const panelId = useId();
 
-  useEffect(() => {
-    const account = address;
-    if (!account) {
-      setFunding('unknown');
-      return;
-    }
+  /**
+   * The shared balance read (`useXlmBalance`) rather than a poll of this
+   * guide's own: funding is triggered in the balance panel next door, and the
+   * shared store is what lets its `refresh()` land here in the same tick. The
+   * hook keeps the old semantics — it watches the chain, not a sibling's
+   * state, so an account funded from the CLI, the laboratory or a second tab
+   * is noticed on the next poll, and the poll stops once funding lands.
+   */
+  const { funded: fundedRead, error: readError } = useXlmBalance(address);
 
-    let cancelled = false;
-    let timer: ReturnType<typeof setInterval> | null = null;
-
-    // The address is passed in rather than closed over: a captured `const` is
-    // still `string | null` to the checker inside this nested function.
-    async function read(target: string) {
-      try {
-        const balance = await getXlmBalance(target);
-        if (cancelled) return;
-        // null is an account Horizon has never seen; '0' is one that exists with
-        // nothing to spend. Neither can pay a fee, so both read as unfunded.
-        const amount = balance === null ? 0 : Number(balance);
-        const funded = Number.isFinite(amount) && amount > 0;
-        setFunding(funded ? 'funded' : 'unfunded');
-        // Funding only travels one way in this flow, so once it lands the poll
-        // stops rather than hitting Horizon for the rest of the session.
-        if (funded && timer !== null) {
-          clearInterval(timer);
-          timer = null;
-        }
-      } catch {
-        if (cancelled) return;
-        setFunding('unreadable');
-      }
-    }
-
-    void read(account);
-    timer = setInterval(() => void read(account), FUND_POLL_MS);
-
-    return () => {
-      cancelled = true;
-      if (timer !== null) clearInterval(timer);
-    };
-  }, [address]);
+  /**
+   * Collapse the hook's state into the guide's vocabulary. A failed read
+   * outranks a stale success: the old figure may still be on screen in the
+   * balance card, but this guide's job is to say whether the gate is *known*
+   * to be clear, and right now it is not.
+   */
+  const funding: Funding =
+    address === null
+      ? 'unknown'
+      : readError !== null
+        ? 'unreadable'
+        : fundedRead === null
+          ? 'unknown'
+          : fundedRead
+            ? 'funded'
+            : 'unfunded';
 
   const connected = address !== null;
   // Guarded on `connected` so a disconnect cannot leave a stale "funded" frame
@@ -274,8 +232,7 @@ export function GetStarted() {
    * panel unfold and fold again; the summary says it is still reading rather
    * than claiming the gate is clear.
    */
-  const blocked =
-    !connected || funding === 'unfunded' || funding === 'unreadable';
+  const blocked = !connected || funding === 'unfunded' || funding === 'unreadable';
   const expanded = override ?? blocked;
   const summary = SUMMARY[funding];
 
@@ -334,14 +291,12 @@ export function GetStarted() {
 
         <div id={panelId} hidden={!expanded}>
           <div className={cn(connected && 'mt-6')}>
-            <Eyebrow accent={funded ? 'cyan' : 'violet'}>
-              GET STARTED · 4 STEPS
-            </Eyebrow>
+            <Eyebrow accent={funded ? 'cyan' : 'violet'}>GET STARTED · 4 STEPS</Eyebrow>
 
             {!connected ? (
               <p className="-mt-2 mb-4 max-w-[560px] text-[13px] leading-relaxed text-muted sm:text-sm">
-                Four things stand between a fresh browser and your first action
-                recorded on-chain. A couple of minutes, one time.
+                Four things stand between a fresh browser and your first action recorded on-chain. A
+                couple of minutes, one time.
               </p>
             ) : null}
 
@@ -357,21 +312,16 @@ export function GetStarted() {
                     aria-current={isCurrent ? 'step' : undefined}
                     className={cn(
                       'flex gap-3 border-l-2 p-3 sm:gap-4 sm:p-4',
-                      isCurrent
-                        ? 'border-violet bg-violet/[0.06]'
-                        : 'border-transparent',
+                      isCurrent ? 'border-violet bg-violet/[0.06]' : 'border-transparent',
                     )}
                   >
                     <span
                       aria-hidden
                       className={cn(
                         'flex size-6 shrink-0 items-center justify-center border font-mono text-[11px] leading-none sm:size-7 sm:text-xs',
-                        status === 'done' &&
-                          'border-cyan/50 bg-cyan/10 text-cyan',
-                        status === 'current' &&
-                          'border-violet/60 bg-violet/20 text-violet-soft',
-                        status === 'pending' &&
-                          'border-fd-border bg-abyss text-faint',
+                        status === 'done' && 'border-cyan/50 bg-cyan/10 text-cyan',
+                        status === 'current' && 'border-violet/60 bg-violet/20 text-violet-soft',
+                        status === 'pending' && 'border-fd-border bg-abyss text-faint',
                       )}
                     >
                       {i + 1}
@@ -391,9 +341,7 @@ export function GetStarted() {
                           <span
                             className={cn(
                               'font-mono text-[10px] uppercase tracking-[0.12em]',
-                              status === 'done'
-                                ? 'text-cyan'
-                                : 'text-violet-soft',
+                              status === 'done' ? 'text-cyan' : 'text-violet-soft',
                             )}
                           >
                             {badge}

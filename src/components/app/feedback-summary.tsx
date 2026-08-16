@@ -1,14 +1,12 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { truncateAddress } from '@/lib/stellar/format';
-import { readApiError } from '@/lib/api/client';
+import { Eyebrow, HudPanel } from '@/components/landing/primitives';
 import { stellar } from '@/config/stellar';
-import { HudPanel, Eyebrow } from '@/components/landing/primitives';
+import { readApiError } from '@/lib/api/client';
 import { cn } from '@/lib/cn';
-
-const focusRing =
-  'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan';
+import { truncateAddress } from '@/lib/stellar/format';
+import { focusRing } from '@/lib/ui';
 
 interface FeedbackItem {
   rating: number;
@@ -115,6 +113,16 @@ export function FeedbackSummary({ refreshSignal = 0 }: { refreshSignal?: number 
   return (
     <HudPanel accent="cyan">
       <div className="p-5 sm:p-6">
+        {/*
+          Pre-mounted alert region, as in tx-status: the visible error line and
+          the stale banner both appear in the same render as the failure they
+          announce, and a live region born with its text is routinely missed by
+          screen readers. This span exists from the first render.
+        */}
+        <span role="alert" className="sr-only">
+          {error ? (data ? `${error} Showing the last response loaded.` : error) : ''}
+        </span>
+
         <Eyebrow accent="cyan">WHAT USERS SAY</Eyebrow>
 
         {loading && !data ? (
@@ -148,9 +156,14 @@ export function FeedbackSummary({ refreshSignal = 0 }: { refreshSignal?: number 
 
             <ul className="divide-y divide-fd-border border border-fd-border">
               {data.recent.map((item, index) => (
+                // biome-ignore lint/suspicious/noArrayIndexKey: the index only tiebreaks rows sharing txHash/createdAt; the list is replaced wholesale on refresh, never reordered.
                 <li key={`${item.txHash ?? item.createdAt}-${index}`} className="px-4 py-3">
                   <div className="flex items-center justify-between gap-3 font-mono text-[11px] text-faint">
-                    <span className="text-cyan" aria-label={`${item.rating} out of 5 stars`}>
+                    <span
+                      role="img"
+                      className="text-cyan"
+                      aria-label={`${item.rating} out of 5 stars`}
+                    >
                       {'★'.repeat(item.rating)}
                     </span>
                     <span className="flex items-center gap-2">

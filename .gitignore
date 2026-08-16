@@ -25,8 +25,12 @@ yarn-error.log*
 /.vscode/*
 !/.vscode/extensions.json
 
+# env — never commit secrets; the example file is the only tracked env file
+.env
+.env.*
+!.env.example
+
 # others
-.env*.local
 .vercel
 next-env.d.ts
 

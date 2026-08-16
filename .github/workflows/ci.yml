@@ -2,40 +2,34 @@ name: CI
 
 on:
   push:
-  pull_request:
 
 permissions:
   contents: read
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   contracts:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: contracts
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
-      - name: Cache cargo
-        uses: actions/cache@v4
         with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            contracts/zentra-reputation/target
-            contracts/zentra-action-log/target
-            contracts/zentra-feedback/target
-            contracts/zentra-proof-registry/target
-          key: cargo-${{ runner.os }}-${{ hashFiles('contracts/*/Cargo.toml') }}
-          restore-keys: |
-            cargo-${{ runner.os }}-
-      - name: Test reputation contract
-        run: cargo test --manifest-path contracts/zentra-reputation/Cargo.toml
-      - name: Test action-log contract
-        run: cargo test --manifest-path contracts/zentra-action-log/Cargo.toml
-      - name: Test feedback contract
-        run: cargo test --manifest-path contracts/zentra-feedback/Cargo.toml
-      - name: Test proof-registry contract
-        run: cargo test --manifest-path contracts/zentra-proof-registry/Cargo.toml
-      - name: Test multisig contract
-        run: cargo test --manifest-path contracts/zentra-multisig/Cargo.toml
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: contracts
+      - name: Format
+        run: cargo fmt --all --check
+      - name: Clippy
+        run: cargo clippy --all-targets --locked -- -D warnings
+      - name: Test
+        run: cargo test --locked
 
   frontend:
     runs-on: ubuntu-latest
@@ -43,14 +37,21 @@ jobs:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: 1.3.13
       - name: Install
-        run: bun install
-      - name: Typecheck
-        run: bun run types:check
-      - name: Unit tests
-        run: bun run test
+        run: bun install --frozen-lockfile
+      - name: Audit dependencies (non-blocking)
+        run: bun audit
+        continue-on-error: true
+      - name: Lint, typecheck and unit tests
+        run: bun run check
       - name: Build
         run: bun run build
         env:
           NEXT_TELEMETRY_DISABLED: '1'
+      - name: Bundle size budget
+        run: |
+          budget=$((10 * 1024 * 1024))
+          size=$(du -sb .next/static | cut -f1)
+          echo ".next/static: ${size} bytes (budget: ${budget})"
+          [ "$size" -le "$budget" ] || { echo "FAIL: .next/static (${size} bytes) exceeds the 10MB budget"; exit 1; }

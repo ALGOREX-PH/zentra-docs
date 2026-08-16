@@ -1,6 +1,6 @@
 #![no_std]
 use soroban_sdk::{
-    contract, contractclient, contractevent, contracterror, contractimpl, contracttype, vec,
+    contract, contractclient, contracterror, contractevent, contractimpl, contracttype, vec,
     Address, Env, String, Vec,
 };
 
@@ -9,7 +9,10 @@ const INSTANCE_BUMP: u32 = 30 * DAY_LEDGERS;
 const INSTANCE_THRESHOLD: u32 = INSTANCE_BUMP - DAY_LEDGERS;
 const ENTRY_BUMP: u32 = 90 * DAY_LEDGERS;
 const ENTRY_THRESHOLD: u32 = ENTRY_BUMP - DAY_LEDGERS;
-const MAX_MESSAGE_LEN: u32 = 200;
+/// Message budget in bytes (UTF-8), not characters — `String::len` counts
+/// bytes, so multi-byte characters consume more of the budget. Any frontend
+/// cap must enforce the same unit.
+const MAX_MESSAGE_BYTES: u32 = 200;
 const MAX_RECENT: u32 = 20;
 
 #[contracttype]
@@ -48,12 +51,32 @@ pub struct Recorded {
 pub enum Error {
     EmptyMessage = 1,
     MessageTooLong = 2,
+    CounterOverflow = 3,
+}
+
+/// Mirror of the reputation contract's `Error` enum. Kept in lockstep by a
+/// test that compares each variant's code against the real crate, so any
+/// drift over there becomes a test failure here.
+#[contracterror]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[repr(u32)]
+pub enum ReputationError {
+    LoggerNotSet = 1,
+    Unauthorized = 2,
+    ScoreOverflow = 3,
 }
 
 /// The slice of the Reputation contract this log calls cross-contract.
 #[contractclient(name = "ReputationClient")]
 pub trait Reputation {
-    fn bump(env: Env, logger: Address, author: Address) -> u32;
+    fn bump(env: Env, logger: Address, author: Address) -> Result<u32, ReputationError>;
+}
+
+/// The reputation contract this log bumps, loaded from instance storage. Panics
+/// only if the contract was never constructed, which the host makes impossible
+/// for a deployed contract.
+fn reputation_of(env: &Env) -> Address {
+    env.storage().instance().get(&DataKey::Reputation).unwrap()
 }
 
 #[contract]
@@ -63,12 +86,14 @@ pub struct ActionLog;
 impl ActionLog {
     /// Wire the reputation contract this log bumps on each recorded action.
     pub fn __constructor(env: Env, reputation: Address) {
-        env.storage().instance().set(&DataKey::Reputation, &reputation);
+        env.storage()
+            .instance()
+            .set(&DataKey::Reputation, &reputation);
     }
 
     /// The reputation contract this log calls cross-contract.
     pub fn reputation(env: Env) -> Address {
-        env.storage().instance().get(&DataKey::Reputation).unwrap()
+        reputation_of(&env)
     }
 
     /// Record an action authored by `author`. Stores it, bumps the global
@@ -80,11 +105,14 @@ impl ActionLog {
         if len == 0 {
             return Err(Error::EmptyMessage);
         }
-        if len > MAX_MESSAGE_LEN {
+        if len > MAX_MESSAGE_BYTES {
             return Err(Error::MessageTooLong);
         }
 
         let index: u64 = env.storage().instance().get(&DataKey::Count).unwrap_or(0);
+        // Wrapping the counter would let a new entry overwrite an old one, so
+        // overflow is a hard error rather than a silent wrap.
+        let next = index.checked_add(1).ok_or(Error::CounterOverflow)?;
 
         // Cross-contract call: bump the author's reputation and fold the new
         // score into the entry. Soroban auto-authorizes this log for the call,
@@ -96,12 +124,14 @@ impl ActionLog {
         // reputation pointer is immutable. `try_bump` turns that dependency
         // failure into a recorded score of 0 so the action is still logged.
         // See docs/SECURITY-REVIEW.md ZEN-01.
-        let reputation: Address = env.storage().instance().get(&DataKey::Reputation).unwrap();
+        let reputation = reputation_of(&env);
         let score = match ReputationClient::new(&env, &reputation)
             .try_bump(&env.current_contract_address(), &author)
         {
             Ok(Ok(score)) => score,
-            _ => 0,
+            // Typed rejection (LoggerNotSet/Unauthorized), a trap, or a
+            // success value that failed to convert: all degrade to 0.
+            Ok(Err(_)) | Err(_) => 0,
         };
 
         let entry = Entry {
@@ -112,12 +142,14 @@ impl ActionLog {
             score,
         };
 
-        env.storage().persistent().set(&DataKey::Entry(index), &entry);
+        env.storage()
+            .persistent()
+            .set(&DataKey::Entry(index), &entry);
         env.storage()
             .persistent()
             .extend_ttl(&DataKey::Entry(index), ENTRY_THRESHOLD, ENTRY_BUMP);
 
-        env.storage().instance().set(&DataKey::Count, &(index + 1));
+        env.storage().instance().set(&DataKey::Count, &next);
         env.storage()
             .instance()
             .extend_ttl(INSTANCE_THRESHOLD, INSTANCE_BUMP);
@@ -144,11 +176,12 @@ impl ActionLog {
         env.storage().persistent().get(&DataKey::Entry(index))
     }
 
-    /// The most recent entries, newest first (capped at 20 to bound the read).
+    /// The most recent entries, newest first (capped at `MAX_RECENT` to bound
+    /// the read).
     pub fn get_recent(env: Env, limit: u32) -> Vec<Entry> {
         let count: u64 = env.storage().instance().get(&DataKey::Count).unwrap_or(0);
         let mut out: Vec<Entry> = vec![&env];
-        let capped = if limit > MAX_RECENT { MAX_RECENT } else { limit };
+        let capped = limit.min(MAX_RECENT);
         if count == 0 || capped == 0 {
             return out;
         }
@@ -158,10 +191,11 @@ impl ActionLog {
         while i > 0 && taken < capped {
             i -= 1;
             let entry: Option<Entry> = env.storage().persistent().get(&DataKey::Entry(i));
+            // The None arm is defensive: entries are never deleted (an archived entry traps rather than reading None).
             if let Some(entry) = entry {
                 out.push_back(entry);
+                taken += 1;
             }
-            taken += 1;
         }
         out
     }

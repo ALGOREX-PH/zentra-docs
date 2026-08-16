@@ -8,8 +8,7 @@ export const metadata: Metadata = {
 };
 
 /** Where a linked article lives, built off the git config the footer also uses. */
-const articleUrl = (file: string) =>
-  `${repoUrl}/blob/${gitConfig.branch}/docs/articles/${file}`;
+const articleUrl = (file: string) => `${repoUrl}/blob/${gitConfig.branch}/docs/articles/${file}`;
 
 const POSTS: {
   cat: string;

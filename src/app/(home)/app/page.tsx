@@ -1,12 +1,12 @@
 'use client';
 
-import { useState } from 'react';
 import Link from 'next/link';
+import { useState } from 'react';
+import { BalanceCard } from '@/components/app/balance-card';
 import { ConnectButton } from '@/components/app/connect-button';
 import { GetStarted } from '@/components/app/get-started';
-import { BalanceCard } from '@/components/app/balance-card';
 import { SendForm } from '@/components/app/send-form';
-import { HudPanel, Eyebrow } from '@/components/landing/primitives';
+import { Eyebrow, HudPanel } from '@/components/landing/primitives';
 
 export default function AppPage() {
   // Bumped after a successful send so the balance card re-fetches.
@@ -26,9 +26,8 @@ export default function AppPage() {
               Stellar testnet wallet
             </h1>
             <p className="mt-3 max-w-[520px] text-[15px] text-muted sm:text-base">
-              Connect a Stellar wallet, fund it from Friendbot, and send XLM on
-              the Stellar testnet. This is the White-Belt foundation the full
-              Zentra proof layer builds on.
+              Connect a Stellar wallet, fund it from Friendbot, and send XLM on the Stellar testnet.
+              This is the White-Belt foundation the full Zentra proof layer builds on.
             </p>
           </div>
           <div className="flex flex-col items-start gap-3 sm:items-end">
@@ -50,11 +49,7 @@ export default function AppPage() {
             well as the scroll so a keyboard lands on the panel, and `grid` keeps
             the card stretched to the row height it had as a direct grid item.
           */}
-          <div
-            id="testnet-balance"
-            tabIndex={-1}
-            className="grid scroll-mt-24 focus:outline-none"
-          >
+          <div id="testnet-balance" tabIndex={-1} className="grid scroll-mt-24 focus:outline-none">
             <BalanceCard refreshSignal={refreshSignal} />
           </div>
           <SendForm onPaid={() => setRefreshSignal((s) => s + 1)} />
@@ -77,11 +72,10 @@ export default function AppPage() {
                   A funded wallet proves nothing on its own
                 </h2>
                 <p className="mt-2.5 max-w-[560px] text-[13px] leading-relaxed text-muted sm:text-sm">
-                  Recording an action is the first thing here that leaves a
-                  permanent trace. The Action Log contract stores your message, a
-                  cross-contract call bumps your score in the Reputation contract,
-                  and the entry heads the live feed as soon as the transaction
-                  settles — inside about six seconds for anyone else watching. The
+                  Recording an action is the first thing here that leaves a permanent trace. The
+                  Action Log contract stores your message, a cross-contract call bumps your score in
+                  the Reputation contract, and the entry heads the live feed as soon as the
+                  transaction settles — inside about six seconds for anyone else watching. The
                   invoke pays its own fee from the account above, so fund it first.
                 </p>
               </div>
@@ -97,8 +91,8 @@ export default function AppPage() {
         </div>
 
         <p className="mt-10 max-w-[640px] font-mono text-xs leading-relaxed text-faint">
-          Every result links to <span className="text-muted">stellar.expert</span>{' '}
-          so you can verify it independently on-chain.
+          Every result links to <span className="text-muted">stellar.expert</span> so you can verify
+          it independently on-chain.
         </p>
       </div>
     </main>

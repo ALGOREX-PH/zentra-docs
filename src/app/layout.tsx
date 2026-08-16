@@ -1,10 +1,10 @@
 import './global.css';
-import type { ReactNode } from 'react';
-import type { Metadata, Viewport } from 'next';
-import { RootProvider } from 'fumadocs-ui/provider/next';
-import { Space_Grotesk, Inter, JetBrains_Mono } from 'next/font/google';
 import { Analytics } from '@vercel/analytics/next';
 import { SpeedInsights } from '@vercel/speed-insights/next';
+import { RootProvider } from 'fumadocs-ui/provider/next';
+import type { Metadata, Viewport } from 'next';
+import { Inter, JetBrains_Mono, Space_Grotesk } from 'next/font/google';
+import type { ReactNode } from 'react';
 import { siteUrl } from '@/lib/site';
 
 const display = Space_Grotesk({
@@ -48,7 +48,14 @@ export const metadata: Metadata = {
     // Declared at the file's true pixel size. The card is authored at 1200x630
     // and rendered at 2x for high-density displays, so quoting the design size
     // would misdescribe the asset a crawler actually fetches.
-    images: [{ url: '/og.png', width: 2400, height: 1260, alt: 'Zentra Protocol — let agents act, make them prove it.' }],
+    images: [
+      {
+        url: '/og.png',
+        width: 2400,
+        height: 1260,
+        alt: 'Zentra Protocol — let agents act, make them prove it.',
+      },
+    ],
   },
   twitter: { card: 'summary_large_image', title, description, images: ['/og.png'] },
 };
@@ -76,9 +83,7 @@ export default function Layout({ children }: { children: ReactNode }) {
         >
           Skip to content
         </a>
-        <RootProvider theme={{ attribute: 'class', forcedTheme: 'dark' }}>
-          {children}
-        </RootProvider>
+        <RootProvider theme={{ attribute: 'class', forcedTheme: 'dark' }}>{children}</RootProvider>
         <Analytics />
         <SpeedInsights />
       </body>

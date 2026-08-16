@@ -16,18 +16,37 @@ export interface LogFields {
 }
 
 /** Keys whose values are never safe to write to a log drain, at any depth. */
-const SENSITIVE_KEY =
-  /(secret|token|password|key|authorization|cookie|database_url|connection)/i;
+const SENSITIVE_KEY = /(secret|token|password|key|authorization|cookie|database_url|connection)/i;
 
 /**
- * Keys that carry personal data, masked only below the top level.
+ * Whether `key` carries personal data. Applied only below the top level.
  *
  * Top-level fields are operational metadata this codebase chooses deliberately —
  * `route()` logs the operation under `name`, next to `method` and `status`. Only
  * nested structures are payloads we are dumping wholesale, where a `name` or
  * `email` is a person rather than a route.
+ *
+ * `email` matches anywhere in the key (`userEmail`, `email_address`). `name`
+ * must match as a whole *segment* of the key, not as a substring or a
+ * `\b`-bounded word: `fullName`, `firstName` and `user_name` all name a person
+ * — and `\bname\b` saw none of them, because a camel hump and an underscore
+ * are both word characters — while `hostname`, `filename` and `nickname` do
+ * not and must stay readable. Splitting the key at its snake/kebab/camel
+ * boundaries is what tells those two groups apart.
  */
-const PII_KEY = /(email|\bname\b)/i;
+function isPiiKey(key: string): boolean {
+  if (/email/i.test(key)) return true;
+  return keySegments(key).some((segment) => segment.toLowerCase() === 'name');
+}
+
+/**
+ * Split a key at separator boundaries (`_`, `-`, `.`, space), then at camel
+ * humps. The hump split requires a lowercase-to-uppercase transition, so an
+ * all-caps key such as `NAME` stays one segment rather than four letters.
+ */
+function keySegments(key: string): string[] {
+  return key.split(/[_\s.-]+/).flatMap((part) => part.split(/(?<=[a-z0-9])(?=[A-Z])/));
+}
 
 /** Placeholder substituted for any value under a sensitive key. */
 const REDACTED = '[redacted]';
@@ -87,7 +106,7 @@ export function newRequestId(): string {
 export function redact(fields: LogFields, depth = 0): LogFields {
   const out: LogFields = {};
   for (const key of Object.keys(fields)) {
-    const masked = SENSITIVE_KEY.test(key) || (depth > 0 && PII_KEY.test(key));
+    const masked = SENSITIVE_KEY.test(key) || (depth > 0 && isPiiKey(key));
     out[key] = masked ? REDACTED : redactValue(fields[key], depth);
   }
   return out;
@@ -120,24 +139,38 @@ const EMBEDDED_CREDENTIAL = /\/\/[^\s/@]+:[^\s/@]+@/;
  * Replace `Error` values with a plain `{ name, message }` object (plus `stack`
  * outside production) so `JSON.stringify` does not silently drop them.
  *
+ * Applied recursively through plain objects and arrays, mirroring `redact`: an
+ * `Error` has no enumerable own properties, so one nested inside a payload —
+ * `{ context: { err } }` — would otherwise stringify to `{}` and the failure
+ * being logged would vanish from the line that exists to record it.
+ *
  * A message carrying an embedded credential is masked entirely and its stack is
  * dropped, since the same URI is usually repeated in every frame.
  */
 function normalise(fields: LogFields): LogFields {
   const out: LogFields = {};
   for (const key of Object.keys(fields)) {
-    const value = fields[key];
-    if (value instanceof Error) {
-      if (EMBEDDED_CREDENTIAL.test(value.message) || EMBEDDED_CREDENTIAL.test(value.stack ?? '')) {
-        out[key] = { name: value.name, message: REDACTED };
-      } else {
-        out[key] = isProduction()
-          ? { name: value.name, message: value.message }
-          : { name: value.name, message: value.message, stack: value.stack };
-      }
-    } else {
-      out[key] = value;
-    }
+    out[key] = normaliseValue(fields[key]);
   }
   return out;
+}
+
+/** Recurse through plain containers, converting every `Error` found inside. */
+function normaliseValue(value: unknown): unknown {
+  if (value instanceof Error) return serialiseError(value);
+  if (Array.isArray(value)) return value.map(normaliseValue);
+  if (value !== null && typeof value === 'object' && isPlainObject(value)) {
+    return normalise(value as LogFields);
+  }
+  return value;
+}
+
+/** One `Error` as the plain shape the drain can store; see `normalise`. */
+function serialiseError(value: Error): { name: string; message: string; stack?: string } {
+  if (EMBEDDED_CREDENTIAL.test(value.message) || EMBEDDED_CREDENTIAL.test(value.stack ?? '')) {
+    return { name: value.name, message: REDACTED };
+  }
+  return isProduction()
+    ? { name: value.name, message: value.message }
+    : { name: value.name, message: value.message, stack: value.stack };
 }

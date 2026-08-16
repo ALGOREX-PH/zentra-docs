@@ -4,8 +4,13 @@ use soroban_sdk::{
 };
 
 const DAY_LEDGERS: u32 = 17_280; // ~1 day at 5s ledgers
-const BUMP: u32 = 30 * DAY_LEDGERS;
-const THRESHOLD: u32 = BUMP - DAY_LEDGERS;
+const INSTANCE_BUMP: u32 = 30 * DAY_LEDGERS;
+const INSTANCE_THRESHOLD: u32 = INSTANCE_BUMP - DAY_LEDGERS;
+// Score keys live as long as the Action Log entries that embed them (90 days):
+// an entry still readable on-chain should never point at a score that was
+// archived out from under it.
+const ENTRY_BUMP: u32 = 90 * DAY_LEDGERS;
+const ENTRY_THRESHOLD: u32 = ENTRY_BUMP - DAY_LEDGERS;
 
 #[contracttype]
 #[derive(Clone)]
@@ -39,6 +44,14 @@ pub struct LoggerSet {
 pub enum Error {
     LoggerNotSet = 1,
     Unauthorized = 2,
+    ScoreOverflow = 3,
+}
+
+/// The admin fixed at construction, loaded from instance storage. Panics only
+/// if the contract was never constructed, which the host makes impossible for
+/// a deployed contract.
+fn admin_of(env: &Env) -> Address {
+    env.storage().instance().get(&DataKey::Admin).unwrap()
 }
 
 #[contract]
@@ -54,10 +67,11 @@ impl Reputation {
     /// Authorize a single Action Log contract as the only caller allowed to
     /// `bump`. Admin-gated.
     pub fn set_logger(env: Env, logger: Address) {
-        let admin: Address = env.storage().instance().get(&DataKey::Admin).unwrap();
-        admin.require_auth();
+        admin_of(&env).require_auth();
         env.storage().instance().set(&DataKey::Logger, &logger);
-        env.storage().instance().extend_ttl(THRESHOLD, BUMP);
+        env.storage()
+            .instance()
+            .extend_ttl(INSTANCE_THRESHOLD, INSTANCE_BUMP);
         LoggerSet { logger }.publish(&env);
     }
 
@@ -78,9 +92,22 @@ impl Reputation {
         }
 
         let key = DataKey::Score(author.clone());
-        let score: u32 = env.storage().persistent().get(&key).unwrap_or(0) + 1;
+        // No author reaches u32::MAX organically, but a silent wrap to 0 would
+        // erase a reputation; overflow is a typed error rather than a wrap.
+        let score: u32 = env
+            .storage()
+            .persistent()
+            .get(&key)
+            .unwrap_or(0u32)
+            .checked_add(1)
+            .ok_or(Error::ScoreOverflow)?;
         env.storage().persistent().set(&key, &score);
-        env.storage().persistent().extend_ttl(&key, THRESHOLD, BUMP);
+        env.storage()
+            .persistent()
+            .extend_ttl(&key, ENTRY_THRESHOLD, ENTRY_BUMP);
+        env.storage()
+            .instance()
+            .extend_ttl(INSTANCE_THRESHOLD, INSTANCE_BUMP);
 
         Bumped { author, score }.publish(&env);
         Ok(score)

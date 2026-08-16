@@ -13,20 +13,17 @@
  * driver message that could carry the connection string.
  */
 
-import { conflict, rateLimited, upstreamUnavailable } from '@/lib/api/errors';
+import { actionLog } from '@/config/contract';
+import { isUniqueViolation, storageUnavailable } from '@/lib/api/db-errors';
+import { conflict } from '@/lib/api/errors';
 import { log } from '@/lib/api/logger';
 import { moderateComment } from '@/lib/api/moderation';
 import { requireSameOrigin } from '@/lib/api/origin';
-import {
-  clientKey,
-  rateLimit,
-  rateLimitHeaders,
-  type RateLimitOptions,
-} from '@/lib/api/rate-limit';
-import { json, route } from '@/lib/api/route';
-import { parseFeedbackInput, readJsonBody, type FeedbackInput } from '@/lib/api/validation';
+import { countRequest, enforceRateLimit, type RateLimitOptions } from '@/lib/api/rate-limit';
+import { json, methodNotAllowed, READ_CACHE_CONTROL, route } from '@/lib/api/route';
+import { type FeedbackInput, parseFeedbackInput, readJsonBody } from '@/lib/api/validation';
 import { verifyAnchor } from '@/lib/api/verify-anchor';
-import { sql } from '@/lib/db';
+import { query, sql } from '@/lib/db';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -40,24 +37,26 @@ const WRITE_LIMIT: RateLimitOptions = { limit: 5, windowMs: 10 * 60_000 };
 /** How many comments the summary carries. */
 const RECENT_LIMIT = 10;
 
-/**
- * How long a CDN may serve the summary before revalidating.
- *
- * The page is a live dashboard, so the window is short; `stale-while-revalidate`
- * keeps it responsive under load without ever showing badly stale numbers.
- */
-const READ_CACHE_CONTROL = 'public, s-maxage=30, stale-while-revalidate=120';
-
-/** Postgres unique-violation code, raised by the one-row-per-transaction index. */
-const UNIQUE_VIOLATION = '23505';
-
 /** Pause before the second anchor lookup, covering Horizon's ingestion lag. */
 const ANCHOR_RETRY_DELAY_MS = 1_500;
+
+/** What the client is told when a query fails; the real error goes to the log. */
+const STORAGE_MESSAGE = 'Feedback storage is temporarily unavailable.';
 
 interface Summary {
   count: number;
   average: number;
   onChain: number;
+}
+
+/** One recent comment as the SELECT below aliases it for the response. */
+interface RecentRow {
+  rating: number;
+  comment: string;
+  wallet: string | null;
+  txHash: string | null;
+  onChain: boolean;
+  createdAt: Date;
 }
 
 export const GET = route('feedback.list', async (request) => {
@@ -102,28 +101,34 @@ export const POST = route('feedback.create', async (request, { requestId }) => {
   return json({ ok: true }, { status: 201, headers });
 });
 
+/** Everything else is a 405 in the standard envelope, not Next's bare default. */
+export const { PUT, PATCH, DELETE } = methodNotAllowed(['GET', 'POST']);
+
 /**
  * Resolve an `onChain` claim against the ledger before it is believed.
  *
  * `parseFeedbackInput` can only check that a hash is well-formed, and 64 hex
  * characters are free to invent. Left unchecked, anyone could post a fabricated
- * hash and inflate the on-chain totals the dashboard reports. A claim that does
- * not verify is downgraded rather than rejected: the feedback is real and worth
- * keeping, only the badge is not earned. The hash is cleared along with it, so
- * an invented value can neither be stored nor occupy the unique index that
+ * hash and inflate the on-chain totals the dashboard reports. The verification
+ * is pinned to the feedback contract: existing and succeeding is not enough,
+ * the transaction must be the claimed wallet's own invocation of that contract,
+ * or the badge names an event that never happened. A claim that does not verify
+ * is downgraded rather than rejected: the feedback is real and worth keeping,
+ * only the badge is not earned. The hash is cleared along with it, so an
+ * invented value can neither be stored nor occupy the unique index that
  * reserves one row per anchoring transaction.
  */
 async function confirmAnchor(input: FeedbackInput, requestId: string): Promise<FeedbackInput> {
   if (!input.onChain || input.txHash === null) return input;
 
-  let verdict = await verifyAnchor(input.txHash, input.wallet);
+  let verdict = await verifyAnchor(input.txHash, input.wallet, actionLog.feedbackId);
 
   // The client polls the RPC until the transaction succeeds before posting, but
   // Horizon ingests closed ledgers on its own schedule and can be a beat
   // behind. One retry absorbs that lag instead of penalising an honest user.
   if (!verdict.verified && verdict.reason === 'not_found') {
     await delay(ANCHOR_RETRY_DELAY_MS);
-    verdict = await verifyAnchor(input.txHash, input.wallet);
+    verdict = await verifyAnchor(input.txHash, input.wallet, actionLog.feedbackId);
   }
 
   if (verdict.verified) return input;
@@ -144,58 +149,25 @@ function delay(ms: number): Promise<void> {
 }
 
 /**
- * Count one request against the caller's budget, or reject it with a 429.
- *
- * Returns the `X-RateLimit-*` headers to attach to a successful response so a
- * well-behaved client can back off before it is turned away.
- */
-function enforceRateLimit(
-  request: Request,
-  scope: string,
-  options: RateLimitOptions,
-): Record<string, string> {
-  const result = rateLimit(clientKey(request, scope), options);
-  if (!result.ok) throw rateLimited(result.retryAfterSeconds);
-  return rateLimitHeaders(result);
-}
-
-/**
- * Count one request without reporting the budget back.
- *
- * The read response is `public` and cached at the edge, and `X-RateLimit-*`
- * describes one caller — so attaching them here would store one visitor's
- * remaining allowance in a shared cache and hand it to every visitor served
- * from that entry until it expired. Counters that describe nobody are worse
- * than no counters, and the response they belong on is the 429, which the
- * wrapper marks `no-store` and which still carries `Retry-After`.
- */
-function countRequest(request: Request, scope: string, options: RateLimitOptions): void {
-  const result = rateLimit(clientKey(request, scope), options);
-  if (!result.ok) throw rateLimited(result.retryAfterSeconds);
-}
-
-/**
  * Fetch the aggregate summary and the latest comments.
  *
  * The two statements are issued together because neither depends on the other;
  * over Neon's HTTP driver that halves the round trips the page waits on.
  */
-async function readFeedback(): Promise<{ summary: Summary; recent: unknown[] }> {
-  const db = sql();
-
+async function readFeedback(): Promise<{ summary: Summary; recent: RecentRow[] }> {
   try {
     const [summaryRows, recentRows] = await Promise.all([
       // Moderated rows are excluded from both halves, not just the visible
       // list: a withheld comment must not inflate the count or drag the
       // average either. `feedback_visible_created_at_desc_idx` serves this.
-      db`
+      query<Summary>`
         SELECT count(*)::int AS count,
                coalesce(round(avg(rating)::numeric, 2), 0)::float AS average,
                coalesce(sum(case when on_chain then 1 else 0 end), 0)::int AS "onChain"
         FROM feedback
         WHERE NOT hidden
       `,
-      db`
+      query<RecentRow>`
         SELECT rating,
                comment,
                wallet,
@@ -209,18 +181,16 @@ async function readFeedback(): Promise<{ summary: Summary; recent: unknown[] }> 
       `,
     ]);
 
-    // The driver types a tagged query as one of several row shapes, so the cast
-    // is where we assert what these two statements actually select. An empty
-    // table returns a row of zeroes rather than no row, but defaulting here
-    // keeps the response shape stable even if that ever changes.
-    const summary = (summaryRows as unknown as Summary[])[0] ?? {
+    // An empty table returns a row of zeroes rather than no row, but
+    // defaulting here keeps the response shape stable even if that changes.
+    const summary = summaryRows[0] ?? {
       count: 0,
       average: 0,
       onChain: 0,
     };
-    return { summary, recent: recentRows as unknown as unknown[] };
+    return { summary, recent: recentRows };
   } catch (error) {
-    throw storageUnavailable(error, 'feedback.read');
+    throw storageUnavailable(error, 'feedback.read', STORAGE_MESSAGE);
   }
 }
 
@@ -239,26 +209,6 @@ async function insertFeedback(input: FeedbackInput, hidden: boolean): Promise<vo
     if (isUniqueViolation(error)) {
       throw conflict('This transaction has already been recorded.');
     }
-    throw storageUnavailable(error, 'feedback.write');
+    throw storageUnavailable(error, 'feedback.write', STORAGE_MESSAGE);
   }
-}
-
-/**
- * Log the real database failure and return the error to send in its place.
- *
- * Driver messages routinely quote the failing statement and the connection
- * target, so the client only ever learns that storage is unavailable.
- */
-function storageUnavailable(error: unknown, event: string) {
-  log('error', event, { err: error });
-  return upstreamUnavailable('Feedback storage is temporarily unavailable.');
-}
-
-/** Whether `error` is the Postgres unique-violation this table can raise. */
-function isUniqueViolation(error: unknown): boolean {
-  return (
-    typeof error === 'object' &&
-    error !== null &&
-    (error as { code?: unknown }).code === UNIQUE_VIOLATION
-  );
 }

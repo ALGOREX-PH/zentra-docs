@@ -1,9 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import {
-  ABUSIVE_TERMS,
-  moderateComment,
-  normaliseForMatching,
-} from '@/lib/api/moderation';
+import { describe, expect, it } from 'vitest';
+import { ABUSIVE_TERMS, moderateComment, normaliseForMatching } from '@/lib/api/moderation';
 
 /** The shape of the abuse that reached production, kept verbatim as a fixture. */
 const PRODUCTION_ABUSE = 'Gago ka talaga, bobo mong developer, wala kang alam.';
@@ -141,9 +137,9 @@ describe('moderateComment', () => {
   });
 
   it('reports abusive language ahead of the other reasons', () => {
-    expect(moderateComment('GAGO KA https://a.example https://b.example https://c.example')).toEqual(
-      { publish: false, reason: 'abusive_language' },
-    );
+    expect(
+      moderateComment('GAGO KA https://a.example https://b.example https://c.example'),
+    ).toEqual({ publish: false, reason: 'abusive_language' });
   });
 
   it('reports excessive links ahead of shouting', () => {
@@ -190,9 +186,7 @@ describe('normaliseForMatching', () => {
   });
 
   it('leaves an already normalised comment untouched', () => {
-    expect(normaliseForMatching('the proof verified on chain')).toBe(
-      'the proof verified on chain',
-    );
+    expect(normaliseForMatching('the proof verified on chain')).toBe('the proof verified on chain');
   });
 });
 

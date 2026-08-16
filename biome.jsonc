@@ -1,0 +1,117 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.5.8/schema.json",
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true
+  },
+  "files": {
+    // Unknown extensions (.svg, .mdx, .rs, .sql, ...) are skipped silently
+    // rather than warned about; the excludes below make the intent explicit.
+    "ignoreUnknown": true,
+    "includes": [
+      "**",
+      // Vendored zk assets (snarkjs worker, wasm glue) — not ours to restyle.
+      "!public",
+      // MDX docs content — Biome does not parse MDX; keep it out entirely.
+      "!content",
+      // Prose markdown, not JS.
+      "!docs",
+      // SQL schema and migrations.
+      "!db",
+      // Rust workspace with its own toolchain (cargo fmt / clippy in CI).
+      "!contracts",
+      // Generated knowledge-graph output (also gitignored).
+      "!graphify-out"
+    ]
+  },
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineWidth": 100
+  },
+  "css": {
+    // global.css is Tailwind v4 (@theme, @source, @custom-variant); without
+    // this the CSS parser rejects the file outright.
+    "parser": {
+      "tailwindDirectives": true
+    },
+    "formatter": {
+      "quoteStyle": "single"
+    }
+  },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "single",
+      "jsxQuoteStyle": "double",
+      "semicolons": "always",
+      "trailingCommas": "all",
+      "arrowParentheses": "always"
+    }
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "preset": "recommended",
+      "correctness": {
+        "useExhaustiveDependencies": {
+          "level": "error",
+          "options": {
+            // `refreshSignal` counter props are deliberately listed as effect
+            // re-run triggers without being read inside the body (action-feed,
+            // proofs-feed, metrics-stats, feedback-summary). Missing deps —
+            // the stale-closure direction — still error.
+            "reportUnnecessaryDependencies": false
+          }
+        },
+        "noUnusedImports": "error",
+        "noUnusedVariables": "error"
+      },
+      "suspicious": {
+        // The brand's terminal aesthetic renders literal `// LABEL` eyebrows
+        // as visible JSX text; the rule's fix would turn copy into comments.
+        "noCommentText": "off"
+      }
+    }
+  },
+  "overrides": [
+    {
+      // Hand-formatted showcase files the formatter would fight, still linted:
+      // global.css keeps compact one-line keyframe steps; the landing animation
+      // components keep timeline idioms (`await sleep(300); setDropped(true);`)
+      // and coordinate tables; zentra-mark keeps one-line SVG geometry.
+      "includes": [
+        "src/app/global.css",
+        "src/components/landing/proof-engine.tsx",
+        "src/components/landing/scenario-panels.tsx",
+        "src/components/landing/verifier-monolith.tsx",
+        "src/components/brand/zentra-mark.tsx"
+      ],
+      "formatter": {
+        "enabled": false
+      }
+    },
+    {
+      // `!important` in global.css is confined to the two places that cannot
+      // win otherwise: beating react-remove-scroll's inline styles, and the
+      // reduced-motion kill switch that must override every animation.
+      "includes": ["src/app/global.css"],
+      "linter": {
+        "rules": {
+          "complexity": {
+            "noImportantStyles": "off"
+          }
+        }
+      }
+    }
+  ],
+  "assist": {
+    "enabled": true,
+    "actions": {
+      "source": {
+        "organizeImports": "on"
+      }
+    }
+  }
+}

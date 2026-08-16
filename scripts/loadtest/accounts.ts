@@ -153,9 +153,7 @@ interface Io {
 }
 
 /** One account's terminal state: funded, or failed with a reason. */
-type AccountResult =
-  | { ok: true; account: FundedAccount }
-  | { ok: false; failure: AttemptFailure };
+type AccountResult = { ok: true; account: FundedAccount } | { ok: false; failure: AttemptFailure };
 
 /** One request's verdict, already classified for the retry loop. */
 type AttemptOutcome =
@@ -257,7 +255,11 @@ async function provisionOne(policy: Policy, io: Io): Promise<AccountResult> {
     // usable entropy, which the fixed message describes adequately.
     return {
       ok: false,
-      failure: { publicKey: UNKNOWN_PUBLIC_KEY, stage: 'keypair', message: 'Keypair generation failed.' },
+      failure: {
+        publicKey: UNKNOWN_PUBLIC_KEY,
+        stage: 'keypair',
+        message: 'Keypair generation failed.',
+      },
     };
   }
 
@@ -498,7 +500,10 @@ function resolvePolicy(options: ProvisionOptions): Policy {
     maxAttempts: Math.max(1, Math.floor(options.maxAttempts ?? DEFAULT_MAX_ATTEMPTS)),
     baseBackoffMs,
     // Never below the base, so a misconfigured cap cannot invert the window.
-    maxBackoffMs: Math.max(baseBackoffMs, Math.floor(options.maxBackoffMs ?? DEFAULT_MAX_BACKOFF_MS)),
+    maxBackoffMs: Math.max(
+      baseBackoffMs,
+      Math.floor(options.maxBackoffMs ?? DEFAULT_MAX_BACKOFF_MS),
+    ),
   };
 }
 

@@ -1,9 +1,9 @@
 'use client';
 
 import { useId, useState } from 'react';
-import { GLOSSARY } from '@/lib/zk/education';
-import { HudPanel, Eyebrow } from '@/components/landing/primitives';
+import { Eyebrow, HudPanel } from '@/components/landing/primitives';
 import { cn } from '@/lib/cn';
+import { GLOSSARY } from '@/lib/zk/education';
 
 export function ZkGlossary() {
   const [open, setOpen] = useState<number | null>(null);

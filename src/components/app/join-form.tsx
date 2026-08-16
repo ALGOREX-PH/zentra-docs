@@ -1,24 +1,33 @@
 'use client';
 
-import { useEffect, useId, useRef, useState } from 'react';
 import Link from 'next/link';
+import { useEffect, useId, useState } from 'react';
 import { ConnectButton } from '@/components/app/connect-button';
-import { WalletProvider, useWallet } from '@/components/app/wallet-provider';
+import { InviteLink } from '@/components/app/invite-link';
+import { StarRating } from '@/components/app/star-rating';
+import { useWallet, WalletProvider } from '@/components/app/wallet-provider';
+import { Eyebrow, HudPanel } from '@/components/landing/primitives';
 import { readApiError } from '@/lib/api/client';
-import { HudPanel, Eyebrow } from '@/components/landing/primitives';
-import { truncateAddress } from '@/lib/stellar/format';
 import { cn } from '@/lib/cn';
-
-const focusRing =
-  'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan';
+import { truncateAddress } from '@/lib/stellar/format';
+import {
+  type Field,
+  inspectWallet,
+  MAX_NAME,
+  MAX_NOTE,
+  normaliseWallet,
+  validate,
+  WALLET_LENGTH,
+  walletMessage,
+} from '@/lib/stellar/wallet-input';
+import { focusRing } from '@/lib/ui';
 
 const fieldClass = cn(
   'w-full border border-fd-border bg-abyss px-3 py-2.5 font-mono text-sm text-text placeholder:text-faint transition-colors focus:border-violet/60',
   focusRing,
 );
 
-const labelClass =
-  'mb-1.5 block font-mono text-[11px] uppercase tracking-[0.08em] text-faint';
+const labelClass = 'mb-1.5 block font-mono text-[11px] uppercase tracking-[0.08em] text-faint';
 
 const primaryAction = cn(
   'inline-flex shrink-0 items-center gap-2 bg-violet px-4 py-2.5 font-mono text-xs uppercase tracking-[0.1em] text-white transition-colors hover:bg-violet-bright',
@@ -30,19 +39,6 @@ const secondaryAction = cn(
   focusRing,
 );
 
-const MAX_NAME = 80;
-const MAX_NOTE = 500;
-
-/** Every Stellar account id is exactly this long — `G` plus 55 base32 digits. */
-const WALLET_LENGTH = 56;
-
-/** Same shapes the API validates against, so the form fails before the fetch. */
-const EMAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
-const STELLAR_ACCOUNT_ID = /^G[A-Z2-7]{55}$/;
-
-/** The base32 alphabet a strkey is written in — note the absent 0, 1, 8 and 9. */
-const BASE32 = /^[A-Z2-7]*$/;
-
 /**
  * `duplicate` is a separate outcome rather than a flavour of `error`.
  *
@@ -52,83 +48,6 @@ const BASE32 = /^[A-Z2-7]*$/;
  * the on-chain steps that the programme is actually counted on.
  */
 type Status = 'idle' | 'sending' | 'success' | 'duplicate' | 'error';
-
-type Field = 'name' | 'email' | 'wallet' | 'note';
-
-type FieldErrors = Partial<Record<Field, string>>;
-
-interface Values {
-  name: string;
-  email: string;
-  wallet: string;
-  note: string;
-}
-
-/**
- * What can honestly be said about a wallet value mid-entry.
- *
- * `typing` is the state that earns this type its keep: an address on its way to
- * 56 characters is not wrong yet, and a field that shouts "invalid" on the third
- * keystroke is how a form teaches people to stop reading it.
- */
-type WalletState =
-  | { kind: 'empty' }
-  | { kind: 'typing'; length: number }
-  | { kind: 'invalid'; reason: string }
-  | { kind: 'valid' };
-
-/**
- * Grade a wallet value the way the person entering it needs it graded.
- *
- * The wrong-prefix cases get their own wording because they are the two ways
- * this field actually gets filled in wrong, and both are one move from fixed
- * once named: `S` is somebody about to paste a secret key into a registry, and
- * `C` is a contract id copied off the explorer. Everything else is either
- * unfinished or a character that cannot appear in a strkey at all.
- */
-function inspectWallet(value: string): WalletState {
-  if (value.length === 0) return { kind: 'empty' };
-
-  if (value.startsWith('S')) {
-    return {
-      kind: 'invalid',
-      reason:
-        'That looks like a secret key — do not paste it anywhere. Your account id is the public one, starting with G.',
-    };
-  }
-
-  if (!value.startsWith('G')) {
-    return {
-      kind: 'invalid',
-      reason: value.startsWith('C')
-        ? 'That is a contract id. Paste your own account id — it starts with G.'
-        : 'A Stellar account id starts with G.',
-    };
-  }
-
-  if (!BASE32.test(value.slice(1))) {
-    return {
-      kind: 'invalid',
-      reason: 'An account id only holds letters A–Z and digits 2–7 — something else got copied in.',
-    };
-  }
-
-  if (value.length > WALLET_LENGTH) {
-    return {
-      kind: 'invalid',
-      reason: `That is ${value.length} characters. An account id is exactly ${WALLET_LENGTH}.`,
-    };
-  }
-
-  if (value.length < WALLET_LENGTH) return { kind: 'typing', length: value.length };
-
-  // Prefix, alphabet and length all hold, so this should be unreachable — but
-  // the server judges the value against this exact pattern, so the form does too
-  // rather than inferring validity from three checks that happen to agree.
-  return STELLAR_ACCOUNT_ID.test(value)
-    ? { kind: 'valid' }
-    : { kind: 'invalid', reason: `Enter a Stellar account id — G followed by ${WALLET_LENGTH - 1} characters.` };
-}
 
 /**
  * The two transactions that turn a registration into actual activity.
@@ -147,158 +66,15 @@ const NEXT_STEPS: ReadonlyArray<{
     href: '/app',
     cta: 'Fund the wallet',
     title: 'Fund your testnet wallet',
-    body:
-      'Friendbot seeds the account you just registered with free test XLM. Do this first — the next step pays a network fee, and a fresh account has nothing to pay it with.',
+    body: 'Friendbot seeds the account you just registered with free test XLM. Do this first — the next step pays a network fee, and a fresh account has nothing to pay it with.',
   },
   {
     href: '/board',
     cta: 'Record an action',
     title: 'Record an action on-chain',
-    body:
-      'Write a message to the Action Log contract. Your wallet signs it, a cross-contract call bumps your reputation score, and the settled transaction hash links to stellar.expert so anyone can verify it.',
+    body: 'Write a message to the Action Log contract. Your wallet signs it, a cross-contract call bumps your reputation score, and the settled transaction hash links to stellar.expert so anyone can verify it.',
   },
 ];
-
-/** The reason a wallet state cannot be submitted, or null when it can. */
-function walletMessage(state: WalletState): string | null {
-  switch (state.kind) {
-    case 'valid':
-      return null;
-    case 'empty':
-      return 'Enter your Stellar testnet account id.';
-    case 'typing':
-      return `${state.length} of ${WALLET_LENGTH} characters — paste the whole address.`;
-    case 'invalid':
-      return state.reason;
-  }
-}
-
-/**
- * Whitespace and case removed so a paste survives wherever it came from.
- *
- * A 56-character address gets copied out of wallet UIs, chat messages and
- * wrapped emails, and arrives with newlines or spaces in the middle of it more
- * often than not. A strkey has no lowercase letters and no interior whitespace,
- * so neither can be anything but transport damage — dropping them recovers the
- * paste instead of rejecting it and making someone find the stray character.
- */
-function normaliseWallet(value: string): string {
-  return value.replace(/\s+/g, '').toUpperCase();
-}
-
-/**
- * Mirror of the server's rules, worded for a person rather than a validator.
- *
- * Duplicating them is deliberate: the API is still the authority, but a signup
- * that can be fixed without a round trip — and without burning one of three
- * rate-limited attempts — is the difference between a registration and a bounce.
- */
-function validate({ name, email, wallet, note }: Values): FieldErrors {
-  const errors: FieldErrors = {};
-
-  const trimmedName = name.trim();
-  if (trimmedName.length < 1) errors.name = 'Enter your name.';
-  else if (trimmedName.length > MAX_NAME) errors.name = `Name must be ${MAX_NAME} characters or fewer.`;
-
-  if (!EMAIL.test(email.trim())) errors.email = 'Enter a valid email address.';
-
-  const walletProblem = walletMessage(inspectWallet(wallet.trim()));
-  if (walletProblem !== null) errors.wallet = walletProblem;
-
-  if (note.trim().length > MAX_NOTE) errors.note = `Note must be ${MAX_NOTE} characters or fewer.`;
-
-  return errors;
-}
-
-/**
- * A copyable link back to /join, shown to the person who has just used it.
- *
- * Fifty registrations have to come from somewhere, and the cheapest source is a
- * visitor who already finished the form. Plain clipboard and a selectable field —
- * no share SDK, no third-party script, nothing that reports who was invited.
- */
-function InviteLink() {
-  const [url, setUrl] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
-  const [manual, setManual] = useState(false);
-  const field = useRef<HTMLInputElement>(null);
-
-  /*
-   * The origin is read from the live document, not from `@/lib/site`. That
-   * module falls back to a placeholder domain in the browser — the Vercel
-   * production URL it prefers is not a `NEXT_PUBLIC_` variable, so it is simply
-   * absent client-side — and a share link nobody can open is worse than no
-   * share link. Reading `location` also keeps preview deployments shareable.
-   * In an effect rather than an initialiser because `location` does not exist
-   * during prerender, and a value that differed would be a hydration mismatch.
-   */
-  useEffect(() => {
-    setUrl(new URL('/join', window.location.origin).toString());
-  }, []);
-
-  useEffect(() => {
-    if (!copied) return;
-    const timer = window.setTimeout(() => setCopied(false), 2000);
-    return () => window.clearTimeout(timer);
-  }, [copied]);
-
-  async function copy() {
-    if (url === null) return;
-    try {
-      await navigator.clipboard.writeText(url);
-      setManual(false);
-      setCopied(true);
-    } catch {
-      // Denied permissions, an insecure origin, or a browser without the API.
-      // The link is already on screen, so the recovery is to select it for them
-      // rather than to report a failure they can do nothing about.
-      setManual(true);
-      field.current?.select();
-    }
-  }
-
-  if (url === null) return null;
-
-  return (
-    <div className="mt-5 border-t border-fd-border pt-5">
-      <p className="font-mono text-[11px] uppercase tracking-[0.08em] text-faint">
-        Bring one more
-      </p>
-      <p className="mt-2 max-w-[520px] text-[13px] leading-relaxed text-muted">
-        The programme is fifty people. Send this to one person building with agents
-        on Stellar.
-      </p>
-      <div className="mt-3 flex flex-col gap-2 sm:flex-row">
-        <input
-          ref={field}
-          type="text"
-          readOnly
-          value={url}
-          aria-label="Invite link to the Zentra testnet programme"
-          // Selected on focus so a keyboard or a long-press can copy it without
-          // dragging across 30-odd characters of URL.
-          onFocus={(event) => event.currentTarget.select()}
-          className={cn(fieldClass, 'sm:flex-1')}
-        />
-        <button type="button" onClick={() => void copy()} className={secondaryAction}>
-          {copied ? 'Copied' : 'Copy link'}
-        </button>
-      </div>
-      {/* Mounted from the first render so the outcome is spoken rather than
-          created and filled in one tick, which screen readers routinely miss. */}
-      <p
-        role="status"
-        className={cn('font-mono text-[11px] text-faint', (copied || manual) && 'mt-2')}
-      >
-        {manual
-          ? 'Clipboard is blocked here — the link is selected, copy it with your keyboard.'
-          : copied
-            ? 'Link copied.'
-            : ''}
-      </p>
-    </div>
-  );
-}
 
 /**
  * Public signup for the testnet programme.
@@ -430,8 +206,8 @@ function SignupForm() {
               // whether a given address is registered — so neither is claimed
               // back, and no wallet is echoed as "yours".
               <p className="max-w-[520px] text-[15px] leading-relaxed text-text">
-                This email or wallet is already registered, so there is nothing left
-                to fill in here.
+                This email or wallet is already registered, so there is nothing left to fill in
+                here.
               </p>
             ) : (
               <p className="max-w-[520px] text-[15px] leading-relaxed text-text">
@@ -661,36 +437,7 @@ function SignupForm() {
             <span id={`${ids}-rating-label`} className={cn(labelClass, 'mt-4')}>
               Rating (optional)
             </span>
-            {/*
-              A group rather than a radiogroup: these stay ordinary buttons, so
-              every star keeps its own tab stop and Enter/Space, and the filled
-              state is carried by aria-pressed instead of a glyph nobody hears.
-            */}
-            <div
-              role="group"
-              aria-labelledby={`${ids}-rating-label`}
-              className="flex items-center gap-1"
-            >
-              {[1, 2, 3, 4, 5].map((value) => {
-                const filled = value <= rating;
-                return (
-                  <button
-                    key={value}
-                    type="button"
-                    aria-label={`Rate ${value} of 5`}
-                    aria-pressed={filled}
-                    onClick={() => setRating(value)}
-                    className={cn(
-                      'text-2xl leading-none transition-colors',
-                      filled ? 'text-cyan' : 'text-faint',
-                      focusRing,
-                    )}
-                  >
-                    {filled ? '★' : '☆'}
-                  </button>
-                );
-              })}
-            </div>
+            <StarRating value={rating} onChange={setRating} labelledBy={`${ids}-rating-label`} />
 
             <label htmlFor={`${ids}-note`} className={cn(labelClass, 'mt-4')}>
               Note (optional)
@@ -747,19 +494,15 @@ function SignupForm() {
                 filled in the same tick, which screen readers routinely miss. */}
             <p
               role="alert"
-              className={cn(
-                'font-mono text-xs text-denied',
-                status === 'error' && error && 'mt-2',
-              )}
+              className={cn('font-mono text-xs text-denied', status === 'error' && error && 'mt-2')}
             >
               {status === 'error' && error ? error : ''}
             </p>
           </form>
 
           <p className="mt-4 max-w-[520px] text-[12px] leading-relaxed text-faint">
-            Your email is used only to contact you about the Zentra testnet
-            programme. It is never displayed publicly, never shown alongside your
-            wallet, and never sold or shared.
+            Your email is used only to contact you about the Zentra testnet programme. It is never
+            displayed publicly, never shown alongside your wallet, and never sold or shared.
           </p>
         </div>
       </HudPanel>

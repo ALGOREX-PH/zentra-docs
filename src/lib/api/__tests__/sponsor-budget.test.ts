@@ -32,12 +32,33 @@ describe('reserveSponsorBudget', () => {
 
     expect(result).toEqual({ ok: true });
     expect(calls).toBe(1);
-    expect(statement).toMatch(/INSERT INTO sponsor_spend[\s\S]*ON CONFLICT[\s\S]*WHERE[\s\S]*RETURNING/i);
+    expect(statement).toMatch(
+      /INSERT INTO sponsor_spend[\s\S]*ON CONFLICT[\s\S]*WHERE[\s\S]*RETURNING/i,
+    );
     expect(values).toContain(`G${'A'.repeat(55)}`);
     // The global charge is a CTE-gated second INSERT, not an independent row:
     // it may only land WHERE the source charge already did.
     expect(statement).toMatch(/WITH source_charge AS/i);
     expect(statement).toMatch(/WHERE EXISTS \(SELECT 1 FROM source_charge\)/i);
+  });
+
+  it('guards the INSERT branch of both upserts, not only the DO UPDATE branch', async () => {
+    let statement = '';
+    await reserveSponsorBudget({
+      sourceAccount: `G${'A'.repeat(55)}`,
+      feeStroops: 123,
+      query: async (strings) => {
+        statement = strings.join('?');
+        return [{ budget_scope: 'source' }, { budget_scope: 'global' }];
+      },
+    });
+
+    // A bare `VALUES` INSERT is the unguarded form: `ON CONFLICT ... WHERE`
+    // applies only to the update branch, so the first charge of the day would
+    // land any fee. Both inserts must be `INSERT ... SELECT ... WHERE` instead.
+    expect(statement).not.toMatch(/VALUES/i);
+    const guardedInserts = statement.match(/INSERT INTO sponsor_spend[\s\S]*?SELECT[^;]*?WHERE/gi);
+    expect(guardedInserts).toHaveLength(2);
   });
 
   it('does not charge the global budget when the source ceiling is busted', async () => {
@@ -47,10 +68,11 @@ describe('reserveSponsorBudget', () => {
       sourceAccount: `G${'D'.repeat(55)}`,
       feeStroops: 500,
       query: async (_strings, ...values) => {
-        // Mirrors the SQL: the source charge fails its ceiling, so the gated
+        // Mirrors the SQL: this is a first-of-day charge, so it is the INSERT
+        // branch's own `WHERE fee <= ceiling` that refuses it, and the gated
         // global INSERT never fires and returns no row.
         const fee = Number(values[2]);
-        const sourceCeiling = Number(values[3]);
+        const sourceCeiling = Number(values[4]);
         if (fee > sourceCeiling) return [];
         charged.push('source', 'global');
         return [{ budget_scope: 'source' as const }, { budget_scope: 'global' as const }];
@@ -66,15 +88,16 @@ describe('reserveSponsorBudget', () => {
     const spent = new Map<string, number>();
     let queue = Promise.resolve();
     const query = async (_strings: TemplateStringsArray, ...values: unknown[]) => {
-      let rows: Array<{ budget_scope: 'source' | 'global' }> = [];
+      const rows: Array<{ budget_scope: 'source' | 'global' }> = [];
       queue = queue.then(() => {
-        // Bound order follows the gated statement: day, source, fee,
-        // sourceCeiling, day, fee, globalCeiling.
+        // Bound order follows the doubly-guarded statement: day, source, fee,
+        // fee, sourceCeiling, sourceCeiling, day, fee, fee, globalCeiling,
+        // globalCeiling — each ceiling appears once per branch of its upsert.
         const day = String(values[0]);
         const source = String(values[1]);
         const fee = Number(values[2]);
-        const sourceCeiling = Number(values[3]);
-        const globalCeiling = Number(values[6]);
+        const sourceCeiling = Number(values[4]);
+        const globalCeiling = Number(values[9]);
         const sourceKey = `${day}:source:${source}`;
         const nextSource = (spent.get(sourceKey) ?? 0) + fee;
         if (nextSource > sourceCeiling) return; // gate closed — global untouched

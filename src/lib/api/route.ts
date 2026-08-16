@@ -10,7 +10,7 @@
 
 import { NextResponse } from 'next/server';
 
-import { isApiError, toErrorBody } from './errors';
+import { isApiError, methodNotAllowed as methodNotAllowedError, toErrorBody } from './errors';
 import { log, newRequestId } from './logger';
 
 /** Longest inbound `x-request-id` we will echo; anything larger is replaced. */
@@ -97,21 +97,30 @@ export function route(
       } catch {
         // The catch block is the last line of defence, so it may not throw
         // either — fall back to a hand-written envelope with no dependencies.
-        return new Response(
-          '{"error":{"code":"internal","message":"Internal server error."}}',
-          {
-            status: 500,
-            headers: {
-              'content-type': 'application/json',
-              'cache-control': 'no-store',
-              'x-request-id': requestId,
-            },
+        return new Response('{"error":{"code":"internal","message":"Internal server error."}}', {
+          status: 500,
+          headers: {
+            'content-type': 'application/json',
+            'cache-control': 'no-store',
+            'x-request-id': requestId,
           },
-        );
+        });
       }
     }
   };
 }
+
+/**
+ * The cache policy shared by the public live-dashboard reads.
+ *
+ * How long a CDN may serve the response before revalidating. These endpoints
+ * feed live numbers — the feedback summary, the signup counter — so the window
+ * is short; `stale-while-revalidate` keeps them responsive under load (and
+ * absorbs a launch-day spike) without ever showing badly stale figures. A route
+ * whose data changes on a different clock declares its own policy instead of
+ * borrowing this one.
+ */
+export const READ_CACHE_CONTROL = 'public, s-maxage=30, stale-while-revalidate=120';
 
 /**
  * Build a JSON response that is never cached unless the caller says otherwise.
@@ -129,6 +138,36 @@ export function json<T>(
   });
 }
 
+/** The HTTP methods a Next route module can export a handler for, minus the
+ * two the framework derives on its own (`HEAD` from `GET`, and `OPTIONS`). */
+type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+
+/**
+ * Handlers a route exports for the HTTP methods it does not serve.
+ *
+ * Next answers a request for a method the module never exported with a bare
+ * 405 — the right status, but an empty body outside every guarantee the other
+ * responses keep: no JSON envelope for a client to branch on, no request id,
+ * no log line. Exporting these instead keeps the contract uniform, and because
+ * the handler is built through `route`, the 405 arrives exactly like every
+ * other error: enveloped, correlated and logged. The `Allow` header RFC 9110
+ * requires rides on the thrown error (see `toErrorBody`).
+ *
+ * The returned record carries every method, so a route destructures just the
+ * ones it does not implement — exporting a supported method from both places
+ * is a duplicate-identifier compile error, not a silent override:
+ *
+ *     export const { PUT, PATCH, DELETE } = methodNotAllowed(['GET', 'POST']);
+ */
+export function methodNotAllowed(
+  allow: HttpMethod[],
+): Record<HttpMethod, (request: Request) => Promise<Response>> {
+  const handler = route('method_not_allowed', async () => {
+    throw methodNotAllowedError(allow);
+  });
+  return { GET: handler, POST: handler, PUT: handler, PATCH: handler, DELETE: handler };
+}
+
 /**
  * Reuse the caller's `x-request-id` when it is present and sane, else mint one.
  *
@@ -139,11 +178,7 @@ export function json<T>(
  */
 function resolveRequestId(request: Request): string {
   const inbound = request.headers.get('x-request-id')?.trim();
-  if (
-    inbound &&
-    inbound.length <= MAX_INBOUND_REQUEST_ID &&
-    REQUEST_ID_ALPHABET.test(inbound)
-  ) {
+  if (inbound && inbound.length <= MAX_INBOUND_REQUEST_ID && REQUEST_ID_ALPHABET.test(inbound)) {
     return inbound;
   }
   return newRequestId();

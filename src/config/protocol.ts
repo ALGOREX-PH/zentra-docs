@@ -37,6 +37,10 @@ export const protocol = {
   /** Tooling pins surfaced throughout the docs. */
   tooling: {
     circom: '2.2.3',
+    // The playground worker loads the vendored `public/zk/snarkjs.min.js`
+    // (snarkjs 0.7.6) via importScripts — there is no npm snarkjs dependency.
+    // When bumping this pin, regenerate the vendored file from the official
+    // snarkjs build of the same version.
     snarkjs: '0.7.6',
     sorobanSdk: '26.1.0',
     circomlib: '2.0.5',

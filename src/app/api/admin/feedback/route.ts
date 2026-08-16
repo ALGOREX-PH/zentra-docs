@@ -14,12 +14,12 @@
  */
 
 import { requireAdmin } from '@/lib/api/auth';
-import { ApiError, badRequest, upstreamUnavailable, validationFailed } from '@/lib/api/errors';
+import { badRequest, notFound, upstreamUnavailable, validationFailed } from '@/lib/api/errors';
 import { log } from '@/lib/api/logger';
 import { requireSameOrigin } from '@/lib/api/origin';
-import { json, route } from '@/lib/api/route';
+import { json, methodNotAllowed, route } from '@/lib/api/route';
 import { readJsonBody } from '@/lib/api/validation';
-import { sql } from '@/lib/db';
+import { query } from '@/lib/db';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -49,6 +49,9 @@ export const PATCH = route('admin.feedback.moderate', async (request, { requestI
 
   return json({ ok: true, id, hidden });
 });
+
+/** Everything else is a 405 in the standard envelope, not Next's bare default. */
+export const { GET, POST, PUT, DELETE } = methodNotAllowed(['PATCH']);
 
 /**
  * Validate a decoded request body into a `ModerationInput`.
@@ -88,19 +91,17 @@ function parseModerationInput(raw: unknown): ModerationInput {
 
 /** Set `hidden` on one feedback row, or raise a 404 when no such row exists. */
 async function setHidden(id: number, hidden: boolean, requestId: string): Promise<void> {
-  const db = sql();
-
-  let rows: unknown[];
+  let rows: { id: number }[];
   try {
     // Neon's HTTP driver hands back rows rather than a command tag, so a bare
     // UPDATE gives no way to tell "flag changed" from "no such id". `RETURNING
     // id` turns the outcome into something countable: one row means it matched.
-    rows = (await db`
+    rows = await query<{ id: number }>`
       UPDATE feedback
       SET hidden = ${hidden}
       WHERE id = ${id}
       RETURNING id
-    `) as unknown as unknown[];
+    `;
   } catch (error) {
     // Driver messages routinely quote the failing statement and the connection
     // target, so the operator gets the log line and the caller gets nothing.
@@ -111,6 +112,6 @@ async function setHidden(id: number, hidden: boolean, requestId: string): Promis
   // Thrown outside the `try` on purpose: a not-found is a client-side mistake
   // and must not be swallowed by the storage-failure handler above.
   if (rows.length === 0) {
-    throw new ApiError(404, 'not_found', 'No feedback row with that id.');
+    throw notFound('No feedback row with that id.');
   }
 }

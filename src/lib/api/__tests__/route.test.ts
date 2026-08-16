@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { badRequest, rateLimited } from '@/lib/api/errors';
-import { json, route } from '@/lib/api/route';
+import { json, methodNotAllowed, route } from '@/lib/api/route';
 
 /** The shape of an id `newRequestId` mints: a UUID, or the base36 fallback. */
 const MINTED_ID = /^[0-9a-z-]{16,}$/i;
@@ -187,6 +187,106 @@ describe('route cache headers', () => {
     const response = await handler(new Request('https://x.test/api'));
 
     expect(response.headers.get('cache-control')).toBe('public, s-maxage=30');
+  });
+});
+
+describe('methodNotAllowed', () => {
+  it('answers 405 with the standard envelope and the Allow header', async () => {
+    muffle();
+    const { PUT } = methodNotAllowed(['GET', 'POST']);
+
+    const response = await PUT(new Request('https://x.test/api', { method: 'PUT' }));
+
+    expect(response.status).toBe(405);
+    expect(response.headers.get('allow')).toBe('GET, POST');
+    expect(await response.json()).toEqual({
+      error: { code: 'method_not_allowed', message: 'Method not allowed.' },
+    });
+  });
+
+  it('keeps the wrapper guarantees: request id, no-store, one log line', async () => {
+    muffle();
+    const warn = vi.spyOn(console, 'warn');
+    const { DELETE } = methodNotAllowed(['GET']);
+
+    const response = await DELETE(
+      new Request('https://x.test/api', {
+        method: 'DELETE',
+        headers: { 'x-request-id': 'trace-405' },
+      }),
+    );
+
+    expect(response.headers.get('x-request-id')).toBe('trace-405');
+    expect(response.headers.get('cache-control')).toBe('no-store');
+    expect(warn).toHaveBeenCalledTimes(1);
+    const line = JSON.parse(String(warn.mock.calls[0]?.[0])) as Record<string, unknown>;
+    expect(line.status).toBe(405);
+    expect(line.code).toBe('method_not_allowed');
+  });
+
+  it('returns a handler for every method, so a route destructures the ones it lacks', async () => {
+    muffle();
+    const handlers = methodNotAllowed(['PATCH']);
+
+    for (const method of ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'] as const) {
+      const response = await handlers[method](new Request('https://x.test/api', { method }));
+      expect(response.status).toBe(405);
+      expect(response.headers.get('allow')).toBe('PATCH');
+    }
+  });
+});
+
+describe('route immutable responses', () => {
+  /** A response whose headers refuse mutation, as one proxied from fetch does. */
+  function immutableResponse(body: string, init: ResponseInit): Response {
+    const response = new Response(body, init);
+    Object.defineProperty(response.headers, 'set', {
+      value: () => {
+        throw new TypeError('immutable headers');
+      },
+    });
+    return response;
+  }
+
+  it('rebuilds a response whose headers cannot be mutated, body and status intact', async () => {
+    muffle();
+    const original = immutableResponse('{"proxied":true}', {
+      status: 201,
+      statusText: 'Created',
+      headers: { 'content-type': 'application/json', 'x-upstream': 'kept' },
+    });
+    const handler = route('test', async () => original);
+
+    const response = await handler(
+      new Request('https://x.test/api', { headers: { 'x-request-id': 'trace-clone' } }),
+    );
+
+    // The original could not carry the id, so a rebuilt response must have.
+    expect(response).not.toBe(original);
+    expect(response.status).toBe(201);
+    expect(response.statusText).toBe('Created');
+    expect(response.headers.get('x-request-id')).toBe('trace-clone');
+    // Every original header survives the rebuild, and so does the body.
+    expect(response.headers.get('content-type')).toBe('application/json');
+    expect(response.headers.get('x-upstream')).toBe('kept');
+    expect(await response.json()).toEqual({ proxied: true });
+  });
+
+  it('still mutates in place when the headers allow it', async () => {
+    muffle();
+    const original = new Response('{"ok":true}', {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+    });
+    const handler = route('test', async () => original);
+
+    const response = await handler(
+      new Request('https://x.test/api', { headers: { 'x-request-id': 'trace-mutate' } }),
+    );
+
+    // The cheap path: same object, id set directly on it.
+    expect(response).toBe(original);
+    expect(response.headers.get('x-request-id')).toBe('trace-mutate');
   });
 });
 

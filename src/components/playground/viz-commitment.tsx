@@ -13,12 +13,16 @@ export function VizCommitment() {
         </div>
 
         <div className="flex flex-col items-center justify-center px-1">
-          <span aria-hidden className="text-cyan text-xl">→</span>
+          <span aria-hidden className="text-cyan text-xl">
+            →
+          </span>
           <span className="mt-1 font-mono text-[9px] text-faint">Poseidon hash</span>
         </div>
 
         <div className="border border-cyan/40 bg-panel px-4 py-4 text-center">
-          <span aria-hidden className="font-display text-xl text-cyan">◆</span>
+          <span aria-hidden className="font-display text-xl text-cyan">
+            ◆
+          </span>
           <div className="mt-1 font-mono text-[11px] uppercase tracking-[0.1em] text-cyan">
             Commitment
           </div>

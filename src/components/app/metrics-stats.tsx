@@ -1,12 +1,14 @@
 'use client';
 
-import { useEffect, useId, useState, type ReactNode } from 'react';
+import { type ReactNode, useEffect, useId, useState } from 'react';
+import { Eyebrow, HudPanel } from '@/components/landing/primitives';
+import { SIGNUP_GOAL } from '@/config/app';
+import { contractsConfigured } from '@/config/contract';
 import { activeProfile } from '@/config/network';
-import { readApiError } from '@/lib/api/client';
-import { getCount, getLatestLedger, getRecent } from '@/lib/stellar/action-log';
-import { getFeedbackCount, getFeedbackAuthors } from '@/lib/stellar/feedback';
-import { HudPanel, Eyebrow } from '@/components/landing/primitives';
+import { isOnboardCount, readApiError } from '@/lib/api/client';
 import { cn } from '@/lib/cn';
+import { getCount, getLatestLedger, getRecent } from '@/lib/stellar/action-log';
+import { getFeedbackAuthors, getFeedbackCount } from '@/lib/stellar/feedback';
 
 /**
  * How many recent entries each contract is asked for when counting distinct
@@ -20,29 +22,14 @@ import { cn } from '@/lib/cn';
  */
 const SAMPLE = 20;
 
-/**
- * The onboarding target this panel reports progress against — 50 testnet users
- * (`docs/users/README.md`).
- *
- * A module constant rather than a prop: it is a fixed external requirement, not a
- * display option, and a caller able to lower it could make any count look like it
- * had arrived. The goal is a target, not a ceiling — the bar tops out while the
- * count keeps climbing past it.
+/*
+ * `SIGNUP_GOAL` and `isOnboardCount` come from the shared modules rather than
+ * being declared here: /join renders the same goal and narrows the same
+ * response, and two private copies is how the two panels drift apart. The
+ * goal stays a constant, never a prop — it is a fixed external requirement
+ * (`docs/users/README.md`), and a caller able to lower it could make any
+ * count look like it had arrived.
  */
-const SIGNUP_GOAL = 50;
-
-/**
- * Whether `value` is shaped like the `/api/onboard` counter.
- *
- * Asserted rather than trusted: an edge error page or a cold-start response would
- * otherwise arrive as a count of `undefined` and render as a figure nobody can
- * account for.
- */
-function isOnboardCount(value: unknown): value is { count: number } {
-  if (typeof value !== 'object' || value === null) return false;
-  const { count } = value as { count?: unknown };
-  return typeof count === 'number' && Number.isFinite(count);
-}
 
 /**
  * The moment of a read, in UTC to the second.
@@ -86,6 +73,14 @@ export function MetricsStats({ refreshSignal = 0 }: { refreshSignal?: number }) 
   const goalLabelId = useId();
 
   useEffect(() => {
+    // A network with nothing deployed has nothing to simulate against: every
+    // read below would be issued with an empty contract id and fail opaquely.
+    // The render states the gap instead (see below); the signup registry is
+    // Postgres, not the chain, so its effect still runs untouched.
+    if (!contractsConfigured) {
+      setLoading(false);
+      return;
+    }
     let cancelled = false;
     setLoading(true);
     setError(null);
@@ -106,16 +101,12 @@ export function MetricsStats({ refreshSignal = 0 }: { refreshSignal?: number }) 
         setLedger(sequence);
         setReadAt(new Date());
         setInteractions(actionTotal + feedbackTotal);
-        setWallets(
-          new Set([...actionRecent.map((e) => e.author), ...feedbackAuthors]).size,
-        );
+        setWallets(new Set([...actionRecent.map((e) => e.author), ...feedbackAuthors]).size);
         // Compare against the contracts' own totals rather than the requested
         // window: they clamp the limit internally, so a returned page being
         // "full" proves nothing. If either total exceeds what we actually saw,
         // older authors went uncounted and the figure is a floor.
-        setPartial(
-          actionTotal > actionRecent.length || feedbackTotal > feedbackAuthors.length,
-        );
+        setPartial(actionTotal > actionRecent.length || feedbackTotal > feedbackAuthors.length);
       } catch {
         if (cancelled) return;
         // Everything the failed read was meant to produce is cleared, provenance
@@ -230,9 +221,7 @@ export function MetricsStats({ refreshSignal = 0 }: { refreshSignal?: number }) 
                   {SIGNUP_GOAL} registry signups
                   <span className="text-faint">
                     {' · '}
-                    {signups >= SIGNUP_GOAL
-                      ? 'target met'
-                      : `${SIGNUP_GOAL - signups} remaining`}
+                    {signups >= SIGNUP_GOAL ? 'target met' : `${SIGNUP_GOAL - signups} remaining`}
                   </span>
                 </p>
                 <div
@@ -259,14 +248,21 @@ export function MetricsStats({ refreshSignal = 0 }: { refreshSignal?: number }) 
             refused to answer, or genuinely hold nothing. One line above them
             says which.
           */}
-          {loading ? (
+          {!contractsConfigured ? (
+            // A visible statement, not a silent skip: em dashes below would
+            // otherwise read as an outage when the truth is that this network
+            // has no contracts deployed to read from yet.
+            <p className="font-mono text-xs text-denied">
+              Contracts are not configured for {activeProfile.label} yet, so the on-chain figures
+              cannot be read. Registry signups above are unaffected.
+            </p>
+          ) : loading ? (
             <p className="font-mono text-xs text-muted">Reading the contracts…</p>
           ) : error ? (
             <p className="font-mono text-xs text-denied">{error}</p>
           ) : interactions === 0 ? (
             <p className="font-mono text-xs text-muted">
-              No on-chain activity yet — record an action or leave feedback to start these
-              counters.
+              No on-chain activity yet — record an action or leave feedback to start these counters.
             </p>
           ) : null}
 

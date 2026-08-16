@@ -1,6 +1,9 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { ApiError } from '@/lib/api/errors';
 import {
   clientKey,
+  countRequest,
+  enforceRateLimit,
   rateLimit,
   rateLimitHeaders,
   resetRateLimiter,
@@ -256,6 +259,163 @@ describe('rateLimitHeaders', () => {
     const seconds = Number(headers['X-RateLimit-Reset']);
     expect(seconds).toBeGreaterThanOrEqual(result.resetAt / 1000);
     expect(seconds - result.resetAt / 1000).toBeLessThan(1);
+  });
+});
+
+describe('enforceRateLimit', () => {
+  /** A request whose caller the platform vouches for, so keys are stable. */
+  function requestFrom(ip: string): Request {
+    return new Request('https://x.test/api', { headers: { 'x-real-ip': ip } });
+  }
+
+  it('returns the X-RateLimit headers while the caller is under the limit', () => {
+    const headers = enforceRateLimit(requestFrom('1.2.3.4'), 'test:write', {
+      limit: 2,
+      windowMs: WINDOW_MS,
+    });
+
+    expect(headers['X-RateLimit-Limit']).toBe('2');
+    expect(headers['X-RateLimit-Remaining']).toBe('1');
+  });
+
+  it('throws a 429 ApiError carrying retryAfterSeconds once the limit is hit', () => {
+    const options = { limit: 1, windowMs: WINDOW_MS };
+    enforceRateLimit(requestFrom('1.2.3.5'), 'test:write', options);
+
+    let caught: unknown;
+    try {
+      enforceRateLimit(requestFrom('1.2.3.5'), 'test:write', options);
+    } catch (error) {
+      caught = error;
+    }
+
+    const err = caught as ApiError;
+    expect(err.status).toBe(429);
+    expect(err.code).toBe('rate_limited');
+    expect(err.retryAfterSeconds).toBeGreaterThanOrEqual(1);
+  });
+
+  it('scopes counters, so the same caller has a separate budget per scope', () => {
+    const options = { limit: 1, windowMs: WINDOW_MS };
+    enforceRateLimit(requestFrom('1.2.3.6'), 'test:write', options);
+
+    expect(() => enforceRateLimit(requestFrom('1.2.3.6'), 'other:write', options)).not.toThrow();
+  });
+});
+
+describe('countRequest', () => {
+  function requestFrom(ip: string): Request {
+    return new Request('https://x.test/api', { headers: { 'x-real-ip': ip } });
+  }
+
+  it('returns nothing while under the limit — the budget stays off cacheable responses', () => {
+    expect(
+      countRequest(requestFrom('2.3.4.5'), 'test:read', { limit: 2, windowMs: WINDOW_MS }),
+    ).toBeUndefined();
+  });
+
+  it('throws the same 429 as enforceRateLimit once the limit is hit', () => {
+    const options = { limit: 1, windowMs: WINDOW_MS };
+    countRequest(requestFrom('2.3.4.6'), 'test:read', options);
+
+    let caught: unknown;
+    try {
+      countRequest(requestFrom('2.3.4.6'), 'test:read', options);
+    } catch (error) {
+      caught = error;
+    }
+
+    expect((caught as ApiError).status).toBe(429);
+    expect((caught as ApiError).code).toBe('rate_limited');
+  });
+});
+
+describe('rateLimit key eviction', () => {
+  /** Mirrors the module's un-exported cap on tracked keys. */
+  const MAX_KEYS = 5000;
+
+  /** The registered symbol the window map hangs off `globalThis` under. */
+  const STORE_KEY = Symbol.for('zentra.api.rate-limit.store');
+
+  /** Reach into the process-wide store the way the module itself does. */
+  function store(): Map<string, { count: number; resetAt: number }> {
+    const scope = globalThis as Record<symbol, unknown> & typeof globalThis;
+    return scope[STORE_KEY] as Map<string, { count: number; resetAt: number }>;
+  }
+
+  it('drops expired windows first once the cap is exceeded', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-01-01T00:00:00.000Z'));
+
+    const stale = { limit: 1, windowMs: 1_000 };
+    for (let i = 0; i < 1_000; i += 1) {
+      rateLimit(`stale-${i}`, stale);
+    }
+    vi.advanceTimersByTime(2_000); // every stale window is now expired
+
+    const fresh = { limit: 1, windowMs: 60_000 };
+    for (let i = 0; i <= MAX_KEYS - 1_000; i += 1) {
+      rateLimit(`fresh-${i}`, fresh);
+    }
+
+    // Crossing the cap pruned the expired windows rather than any live one.
+    expect(store().size).toBe(MAX_KEYS - 1_000 + 1);
+    expect(store().has('stale-0')).toBe(false);
+    expect(store().has('stale-999')).toBe(false);
+    expect(store().has('fresh-0')).toBe(true);
+    expect(store().has(`fresh-${MAX_KEYS - 1_000}`)).toBe(true);
+  });
+
+  it('evicts the soonest-to-expire live keys when nothing has expired', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-01-01T00:00:00.000Z'));
+
+    const options = { limit: 1, windowMs: 60_000 };
+    for (let i = 0; i < MAX_KEYS; i += 1) {
+      rateLimit(`early-${i}`, options);
+    }
+    vi.advanceTimersByTime(10);
+    rateLimit('late', options);
+
+    // One early key made room; the newest window survived.
+    expect(store().size).toBe(MAX_KEYS);
+    expect(store().has('late')).toBe(true);
+    const earlySurvivors = Array.from(store().keys()).filter((key) =>
+      key.startsWith('early-'),
+    ).length;
+    expect(earlySurvivors).toBe(MAX_KEYS - 1);
+  });
+
+  it('holds the map at the cap under a flood of distinct keys', () => {
+    const options = { limit: 1, windowMs: 60_000 };
+    for (let i = 0; i < MAX_KEYS + 100; i += 1) {
+      rateLimit(`flood-${i}`, options);
+    }
+
+    // An attacker rotating source addresses grows the map to the cap, never
+    // past it — this is the bound that keeps the limiter's memory finite.
+    expect(store().size).toBe(MAX_KEYS);
+  });
+
+  it('never evicts the key being counted, and keeps limiting it across a prune', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-01-01T00:00:00.000Z'));
+
+    const options = { limit: 1, windowMs: 60_000 };
+    for (let i = 0; i < MAX_KEYS; i += 1) {
+      rateLimit(`filler-${i}`, options);
+    }
+    vi.advanceTimersByTime(10);
+
+    // This call itself crosses the cap and triggers the prune.
+    expect(rateLimit('active', options).ok).toBe(true);
+    expect(store().has('active')).toBe(true);
+    expect(store().size).toBe(MAX_KEYS);
+
+    // The counter survived its own prune: the second hit is still blocked.
+    const blocked = rateLimit('active', options);
+    expect(blocked.ok).toBe(false);
+    expect(blocked.retryAfterSeconds).toBeGreaterThanOrEqual(1);
   });
 });
 

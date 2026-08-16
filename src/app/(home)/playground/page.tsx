@@ -1,16 +1,16 @@
 import type { Metadata } from 'next';
-import { SCENARIOS } from '@/lib/scenarios';
-import { ScenarioPlayer } from '@/components/playground/scenario-player';
-import { ProofConsole } from '@/components/playground/proof-console';
-import { ZkIntro } from '@/components/playground/zk-intro';
-import { ProofVisuals } from '@/components/playground/proof-visuals';
-import { ZkGlossary } from '@/components/playground/zk-glossary';
 import { Eyebrow } from '@/components/landing/primitives';
+import { ProofConsole } from '@/components/playground/proof-console';
+import { ProofVisuals } from '@/components/playground/proof-visuals';
+import { ScenarioPlayer } from '@/components/playground/scenario-player';
+import { ZkGlossary } from '@/components/playground/zk-glossary';
+import { ZkIntro } from '@/components/playground/zk-intro';
+import { SCENARIOS } from '@/lib/scenarios';
 
 export const metadata: Metadata = {
   title: 'Playground',
   description:
-    'Generate a real Groth16 zero-knowledge proof in your browser, verify it on-chain against the live Soroban verifier, and see every proof made on the platform.',
+    'Generate a real Groth16 zero-knowledge proof in your browser, anchor its commitment on-chain via the live Soroban contract, and see every proof made on the platform.',
 };
 
 export default function PlaygroundPage() {
@@ -23,9 +23,9 @@ export default function PlaygroundPage() {
             Real zero-knowledge proofs, in your browser.
           </h1>
           <p className="mt-4 max-w-2xl text-fd-muted-foreground">
-            Generate an actual Groth16 / BN254 proof from the Zentra payment-policy
-            circuit, verify it locally, then verify it on-chain against the live
-            Soroban verifier — and see every proof made on the platform.
+            Generate an actual Groth16 / BN254 proof from the Zentra payment-policy circuit, verify
+            it locally, then anchor its commitment on-chain via the live Soroban contract — and see
+            every proof made on the platform.
           </p>
 
           <div className="mt-10">
@@ -47,8 +47,8 @@ export default function PlaygroundPage() {
             Or replay the three scenarios.
           </h2>
           <p className="mt-3 max-w-2xl text-sm text-fd-muted-foreground">
-            Deterministic replays of the live demo — legitimate payment, prompt
-            injection, and over-spend — showing which check fires.
+            Deterministic replays of the live demo — legitimate payment, prompt injection, and
+            over-spend — showing which check fires.
           </p>
           <div className="mt-8 grid gap-4 sm:grid-cols-2 md:grid-cols-3">
             {SCENARIOS.map((s) => (

@@ -83,7 +83,9 @@ describe('requireSameOrigin', () => {
   });
 
   it('refuses an origin that merely has our host as a prefix', () => {
-    const err = refusal(post({ host: 'docs.zentra.dev', origin: 'https://docs.zentra.dev.evil.test' }));
+    const err = refusal(
+      post({ host: 'docs.zentra.dev', origin: 'https://docs.zentra.dev.evil.test' }),
+    );
 
     expect(err.status).toBe(403);
   });

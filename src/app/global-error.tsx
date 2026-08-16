@@ -36,17 +36,14 @@ export default function GlobalError({
             className="pointer-events-none absolute -bottom-px -right-px h-3 w-3 border-b-2 border-r-2 border-violet"
           />
 
-          <p className="font-mono text-xs tracking-[0.14em] text-violet-soft">
-            // ZENTRA · FATAL
-          </p>
+          <p className="font-mono text-xs tracking-[0.14em] text-violet-soft">// ZENTRA · FATAL</p>
 
           <div role="alert" className="mt-5">
             <h1 className="font-display text-3xl font-bold tracking-[-0.025em] text-text sm:text-[40px]">
               Something broke
             </h1>
             <p className="mt-3.5 text-[15px] leading-relaxed text-muted sm:text-base">
-              The application shell failed to load, so this page could not be
-              rendered.
+              The application shell failed to load, so this page could not be rendered.
             </p>
           </div>
 

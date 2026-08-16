@@ -63,6 +63,43 @@ describe('redact', () => {
     expect(out.request.profile.name).toBe('[redacted]');
     expect(out.request.headers.authorization).toBe('[redacted]');
   });
+
+  it('masks camelCase and snake_case name fields nested in a payload', () => {
+    const out = redact({
+      signup: {
+        fullName: 'Ada Reyes',
+        firstName: 'Ada',
+        user_name: 'ada.reyes',
+        displayName: 'ada',
+        NAME: 'ADA',
+        userEmail: 'ada@example.test',
+      },
+    }) as { signup: Record<string, string> };
+
+    expect(out.signup.fullName).toBe('[redacted]');
+    expect(out.signup.firstName).toBe('[redacted]');
+    expect(out.signup.user_name).toBe('[redacted]');
+    expect(out.signup.displayName).toBe('[redacted]');
+    expect(out.signup.NAME).toBe('[redacted]');
+    expect(out.signup.userEmail).toBe('[redacted]');
+  });
+
+  it('does not mask keys that merely contain name as a substring', () => {
+    const out = redact({
+      server: { hostname: 'db.internal', filename: 'export.csv', nickname: 'primary' },
+    }) as { server: Record<string, string> };
+
+    expect(out.server.hostname).toBe('db.internal');
+    expect(out.server.filename).toBe('export.csv');
+    expect(out.server.nickname).toBe('primary');
+  });
+
+  it('leaves top-level name fields alone — the route label, not a person', () => {
+    const out = redact({ name: 'feedback.create', fullName: 'top-level-is-operational' });
+
+    expect(out.name).toBe('feedback.create');
+    expect(out.fullName).toBe('top-level-is-operational');
+  });
 });
 
 describe('log', () => {
@@ -72,7 +109,7 @@ describe('log', () => {
     log('info', 'faucet.requested', { route: '/api/faucet', attempt: 2 });
 
     expect(spy).toHaveBeenCalledTimes(1);
-    const line = spy.mock.calls[0][0] as string;
+    const line = spy.mock.calls[0]?.[0] as string;
     expect(typeof line).toBe('string');
     expect(line).not.toContain('\n');
 
@@ -95,7 +132,7 @@ describe('log', () => {
 
     expect(errorSpy).toHaveBeenCalledTimes(1);
     expect(logSpy).not.toHaveBeenCalled();
-    expect(JSON.parse(errorSpy.mock.calls[0][0] as string).level).toBe('error');
+    expect(JSON.parse(errorSpy.mock.calls[0]?.[0] as string).level).toBe('error');
   });
 
   it('routes warn level to console.warn', () => {
@@ -106,7 +143,7 @@ describe('log', () => {
 
     expect(warnSpy).toHaveBeenCalledTimes(1);
     expect(logSpy).not.toHaveBeenCalled();
-    expect(JSON.parse(warnSpy.mock.calls[0][0] as string).level).toBe('warn');
+    expect(JSON.parse(warnSpy.mock.calls[0]?.[0] as string).level).toBe('warn');
   });
 
   it('pipes fields through redaction before emitting', () => {
@@ -114,7 +151,7 @@ describe('log', () => {
 
     log('info', 'auth.attempt', { password: 'hunter2', user: 'ada' });
 
-    const line = spy.mock.calls[0][0] as string;
+    const line = spy.mock.calls[0]?.[0] as string;
     expect(line).not.toContain('hunter2');
     expect(JSON.parse(line).password).toBe('[redacted]');
     expect(JSON.parse(line).user).toBe('ada');
@@ -129,12 +166,42 @@ describe('log', () => {
     expect(() => log('info', 'circular.event', { payload: circular })).not.toThrow();
 
     expect(spy).toHaveBeenCalledTimes(1);
-    const line = spy.mock.calls[0][0] as string;
+    const line = spy.mock.calls[0]?.[0] as string;
     expect(line).toContain('serializationError');
 
     const parsed = JSON.parse(line) as Record<string, unknown>;
     expect(parsed.serializationError).toBe(true);
     expect(parsed.event).toBe('circular.event');
+  });
+
+  it('serialises an Error nested inside a payload instead of dropping it to {}', () => {
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    log('error', 'batch.failed', {
+      context: { err: new Error('boom') },
+      failures: [new Error('first'), new Error('second')],
+    });
+
+    const parsed = JSON.parse(spy.mock.calls[0]?.[0] as string) as {
+      context: { err: { name: string; message: string; stack?: string } };
+      failures: Array<{ name: string; message: string }>;
+    };
+
+    expect(parsed.context.err.name).toBe('Error');
+    expect(parsed.context.err.message).toBe('boom');
+    expect(parsed.context.err.stack).toBeDefined();
+    expect(parsed.failures.map((f) => f.message)).toEqual(['first', 'second']);
+  });
+
+  it('masks a credential-carrying Error even when it is nested', () => {
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const secret = 'postgres://user:password@db.example/zentra';
+
+    log('error', 'batch.failed', { context: { err: new Error(`refused: ${secret}`) } });
+
+    const line = spy.mock.calls[0]?.[0] as string;
+    expect(line).not.toContain(secret);
+    expect(JSON.parse(line).context.err).toEqual({ name: 'Error', message: '[redacted]' });
   });
 
   it('does not emit credentials embedded in an Error message or stack', () => {
@@ -143,7 +210,7 @@ describe('log', () => {
 
     log('error', 'database.failed', { err: new Error(`Connection refused: ${secret}`) });
 
-    const line = spy.mock.calls[0][0] as string;
+    const line = spy.mock.calls[0]?.[0] as string;
     expect(line).not.toContain(secret);
     expect(line).not.toContain('password@');
     expect(JSON.parse(line).err).toEqual({ name: 'Error', message: '[redacted]' });

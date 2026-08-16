@@ -20,9 +20,9 @@
 import { contractsConfigured } from '@/config/contract';
 import { activeProfile } from '@/config/network';
 import { log } from '@/lib/api/logger';
-import { json, route } from '@/lib/api/route';
+import { json, methodNotAllowed, route } from '@/lib/api/route';
+import { query } from '@/lib/db';
 import { soroban } from '@/lib/stellar/rpc';
-import { sql } from '@/lib/db';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -49,10 +49,7 @@ interface CheckResult {
 export const GET = route('health', async (_request, { requestId }) => {
   // Probed together: neither depends on the other, so the endpoint answers in
   // the time of the slower one rather than the sum.
-  const [database, chain] = await Promise.all([
-    checkDatabase(requestId),
-    checkChain(requestId),
-  ]);
+  const [database, chain] = await Promise.all([checkDatabase(requestId), checkChain(requestId)]);
 
   // Every check contributes to one verdict, so adding a dependency later means
   // adding it to this list rather than touching the response shape.
@@ -76,6 +73,9 @@ export const GET = route('health', async (_request, { requestId }) => {
     },
   );
 });
+
+/** Everything else is a 405 in the standard envelope, not Next's bare default. */
+export const { POST, PUT, PATCH, DELETE } = methodNotAllowed(['GET']);
 
 /**
  * Confirm the Soroban RPC for the configured network is reachable and is that
@@ -138,17 +138,16 @@ async function checkDatabase(requestId: string): Promise<CheckResult> {
  * state. `to_regclass` returns null for an absent relation rather than raising,
  * so a missing table is a row to inspect rather than an error to interpret.
  *
- * `sql()` throws synchronously when `DATABASE_URL` is unset; keeping the call
- * inside this `async` function turns that into a rejection the caller's
- * `try`/`catch` can handle alongside every other failure mode.
+ * `query` resolves its client via `sql()`, which throws synchronously when
+ * `DATABASE_URL` is unset; keeping the call inside this `async` function turns
+ * that into a rejection the caller's `try`/`catch` can handle alongside every
+ * other failure mode.
  */
 async function probeDatabase(): Promise<void> {
-  const db = sql();
-
-  const rows = (await db`
+  const rows = await query<{ feedback: boolean; users: boolean }>`
     SELECT to_regclass('public.feedback') IS NOT NULL AS feedback,
            to_regclass('public.users') IS NOT NULL AS users
-  `) as unknown as { feedback: boolean; users: boolean }[];
+  `;
 
   const schema = rows[0];
   if (schema?.feedback !== true || schema?.users !== true) {

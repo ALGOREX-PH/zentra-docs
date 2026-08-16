@@ -8,25 +8,25 @@
  * SDK's decoders instead of the classification logic these tests exist for.
  */
 
-import { describe, expect, it } from 'vitest';
 import {
   Account,
   Address,
   Keypair,
   Networks,
   nativeToScVal,
-  rpc as SorobanRpc,
   SorobanDataBuilder,
+  rpc as SorobanRpc,
   type Transaction,
   xdr,
 } from '@stellar/stellar-sdk';
+import { describe, expect, it } from 'vitest';
 import {
   countDistinctAuthorsLowerBound,
-  MAX_MESSAGE_BYTES,
-  readActionLogCount,
-  RECENT_WINDOW,
-  recordOnce,
   type LoadTestRpc,
+  MAX_MESSAGE_BYTES,
+  RECENT_WINDOW,
+  readActionLogCount,
+  recordOnce,
 } from './driver';
 import type { FundedAccount, LoadTestConfig } from './types';
 
@@ -119,8 +119,7 @@ function stubRpc(overrides: Partial<LoadTestRpc> = {}): LoadTestRpc {
     getAccount: async (address) => new Account(address, '42'),
     simulateTransaction: async () => simSuccess(),
     sendTransaction: async () => sendResult('PENDING'),
-    getTransaction: async () =>
-      txStatus(SorobanRpc.Api.GetTransactionStatus.SUCCESS, 1_009),
+    getTransaction: async () => txStatus(SorobanRpc.Api.GetTransactionStatus.SUCCESS, 1_009),
     ...overrides,
   };
 }
@@ -173,11 +172,11 @@ describe('recordOnce', () => {
     await recordOnce(account, makeConfig(), client);
 
     expect(submitted).toHaveLength(1);
-    expect(submitted[0].source).toBe(account.publicKey);
+    expect(submitted[0]?.source).toBe(account.publicKey);
     // One signature, from the author: source-account auth is what satisfies
     // `author.require_auth()`, so a second entry would mean the driver had
     // started signing authorisation entries it has no business signing.
-    expect(submitted[0].signatures).toHaveLength(1);
+    expect(submitted[0]?.signatures).toHaveLength(1);
   });
 
   it('treats DUPLICATE as already in flight and polls it to success', async () => {
@@ -196,8 +195,7 @@ describe('recordOnce', () => {
       makeAccount(),
       makeConfig(),
       stubRpc({
-        simulateTransaction: async () =>
-          simError('HostError: Error(Contract, #2) MessageTooLong'),
+        simulateTransaction: async () => simError('HostError: Error(Contract, #2) MessageTooLong'),
       }),
     );
 
@@ -337,8 +335,7 @@ describe('recordOnce', () => {
       makeAccount(),
       makeConfig(),
       stubRpc({
-        getTransaction: async () =>
-          txStatus(SorobanRpc.Api.GetTransactionStatus.FAILED, 1_011),
+        getTransaction: async () => txStatus(SorobanRpc.Api.GetTransactionStatus.FAILED, 1_011),
       }),
     );
 

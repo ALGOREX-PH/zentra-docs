@@ -2,18 +2,19 @@
 
 import dynamic from 'next/dynamic';
 import { useEffect, useRef, useState } from 'react';
-import { HudPanel, Eyebrow } from '@/components/landing/primitives';
-import {
-  ProofError,
-  generateProof,
-  loadExampleInput,
-  type ProofResult,
-  type ProofStage,
-} from '@/lib/zk/prover';
-import { PIPELINE, STAGE_STATUS, type PipelineStep } from '@/lib/zk/education';
+import { Eyebrow, HudPanel } from '@/components/landing/primitives';
 import { SignalsTable } from '@/components/playground/signals-table';
 import { WhatThisProves } from '@/components/playground/what-this-proves';
 import { cn } from '@/lib/cn';
+import { shorten } from '@/lib/ui';
+import { PIPELINE, type PipelineStep, STAGE_STATUS } from '@/lib/zk/education';
+import {
+  generateProof,
+  loadExampleInput,
+  ProofError,
+  type ProofResult,
+  type ProofStage,
+} from '@/lib/zk/prover';
 
 /**
  * Anchoring is only reachable once a proof exists and it pulls in the Stellar
@@ -24,9 +25,7 @@ const ProofAnchor = dynamic(
   {
     loading: () => (
       <HudPanel accent="violet">
-        <p className="p-5 font-mono text-[11px] text-faint sm:p-6">
-          Loading the on-chain anchor…
-        </p>
+        <p className="p-5 font-mono text-[11px] text-faint sm:p-6">Loading the on-chain anchor…</p>
       </HudPanel>
     ),
   },
@@ -49,11 +48,6 @@ const STEP_CLASS: Record<StepState, string> = {
   failed: 'border-denied/50 text-denied',
 };
 
-function short(value: string, head = 10, tail = 6) {
-  if (value.length <= head + tail) return value;
-  return `${value.slice(0, head)}…${value.slice(-tail)}`;
-}
-
 /** Where a step sits relative to the phase the run has actually reached. */
 function stepState(
   step: PipelineStep,
@@ -75,7 +69,8 @@ function stepState(
 export function ProofLab({ onAnchored }: { onAnchored?: () => void }) {
   const [phase, setPhase] = useState<Phase>('idle');
   const [stage, setStage] = useState<ProofStage>('circuit');
-  const [percent, setPercent] = useState(0);
+  /** Download percent, or `null` while the total is still unknown (indeterminate). */
+  const [percent, setPercent] = useState<number | null>(null);
   const [elapsed, setElapsed] = useState(0);
   const [result, setResult] = useState<ProofResult | null>(null);
   const [error, setError] = useState<RunError | null>(null);
@@ -99,7 +94,7 @@ export function ProofLab({ onAnchored }: { onAnchored?: () => void }) {
     run.current = controller;
     setPhase('proving');
     setStage('circuit');
-    setPercent(0);
+    setPercent(null);
     setElapsed(0);
     setResult(null);
     setError(null);
@@ -110,10 +105,12 @@ export function ProofLab({ onAnchored }: { onAnchored?: () => void }) {
         // Same-value updates bail out in React, so per-chunk calls are cheap.
         onProgress: (progress) => {
           setStage(progress.stage);
-          if (progress.stage === 'circuit') {
-            setPercent(
-              progress.total > 0 ? Math.round((progress.loaded / progress.total) * 100) : 0,
-            );
+          if (progress.stage === 'circuit' && progress.total > 0) {
+            // Clamped and monotonic: a shifting total (or an over-reporting
+            // stream) must never show >100% or walk the bar backwards. While
+            // the total is unreported the bar simply stays indeterminate.
+            const next = Math.min(100, Math.round((progress.loaded / progress.total) * 100));
+            setPercent((prev) => (prev === null ? next : Math.max(prev, next)));
           }
         },
       });
@@ -144,6 +141,19 @@ export function ProofLab({ onAnchored }: { onAnchored?: () => void }) {
     }
   }
 
+  /**
+   * Abandon the in-flight run: the AbortController tears the worker down (see
+   * `runWorker`), and the lab returns to a clean idle state, ready to re-run.
+   */
+  function cancel() {
+    run.current?.abort();
+    run.current = null;
+    setPhase('idle');
+    setStage('circuit');
+    setPercent(null);
+    setElapsed(0);
+  }
+
   const proving = phase === 'proving';
 
   return (
@@ -155,27 +165,36 @@ export function ProofLab({ onAnchored }: { onAnchored?: () => void }) {
             Generate a real Groth16 proof
           </h2>
           <p className="mt-2 max-w-[640px] text-sm text-muted">
-            This runs the actual Zentra payment-policy circuit (Circom + snarkjs,
-            Groth16 over BN254) entirely in your browser. The proof shows an
-            agent&apos;s action obeys a private policy — without revealing the policy.
+            This runs the actual Zentra payment-policy circuit (Circom + snarkjs, Groth16 over
+            BN254) entirely in your browser. The proof shows an agent&apos;s action obeys a private
+            policy — without revealing the policy.
           </p>
 
-          <button
-            type="button"
-            onClick={prove}
-            disabled={proving}
-            aria-busy={proving}
-            className="mt-5 inline-flex items-center gap-2 bg-violet px-5 py-3 font-mono text-xs uppercase tracking-[0.1em] text-white transition-colors hover:bg-[#8b5cf6] disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            <span aria-hidden className="size-1.5 bg-cyan" />
-            {proving
-              ? 'Proving…'
-              : phase === 'error'
+          {proving ? (
+            // While a run is live the primary control becomes its escape hatch,
+            // so a slow or hung prove never leaves the user with a dead button.
+            <button
+              type="button"
+              onClick={cancel}
+              className="mt-5 inline-flex items-center gap-2 border border-denied/50 bg-denied/[0.06] px-5 py-3 font-mono text-xs uppercase tracking-[0.1em] text-denied transition-colors hover:bg-denied/15"
+            >
+              <span aria-hidden className="size-1.5 bg-denied" />
+              Cancel proving
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={prove}
+              className="mt-5 inline-flex items-center gap-2 bg-violet px-5 py-3 font-mono text-xs uppercase tracking-[0.1em] text-white transition-colors hover:bg-[#8b5cf6]"
+            >
+              <span aria-hidden className="size-1.5 bg-cyan" />
+              {phase === 'error'
                 ? 'Try again'
                 : phase === 'done'
                   ? 'Generate another proof'
                   : 'Generate real proof'}
-          </button>
+            </button>
+          )}
 
           {phase === 'idle' ? (
             <p className="mt-4 font-mono text-[11px] text-faint">
@@ -195,10 +214,12 @@ export function ProofLab({ onAnchored }: { onAnchored?: () => void }) {
                     STEP_CLASS[state],
                   )}
                 >
-                  <span className="text-muted">{String(i + 1).padStart(2, '0')}</span>{' '}
-                  {step.label}
+                  <span className="text-muted">{String(i + 1).padStart(2, '0')}</span> {step.label}
                   {state === 'active' ? (
-                    <span aria-hidden className="absolute inset-x-0 bottom-0 h-px animate-pulse bg-cyan" />
+                    <span
+                      aria-hidden
+                      className="absolute inset-x-0 bottom-0 h-px animate-pulse bg-cyan"
+                    />
                   ) : null}
                 </li>
               );
@@ -213,22 +234,30 @@ export function ProofLab({ onAnchored }: { onAnchored?: () => void }) {
                 </p>
                 <span aria-hidden className="shrink-0 font-mono text-[11px] text-faint">
                   {stage === 'circuit'
-                    ? `${percent}%`
+                    ? percent === null
+                      ? '…'
+                      : `${percent}%`
                     : `${(elapsed / 1000).toFixed(1)}s`}
                 </span>
               </div>
               {stage === 'circuit' ? (
+                // Omitting aria-valuenow while percent is null is the ARIA
+                // idiom for an indeterminate progressbar — it matches the
+                // visible "…" instead of announcing a made-up number.
                 <div
                   role="progressbar"
                   aria-label="Circuit download"
-                  aria-valuenow={percent}
+                  aria-valuenow={percent ?? undefined}
                   aria-valuemin={0}
                   aria-valuemax={100}
-                  className="mt-2 h-px w-full bg-fd-border"
+                  className={cn(
+                    'mt-2 h-px w-full bg-fd-border',
+                    percent === null && 'motion-safe:animate-pulse',
+                  )}
                 >
                   <span
                     className="block h-full bg-cyan transition-[width] duration-200"
-                    style={{ width: `${percent}%` }}
+                    style={{ width: `${percent ?? 0}%` }}
                   />
                 </div>
               ) : null}
@@ -253,27 +282,34 @@ export function ProofLab({ onAnchored }: { onAnchored?: () => void }) {
       {result ? (
         <>
           <div className="grid gap-5 lg:grid-cols-2">
-          <HudPanel accent="cyan">
-            <div className="p-5 sm:p-6">
-              <Eyebrow accent="cyan">THE PROOF · π</Eyebrow>
-              <dl className="mt-3 space-y-2 font-mono text-[11px]">
-                <Point label="π_a (G1)" values={result.proof.pi_a} />
-                <Point label="π_b (G2)" values={result.proof.pi_b.flat()} />
-                <Point label="π_c (G1)" values={result.proof.pi_c} />
-              </dl>
-              <div className="mt-4 flex flex-wrap items-center gap-x-2 gap-y-1 border border-live/40 bg-live/[0.06] px-3 py-2 font-mono text-xs text-live">
-                <svg width="14" height="14" viewBox="0 0 15 15" aria-hidden>
-                  <polyline points="2,8 6,12 13,3" fill="none" stroke="#22c55e" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-                Verified locally · valid
-                <span className="ml-auto text-faint">
-                  prove {result.proveMs}ms · verify {result.verifyMs}ms
-                </span>
+            <HudPanel accent="cyan">
+              <div className="p-5 sm:p-6">
+                <Eyebrow accent="cyan">THE PROOF · π</Eyebrow>
+                <dl className="mt-3 space-y-2 font-mono text-[11px]">
+                  <Point label="π_a (G1)" values={result.proof.pi_a} />
+                  <Point label="π_b (G2)" values={result.proof.pi_b.flat()} />
+                  <Point label="π_c (G1)" values={result.proof.pi_c} />
+                </dl>
+                <div className="mt-4 flex flex-wrap items-center gap-x-2 gap-y-1 border border-live/40 bg-live/[0.06] px-3 py-2 font-mono text-xs text-live">
+                  <svg width="14" height="14" viewBox="0 0 15 15" aria-hidden="true">
+                    <polyline
+                      points="2,8 6,12 13,3"
+                      fill="none"
+                      stroke="#22c55e"
+                      strokeWidth="2.2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                  Verified locally · valid
+                  <span className="ml-auto text-faint">
+                    prove {result.proveMs}ms · verify {result.verifyMs}ms
+                  </span>
+                </div>
               </div>
-            </div>
-          </HudPanel>
+            </HudPanel>
 
-          <SignalsTable publicSignals={result.publicSignals} />
+            <SignalsTable publicSignals={result.publicSignals} />
           </div>
           <WhatThisProves />
           <ProofAnchor result={result} onAnchored={onAnchored} />
@@ -289,8 +325,9 @@ function Point({ label, values }: { label: string; values: string[] }) {
       <dt className="text-faint">{label}</dt>
       <dd className="mt-0.5 space-y-0.5">
         {values.map((v, i) => (
+          // biome-ignore lint/suspicious/noArrayIndexKey: proof point coordinates are positional (pi_a[0], pi_a[1], ...); the slot is the identity.
           <div key={i} className="break-all text-violet-soft">
-            {short(v, 12, 8)}
+            {shorten(v, 12, 8)}
           </div>
         ))}
       </dd>

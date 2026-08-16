@@ -1,10 +1,10 @@
 'use client';
 
-import type { ComponentProps, ReactNode } from 'react';
 import { HomeLayout } from 'fumadocs-ui/layouts/home';
+import type { ComponentProps, ReactNode } from 'react';
 import { Footer } from '@/components/landing/footer';
-import { baseOptions } from '@/lib/layout.shared';
 import { cn } from '@/lib/cn';
+import { baseOptions } from '@/lib/layout.shared';
 
 /**
  * Shell wrapper for the `(home)` group.

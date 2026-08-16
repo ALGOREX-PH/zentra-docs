@@ -43,17 +43,19 @@ export function VizFlow() {
             <span aria-hidden className="block font-display text-2xl leading-none">
               {s.glyph}
             </span>
-            <div className={cn('mt-2 font-mono text-[11px] uppercase tracking-[0.1em]', text[s.accent])}>
+            <div
+              className={cn(
+                'mt-2 font-mono text-[11px] uppercase tracking-[0.1em]',
+                text[s.accent],
+              )}
+            >
               {s.title}
             </div>
             <div className="mt-1 text-[11px] leading-snug text-faint">{s.sub}</div>
           </li>
 
           {i < STAGES.length - 1 ? (
-            <li
-              aria-hidden
-              className="mx-auto flex items-center justify-center md:w-12"
-            >
+            <li aria-hidden className="mx-auto flex items-center justify-center md:w-12">
               {/* Motion allowed: a pulse travels the connector, showing the direction. */}
               <span className="relative hidden h-5 w-px overflow-hidden motion-safe:block md:h-px md:w-12">
                 <span className="absolute inset-0 bg-fd-border" />

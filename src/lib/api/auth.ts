@@ -16,14 +16,14 @@
  */
 
 import {
+  type ApiError,
   forbidden,
   rateLimited,
   unauthorized,
   upstreamUnavailable,
-  type ApiError,
 } from '@/lib/api/errors';
 import { log } from '@/lib/api/logger';
-import { clientKey, rateLimit, type RateLimitOptions } from '@/lib/api/rate-limit';
+import { clientKey, type RateLimitOptions, rateLimit } from '@/lib/api/rate-limit';
 
 /** Name of the environment variable holding the operator shared secret. */
 export const ADMIN_TOKEN_ENV = 'ADMIN_TOKEN';
@@ -171,7 +171,9 @@ function readCredential(request: Request): string | null {
   if (authorization !== null) {
     const match = BEARER.exec(authorization.trim());
     if (match === null) return null;
-    return nonEmpty(match[1]);
+    // The capture group is non-optional, so a successful match always fills it;
+    // `?? ''` narrows the indexed access and lands in the same "no credential" answer.
+    return nonEmpty(match[1] ?? '');
   }
 
   const header = request.headers.get('x-admin-token');

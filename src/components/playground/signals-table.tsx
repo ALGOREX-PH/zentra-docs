@@ -1,13 +1,10 @@
 'use client';
 
 import { Fragment, useId, useState } from 'react';
-import { SIGNALS, type SignalKind } from '@/lib/zk/education';
-import { HudPanel, Eyebrow } from '@/components/landing/primitives';
+import { Eyebrow, HudPanel } from '@/components/landing/primitives';
 import { cn } from '@/lib/cn';
-
-function shorten(v: string): string {
-  return v.length > 14 ? `${v.slice(0, 8)}…${v.slice(-4)}` : v;
-}
+import { shorten } from '@/lib/ui';
+import { SIGNALS, type SignalKind } from '@/lib/zk/education';
 
 /** Rendered in its own column, and again beside the label once that column is
  *  dropped for narrow screens. */
@@ -18,7 +15,10 @@ function KindBadge({ kind, className }: { kind: SignalKind; className?: string }
     </span>
   ) : (
     <span
-      className={cn('border border-violet/40 px-1 font-mono text-[9px] text-violet-soft', className)}
+      className={cn(
+        'border border-violet/40 px-1 font-mono text-[9px] text-violet-soft',
+        className,
+      )}
     >
       value
     </span>
@@ -39,8 +39,8 @@ export function SignalsTable({ publicSignals }: { publicSignals: string[] }) {
 
         <table className="mt-3 w-full border border-fd-border text-left">
           <caption className="sr-only">
-            The public signals this proof reveals, in the order the circuit emits
-            them. Each row expands to explain what that signal means.
+            The public signals this proof reveals, in the order the circuit emits them. Each row
+            expands to explain what that signal means.
           </caption>
           <thead>
             <tr className="border-b border-fd-border font-mono text-[10px] uppercase tracking-[0.1em] text-faint">
@@ -67,6 +67,7 @@ export function SignalsTable({ publicSignals }: { publicSignals: string[] }) {
               const descId = `${uid}-${i}`;
 
               return (
+                // biome-ignore lint/suspicious/noArrayIndexKey: public signals are positional by circuit definition; SIGNALS[i] is read off the same index.
                 <Fragment key={i}>
                   <tr className="border-t border-fd-border align-top">
                     <td className="hidden px-4 py-2.5 font-mono text-[11px] text-faint sm:table-cell">
@@ -102,7 +103,7 @@ export function SignalsTable({ publicSignals }: { publicSignals: string[] }) {
                         kind === 'hash' ? 'text-violet-soft' : 'text-text',
                       )}
                     >
-                      {shorten(value)}
+                      {shorten(value, 8, 4)}
                     </td>
                   </tr>
                   <tr id={descId} hidden={!isOpen}>

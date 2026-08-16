@@ -22,18 +22,36 @@ export type ApiErrorCode =
   | 'upstream_unavailable'
   | 'internal';
 
+/**
+ * The brand that marks an `ApiError` across module boundaries.
+ *
+ * `Symbol.for` reads the process-wide symbol registry, so duplicate copies of
+ * this module (bundler boundaries, mixed ESM/CJS) all mint the *same* symbol
+ * even though each has its own `ApiError` prototype. That is exactly the
+ * failure `instanceof` does not survive, and it is why the brand replaces the
+ * old structural fallback — which accepted any object carrying a numeric
+ * `status` and a string `code`, ours or not.
+ */
+const API_ERROR_BRAND: unique symbol = Symbol.for('zentra.apiError');
+
 /** An error carrying the HTTP status and client-safe code for a failed request. */
 export class ApiError extends Error {
+  readonly [API_ERROR_BRAND] = true;
   readonly status: number;
   readonly code: ApiErrorCode;
   readonly details?: Record<string, string>;
   readonly retryAfterSeconds?: number;
+  readonly allowedMethods?: string[];
 
   constructor(
     status: number,
     code: ApiErrorCode,
     message: string,
-    options?: { details?: Record<string, string>; retryAfterSeconds?: number },
+    options?: {
+      details?: Record<string, string>;
+      retryAfterSeconds?: number;
+      allowedMethods?: string[];
+    },
   ) {
     super(message);
     this.name = 'ApiError';
@@ -41,6 +59,7 @@ export class ApiError extends Error {
     this.code = code;
     this.details = options?.details;
     this.retryAfterSeconds = options?.retryAfterSeconds;
+    this.allowedMethods = options?.allowedMethods;
     // Keeps `instanceof` working when TypeScript downlevels the class.
     Object.setPrototypeOf(this, ApiError.prototype);
   }
@@ -75,6 +94,23 @@ export function rateLimited(retryAfterSeconds: number): ApiError {
   });
 }
 
+/** 404 — the resource the request names does not exist. */
+export function notFound(message: string): ApiError {
+  return new ApiError(404, 'not_found', message);
+}
+
+/**
+ * 405 — the endpoint exists but does not serve this HTTP method.
+ *
+ * Carries the methods it does serve, which `toErrorBody` surfaces as the
+ * `Allow` header RFC 9110 requires a 405 to send.
+ */
+export function methodNotAllowed(allowedMethods: string[]): ApiError {
+  return new ApiError(405, 'method_not_allowed', 'Method not allowed.', {
+    allowedMethods,
+  });
+}
+
 /** 409 — the request collided with a row that already exists. */
 export function conflict(message: string): ApiError {
   return new ApiError(409, 'conflict', message);
@@ -82,11 +118,7 @@ export function conflict(message: string): ApiError {
 
 /** 413 — the request body exceeded the byte ceiling for this route. */
 export function payloadTooLarge(maxBytes: number): ApiError {
-  return new ApiError(
-    413,
-    'payload_too_large',
-    `Request body exceeds the ${maxBytes} byte limit.`,
-  );
+  return new ApiError(413, 'payload_too_large', `Request body exceeds the ${maxBytes} byte limit.`);
 }
 
 /**
@@ -97,11 +129,7 @@ export function payloadTooLarge(maxBytes: number): ApiError {
  * code can correct the request rather than the data.
  */
 export function unsupportedMediaType(expected: string): ApiError {
-  return new ApiError(
-    415,
-    'unsupported_media_type',
-    `Request body must be sent as ${expected}.`,
-  );
+  return new ApiError(415, 'unsupported_media_type', `Request body must be sent as ${expected}.`);
 }
 
 /** 503 — a dependency we call out to is down or unreachable. */
@@ -110,16 +138,17 @@ export function upstreamUnavailable(message: string): ApiError {
 }
 
 /**
- * Whether `value` is an `ApiError`, structurally as well as by prototype.
+ * Whether `value` is an `ApiError`, detected by its registry-symbol brand.
  *
  * Duplicate copies of this module (bundler boundaries, mixed ESM/CJS) break
- * `instanceof`, so an object shaped like an `ApiError` is accepted too.
+ * `instanceof`, which is why detection cannot rely on the prototype. The brand
+ * survives that duplication — every copy asks `Symbol.for` for the same key —
+ * so no looser structural check is needed, and an arbitrary object that merely
+ * looks like an `ApiError` is no longer mistaken for one.
  */
 export function isApiError(value: unknown): value is ApiError {
-  if (value instanceof ApiError) return true;
   if (typeof value !== 'object' || value === null) return false;
-  const candidate = value as { status?: unknown; code?: unknown };
-  return typeof candidate.status === 'number' && typeof candidate.code === 'string';
+  return (value as Record<PropertyKey, unknown>)[API_ERROR_BRAND] === true;
 }
 
 /**
@@ -143,10 +172,13 @@ export function toErrorBody(error: unknown): {
     };
   }
 
-  const headers: Record<string, string> =
-    typeof error.retryAfterSeconds === 'number'
-      ? { 'Retry-After': String(error.retryAfterSeconds) }
-      : {};
+  const headers: Record<string, string> = {};
+  if (typeof error.retryAfterSeconds === 'number') {
+    headers['Retry-After'] = String(error.retryAfterSeconds);
+  }
+  if (error.allowedMethods !== undefined && error.allowedMethods.length > 0) {
+    headers.Allow = error.allowedMethods.join(', ');
+  }
 
   return {
     status: error.status,

@@ -99,23 +99,31 @@ async function primeFile(
  * from the HTTP cache — so this adds no extra transfer and turns the largest
  * slice of a cold run (~5.5 MB) into a stage with real byte progress rather
  * than dead time. Memoised, so a second proof skips it entirely.
+ *
+ * Exported for the prover boundary tests; the app reaches it via generateProof.
  */
-function loadCircuit(onProgress: (loaded: number, total: number) => void): Promise<void> {
+export function loadCircuit(onProgress: (loaded: number, total: number) => void): Promise<void> {
   if (circuitReady) return circuitReady;
 
   let loaded = 0;
   let total = 0;
+  let sized = 0;
+  // Until every artefact has reported its size the running total is a lie —
+  // a percent computed against it would leap backwards as later sizes land.
+  // Report 0 (indeterminate) instead, and a real total only once complete.
+  const report = () => onProgress(loaded, sized === CIRCUIT_FILES.length ? total : 0);
   const ready = Promise.all(
     CIRCUIT_FILES.map((url) =>
       primeFile(
         url,
         (bytes) => {
           total += bytes;
-          onProgress(loaded, total);
+          sized += 1;
+          report();
         },
         (bytes) => {
           loaded += bytes;
-          onProgress(loaded, total);
+          report();
         },
       ),
     ),
@@ -142,7 +150,8 @@ function isStringArray(value: unknown): value is string[] {
   return Array.isArray(value) && value.every((item) => typeof item === 'string');
 }
 
-function isGroth16Proof(value: unknown): value is Groth16Proof {
+/** Structural check on the worker's proof object. Exported for tests. */
+export function isGroth16Proof(value: unknown): value is Groth16Proof {
   if (typeof value !== 'object' || value === null) return false;
   const proof = value as Record<string, unknown>;
   return (
@@ -154,7 +163,7 @@ function isGroth16Proof(value: unknown): value is Groth16Proof {
 }
 
 /** The worker is untyped JS, so its reply is checked before it reaches the UI. */
-function isWorkerPayload(value: unknown): value is WorkerPayload {
+export function isWorkerPayload(value: unknown): value is WorkerPayload {
   if (typeof value !== 'object' || value === null) return false;
   const data = value as Record<string, unknown>;
   return (
@@ -168,7 +177,7 @@ function isWorkerPayload(value: unknown): value is WorkerPayload {
 }
 
 /** The worker's own failure text — a bad witness is the usual cause. */
-function workerError(value: unknown): string {
+export function workerError(value: unknown): string {
   if (typeof value === 'object' && value !== null) {
     const { error } = value as Record<string, unknown>;
     if (typeof error === 'string' && error.trim() !== '') return error;
@@ -176,13 +185,23 @@ function workerError(value: unknown): string {
   return 'The circuit rejected these inputs, so no witness could be computed.';
 }
 
+/**
+ * How long a single worker round-trip may take before the run is declared
+ * hung. Proving is seconds even on slow hardware, so this is generous — it
+ * exists so a wedged worker can never leave the lab stuck at "proving" forever.
+ */
+const PROVING_TIMEOUT_MS = 120_000;
+
 function runWorker(
   input: Record<string, unknown>,
   signal: AbortSignal | undefined,
 ): Promise<ProofResult> {
   return new Promise<ProofResult>((resolve, reject) => {
     const worker = new Worker('/zk-worker.js');
+    // Whatever ends the run — reply, crash, abort, timeout — the worker is
+    // terminated and every pending handler is detached exactly once.
     const stop = () => {
+      clearTimeout(watchdog);
       worker.terminate();
       signal?.removeEventListener('abort', onAbort);
     };
@@ -190,6 +209,15 @@ function runWorker(
       stop();
       reject(new ProofError('proving', 'Proof run cancelled.'));
     };
+    const watchdog = setTimeout(() => {
+      stop();
+      reject(
+        new ProofError(
+          'proving',
+          `The prover did not respond within ${PROVING_TIMEOUT_MS / 1000}s, so the run was abandoned.`,
+        ),
+      );
+    }, PROVING_TIMEOUT_MS);
     signal?.addEventListener('abort', onAbort, { once: true });
 
     worker.onmessage = (event: MessageEvent<unknown>) => {
@@ -204,6 +232,12 @@ function runWorker(
     worker.onerror = (event: ErrorEvent) => {
       stop();
       reject(new ProofError('proving', event.message || 'The proof worker crashed.'));
+    };
+    // A reply that fails structured deserialisation raises messageerror, not
+    // message — without this handler such a run would only die by watchdog.
+    worker.onmessageerror = () => {
+      stop();
+      reject(new ProofError('proving', 'The proof worker sent a reply that could not be read.'));
     };
     worker.postMessage({ input });
   });

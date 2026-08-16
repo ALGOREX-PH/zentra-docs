@@ -1,28 +1,23 @@
 'use client';
 
 import { useState } from 'react';
-import { useWallet } from '@/components/app/wallet-provider';
-import { buildRecordXdr, submitInvoke } from '@/lib/stellar/action-log';
-import { describeError } from '@/lib/stellar/errors';
-import { HudPanel, Eyebrow } from '@/components/landing/primitives';
 import { TxStatus } from '@/components/app/tx-status';
-import type { TxState } from '@/lib/stellar/types';
+import { useTxPipeline } from '@/components/app/use-tx-pipeline';
+import { useWallet } from '@/components/app/wallet-provider';
+import { Eyebrow, HudPanel } from '@/components/landing/primitives';
 import { cn } from '@/lib/cn';
+import { buildRecordXdr, submitInvoke } from '@/lib/stellar/action-log';
+import { focusRing } from '@/lib/ui';
 
 const MAX = 200;
 
-const focusRing =
-  'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan';
-
 export function RecordForm({ onRecorded }: { onRecorded?: () => void }) {
-  const { address, signTransaction } = useWallet();
+  const { address } = useWallet();
   const [message, setMessage] = useState('');
-  const [tx, setTx] = useState<TxState>({ phase: 'idle' });
+  const { tx, run, fail, inFlight } = useTxPipeline();
 
   const trimmed = message.trim();
   const valid = trimmed.length > 0 && message.length <= MAX;
-  const inFlight =
-    tx.phase === 'building' || tx.phase === 'signing' || tx.phase === 'submitting';
 
   // An empty box is the starting state, not a mistake, so the field only reads
   // as invalid once there is something in it that the contract would refuse.
@@ -37,33 +32,27 @@ export function RecordForm({ onRecorded }: { onRecorded?: () => void }) {
     event.preventDefault();
 
     if (!address) {
-      setTx({ phase: 'error', message: 'Connect your wallet first.' });
+      fail('Connect your wallet first.');
       return;
     }
 
     if (!valid) {
-      setTx({
-        phase: 'error',
-        message: 'Enter a message between 1 and 200 characters.',
-      });
+      fail(`Enter a message between 1 and ${MAX} characters.`);
       return;
     }
 
-    try {
-      setTx({ phase: 'building' });
-      const xdr = await buildRecordXdr(address, trimmed);
+    // The pipeline owns phases, error mapping and the double-submit guard;
+    // this form contributes only how to build the invoke and how to submit it.
+    // No success message: the panel heading already says "Action recorded", so
+    // a body repeating it would be read twice by the announcement.
+    const result = await run(
+      () => buildRecordXdr(address, trimmed),
+      async (signed) => ({ hash: await submitInvoke(signed) }),
+    );
 
-      setTx({ phase: 'signing' });
-      const signed = await signTransaction(xdr);
-
-      setTx({ phase: 'submitting' });
-      const hash = await submitInvoke(signed);
-
-      setTx({ phase: 'success', hash, message: 'Action recorded on-chain.' });
+    if (result) {
       setMessage('');
       onRecorded?.();
-    } catch (err: unknown) {
-      setTx({ phase: 'error', message: describeError(err) });
     }
   }
 
@@ -114,7 +103,7 @@ export function RecordForm({ onRecorded }: { onRecorded?: () => void }) {
               id="record-message-count"
               className={cn('shrink-0 text-faint', message.length > MAX && 'text-denied')}
             >
-              {message.length}/200
+              {message.length}/{MAX}
             </span>
           </div>
 
@@ -130,13 +119,23 @@ export function RecordForm({ onRecorded }: { onRecorded?: () => void }) {
           </button>
 
           {!address && (
-            <p className="mt-2 font-mono text-[11px] text-muted">
-              Connect a wallet to record.
-            </p>
+            <p className="mt-2 font-mono text-[11px] text-muted">Connect a wallet to record.</p>
           )}
 
           <div className="mt-4">
-            <TxStatus state={tx} />
+            {/*
+              This form invokes a contract; the default TxStatus copy settles a
+              payment. Without these labels a recorded action was announced as
+              "Payment settled" — true of nothing this form does.
+            */}
+            <TxStatus
+              state={tx}
+              labels={{
+                success: 'Action recorded',
+                failure: 'Recording failed',
+                successAnnounce: 'Action recorded on-chain.',
+              }}
+            />
           </div>
         </form>
       </div>

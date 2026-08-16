@@ -2,10 +2,11 @@
 -- Zentra Docs -- application schema (PostgreSQL 16 / Neon serverless)
 --
 -- This file is the SINGLE SOURCE OF TRUTH for the Neon database schema: the
--- `feedback` table behind the widget on /metrics, and the `users` onboarding
--- registry behind /join. Every table, constraint and index the application
--- relies on is declared here. If it is not in this file, it should not exist
--- in the database; if the app needs something new, add it here first.
+-- `feedback` table behind the widget on /metrics, the `users` onboarding
+-- registry behind /join, and the `sponsor_spend` ledger behind the fee-sponsor
+-- budget. Every table, constraint and index the application relies on is
+-- declared here. If it is not in this file, it should not exist in the
+-- database; if the app needs something new, add it here first.
 --
 -- The script is idempotent and safe to re-run: every object is created with
 -- IF NOT EXISTS, so applying it against an already-provisioned database is a
@@ -17,7 +18,9 @@
 --   src/app/api/onboard/route.ts         -- POST signup, GET count
 --   src/app/api/admin/users/route.ts     -- CSV export of the registry
 --   src/app/api/admin/feedback/route.ts  -- PATCH hide/unhide a row
---   src/app/api/health/route.ts          -- SELECT 1 readiness probe
+--   src/lib/api/sponsor-budget.ts        -- POST /api/sponsor's budget upserts
+--   src/app/api/health/route.ts          -- readiness probe; asks to_regclass
+--                                           whether feedback and users exist
 --
 -- Apply with:
 --   psql "$DATABASE_URL" -f db/schema.sql
@@ -67,22 +70,23 @@ CREATE TABLE IF NOT EXISTS feedback (
 );
 
 -- ---------------------------------------------------------------------------
--- Indexes
+-- Indexes on feedback
+--
+-- Exactly the indexes the application's queries read, plus the one uniqueness
+-- guard. Indexes that served no query (per-wallet lookups, the unfiltered
+-- created_at ordering, an on-chain partial without the hidden filter) were
+-- dropped by db/migrations/004_index_cleanup.sql and are gone from this file
+-- for the same reason: every index is paid for on every write.
 -- ---------------------------------------------------------------------------
 
--- Serves: SELECT ... FROM feedback ORDER BY created_at DESC LIMIT 10
-CREATE INDEX IF NOT EXISTS feedback_created_at_desc_idx
-  ON feedback (created_at DESC);
-
--- Serves: SELECT sum(case when on_chain then 1 else 0 end) ... FROM feedback
-CREATE INDEX IF NOT EXISTS feedback_on_chain_tx_hash_idx
+-- Serves: the on-chain count inside the GET /api/feedback aggregate,
+--   SELECT ..., sum(case when on_chain then 1 else 0 end) ...
+--     FROM feedback WHERE NOT hidden
+-- The predicate mirrors that read exactly: a hidden row must not inflate the
+-- on-chain total the dashboard reports.
+CREATE INDEX IF NOT EXISTS feedback_on_chain_visible_idx
   ON feedback (tx_hash)
-  WHERE on_chain;
-
--- Serves: per-wallet lookups (a contributor's own feedback history)
-CREATE INDEX IF NOT EXISTS feedback_wallet_idx
-  ON feedback (wallet)
-  WHERE wallet IS NOT NULL;
+  WHERE on_chain AND NOT hidden;
 
 -- Guards: one feedback row per anchoring transaction, so a retried or
 -- double-clicked submission cannot be recorded twice. NULL tx_hash rows
@@ -92,8 +96,8 @@ CREATE UNIQUE INDEX IF NOT EXISTS feedback_tx_hash_unique_idx
   WHERE tx_hash IS NOT NULL;
 
 -- Serves: SELECT ... FROM feedback WHERE NOT hidden ORDER BY created_at DESC
--- Supersedes feedback_created_at_desc_idx for that query -- the unfiltered
--- index still has to read and discard hidden rows; this one never sees them.
+-- (the recent-comments list). Partial on the same NOT hidden filter as the
+-- query, so hidden rows are never even read and discarded.
 CREATE INDEX IF NOT EXISTS feedback_visible_created_at_desc_idx
   ON feedback (created_at DESC)
   WHERE NOT hidden;
@@ -147,6 +151,10 @@ CREATE TABLE IF NOT EXISTS users (
 
 -- ---------------------------------------------------------------------------
 -- Indexes on users
+--
+-- Only the two uniqueness guards. The former users_created_at_desc_idx served
+-- a "recent signups" read that no route issues -- the app reads count(*) and
+-- a full export ordered ASC -- and was dropped by migration 004.
 -- ---------------------------------------------------------------------------
 
 -- Guards: one signup per person. Also serves the lookup-by-email path,
@@ -158,8 +166,17 @@ CREATE UNIQUE INDEX IF NOT EXISTS users_email_lower_unique_idx
 CREATE UNIQUE INDEX IF NOT EXISTS users_wallet_unique_idx
   ON users (wallet);
 
--- UTC-daily fee-sponsor accounting. The empty source_account is reserved for
--- the global row; source rows contain the inner transaction's account.
+-- ---------------------------------------------------------------------------
+-- Table: sponsor_spend
+--
+-- UTC-daily fee-sponsor accounting, written by src/lib/api/sponsor-budget.ts
+-- in one conditional-upsert statement per POST /api/sponsor. One row per
+-- (day, scope, account): the 'source' rows meter each inner transaction's
+-- account against its own daily ceiling, and the single 'global' row -- whose
+-- source_account is the reserved empty string -- meters the deployment-wide
+-- ceiling. The primary key is what the statement's ON CONFLICT arbitrates on,
+-- so no separate index is needed.
+-- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS sponsor_spend (
   spend_day      date   NOT NULL,
   budget_scope   text   NOT NULL
@@ -174,11 +191,6 @@ CREATE TABLE IF NOT EXISTS sponsor_spend (
   )
 );
 
--- Serves: recent signups and growth-over-time,
--- SELECT ... FROM users ORDER BY created_at DESC LIMIT 10
-CREATE INDEX IF NOT EXISTS users_created_at_desc_idx
-  ON users (created_at DESC);
-
 -- ---------------------------------------------------------------------------
 -- Verification
 --
@@ -190,7 +202,7 @@ CREATE INDEX IF NOT EXISTS users_created_at_desc_idx
 --    WHERE table_name = 'feedback'
 --    ORDER BY ordinal_position;
 --
--- Every index and its definition (expect 6: primary key + 5 above):
+-- Every index and its definition (expect 4: primary key + 3 above):
 --   SELECT indexname, indexdef
 --     FROM pg_indexes
 --    WHERE tablename = 'feedback'
@@ -202,8 +214,8 @@ CREATE INDEX IF NOT EXISTS users_created_at_desc_idx
 --    WHERE conrelid = 'feedback'::regclass AND contype = 'c'
 --    ORDER BY conname;
 --
--- The same three for users -- columns (expect 8), indexes (expect 4: primary
--- key + 3 above), named check constraints (expect 6):
+-- The same three for users -- columns (expect 8), indexes (expect 3: primary
+-- key + 2 above), named check constraints (expect 6):
 --   SELECT column_name, data_type, is_nullable, column_default
 --     FROM information_schema.columns
 --    WHERE table_name = 'users'
@@ -217,5 +229,13 @@ CREATE INDEX IF NOT EXISTS users_created_at_desc_idx
 --   SELECT conname, pg_get_constraintdef(oid)
 --     FROM pg_constraint
 --    WHERE conrelid = 'users'::regclass AND contype = 'c'
+--    ORDER BY conname;
+--
+-- And sponsor_spend -- named check constraints (expect 3, counting the
+-- account-shape rule beside scope and non-negativity), and the primary key as
+-- its only index:
+--   SELECT conname, pg_get_constraintdef(oid)
+--     FROM pg_constraint
+--    WHERE conrelid = 'sponsor_spend'::regclass AND contype = 'c'
 --    ORDER BY conname;
 -- ---------------------------------------------------------------------------

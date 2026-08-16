@@ -1,37 +1,61 @@
+import type { ReactNode } from 'react';
 import { ZentraMark } from '@/components/brand/zentra-mark';
+import { Eyebrow } from '@/components/landing/primitives';
 
 const Check = () => (
-  <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden>
-    <polyline points="2,7 6,11 12,3" fill="none" stroke="#22c55e" strokeWidth="2.2" strokeLinecap="square" strokeLinejoin="miter" />
+  <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true">
+    <polyline
+      points="2,7 6,11 12,3"
+      fill="none"
+      stroke="#22c55e"
+      strokeWidth="2.2"
+      strokeLinecap="square"
+      strokeLinejoin="miter"
+    />
   </svg>
 );
 const Cross = () => (
-  <svg width="12" height="12" viewBox="0 0 13 13" aria-hidden>
+  <svg width="12" height="12" viewBox="0 0 13 13" aria-hidden="true">
     <line x1="3" y1="3" x2="10" y2="10" stroke="#ef4444" strokeWidth="2.2" strokeLinecap="square" />
     <line x1="10" y1="3" x2="3" y2="10" stroke="#ef4444" strokeWidth="2.2" strokeLinecap="square" />
   </svg>
 );
 
-const ROWS = [
+// `desc` is what each row renders — the unsolved question carries its own
+// emphasis in the data rather than being re-written inline at the render site.
+const ROWS: Array<{ n: string; ok: boolean; label: string; desc: ReactNode; tag: string }> = [
   { n: '01', ok: true, label: 'Identity', desc: 'Who is this agent?', tag: '// ERC-8004' },
   { n: '02', ok: true, label: 'Permission', desc: 'What may it access?', tag: '// ERC-7715' },
-  { n: '03', ok: false, label: 'Compliance', desc: 'Did this action obey the rule right now?', tag: '' },
+  {
+    n: '03',
+    ok: false,
+    label: 'Compliance',
+    desc: (
+      <>
+        Did this action obey the rule <span className="font-semibold text-white">right now</span>?
+      </>
+    ),
+    tag: '',
+  },
 ];
 
 export function TheGap() {
   return (
-    <section aria-labelledby="trust-gap-title" className="border-t border-violet/20 px-5 py-14 sm:px-7 sm:py-20">
+    <section
+      aria-labelledby="trust-gap-title"
+      className="border-t border-violet/20 px-5 py-14 sm:px-7 sm:py-20"
+    >
       <div className="mx-auto max-w-[920px]">
-        <div className="mb-5 flex items-center gap-3.5">
-          <span className="font-mono text-xs tracking-[0.12em] text-violet-soft">[ 01 ] THE TRUST GAP</span>
-          <span className="h-px flex-1 bg-violet/25" />
-        </div>
-        <h2 id="trust-gap-title" className="font-display text-3xl font-bold tracking-[-0.025em] sm:text-[40px]">
+        <Eyebrow index="01">THE TRUST GAP</Eyebrow>
+        <h2
+          id="trust-gap-title"
+          className="font-display text-3xl font-bold tracking-[-0.025em] sm:text-[40px]"
+        >
           Three questions in agentic finance.
         </h2>
         <p className="mt-3 max-w-[560px] text-[17px] text-muted">
-          Identity and permission are solved. The action-level question is not — and
-          that is where money goes wrong.
+          Identity and permission are solved. The action-level question is not — and that is where
+          money goes wrong.
         </p>
 
         <div className="mt-10 border border-fd-border">
@@ -50,9 +74,11 @@ export function TheGap() {
                 <span className="sr-only">{r.ok ? 'Solved' : 'Unsolved'}</span>
               </span>
               <div className="flex flex-1 flex-wrap items-center gap-x-3 gap-y-1 py-5 pr-5">
-                <span className="w-[96px] shrink-0 font-display font-semibold sm:w-[120px]">{r.label}</span>
+                <span className="w-[96px] shrink-0 font-display font-semibold sm:w-[120px]">
+                  {r.label}
+                </span>
                 <span className="text-[15px] text-[#cbd5e1]">
-                  {r.ok ? r.desc : <>Did this action obey the rule <span className="font-semibold text-white">right now</span>?</>}
+                  {r.desc}
                   {r.tag && <span className="ml-2 font-mono text-xs text-[#7d8ea6]">{r.tag}</span>}
                 </span>
               </div>
@@ -62,7 +88,9 @@ export function TheGap() {
 
         <div
           className="mt-6 flex items-center gap-4 border border-violet/40 px-6 py-5"
-          style={{ background: 'linear-gradient(100deg,rgba(124,58,237,0.12),rgba(0,229,255,0.05))' }}
+          style={{
+            background: 'linear-gradient(100deg,rgba(124,58,237,0.12),rgba(0,229,255,0.05))',
+          }}
         >
           <ZentraMark size={22} tone="violet" bracketless />
           <div className="font-display text-base font-semibold sm:text-lg">

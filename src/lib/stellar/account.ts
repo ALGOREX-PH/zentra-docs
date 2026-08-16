@@ -27,9 +27,7 @@ export async function getXlmBalance(address: string): Promise<string | null> {
  * treat as success rather than surfacing as a failure.
  */
 export async function fundWithFriendbot(address: string): Promise<void> {
-  const res = await fetch(
-    `${stellar.friendbotUrl}/?addr=${encodeURIComponent(address)}`,
-  );
+  const res = await fetch(`${stellar.friendbotUrl}/?addr=${encodeURIComponent(address)}`);
   if (res.ok) return;
 
   const body = await res.text().catch(() => '');

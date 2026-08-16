@@ -1,13 +1,13 @@
 'use client';
 
 import { useState } from 'react';
-import { useWallet } from '@/components/app/wallet-provider';
 import { ConnectButton } from '@/components/app/connect-button';
-import { commitProof, buildAnchorXdr } from '@/lib/stellar/proofs';
+import { useWallet } from '@/components/app/wallet-provider';
+import { Eyebrow, HudPanel } from '@/components/landing/primitives';
+import { stellar } from '@/config/stellar';
 import { submitInvoke } from '@/lib/stellar/action-log';
 import { describeError } from '@/lib/stellar/errors';
-import { stellar } from '@/config/stellar';
-import { HudPanel, Eyebrow } from '@/components/landing/primitives';
+import { buildAnchorXdr, commitProof } from '@/lib/stellar/proofs';
 import type { ProofResult } from '@/lib/zk/prover';
 
 type Phase = 'idle' | 'anchoring' | 'done' | 'error';
@@ -66,8 +66,8 @@ export function ProofAnchor({
         <div className="p-5 sm:p-6">
           <Eyebrow>ANCHOR ON-CHAIN</Eyebrow>
           <p role="alert" className="max-w-[560px] text-sm text-denied">
-            This proof failed local verification, so there is nothing to anchor.
-            Generate a new proof and try again.
+            This proof failed local verification, so there is nothing to anchor. Generate a new
+            proof and try again.
           </p>
         </div>
       </HudPanel>
@@ -79,8 +79,8 @@ export function ProofAnchor({
       <div className="p-5 sm:p-6">
         <Eyebrow>ANCHOR ON-CHAIN</Eyebrow>
         <p className="mt-2 max-w-[560px] text-sm text-muted">
-          Record this proof&apos;s commitment on Stellar testnet so anyone can verify
-          it was made — and it joins the platform&apos;s on-chain proof feed.
+          Record this proof&apos;s commitment on Stellar testnet so anyone can verify it was made —
+          and it joins the platform&apos;s on-chain proof feed.
         </p>
 
         {!address ? (

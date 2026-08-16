@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
-import { cn } from '@/lib/cn';
 import { Eyebrow } from '@/components/landing/primitives';
+import { cn } from '@/lib/cn';
 
 export const metadata: Metadata = {
   title: 'Roadmap',
@@ -23,7 +23,11 @@ const STAGES = [
     v: 'v0.2',
     t: 'Policy Runtime',
     status: 'Planned',
-    items: ['Composable, versioned, revocable policies', 'A TypeScript policy DSL', 'Policy templates'],
+    items: [
+      'Composable, versioned, revocable policies',
+      'A TypeScript policy DSL',
+      'Policy templates',
+    ],
   },
   {
     v: 'v0.3',
@@ -64,9 +68,8 @@ export default function RoadmapPage() {
           From a proof-gated payment to a trust stack.
         </h1>
         <p className="mt-4 max-w-2xl text-fd-muted-foreground">
-          v0.1 is live on Stellar testnet today. Everything below it is planned —
-          shown here so you can see where the protocol is headed, not what it
-          already does.
+          v0.1 is live on Stellar testnet today. Everything below it is planned — shown here so you
+          can see where the protocol is headed, not what it already does.
         </p>
 
         <ol className="mt-12 space-y-px border border-fd-border bg-fd-border">
@@ -96,8 +99,8 @@ export default function RoadmapPage() {
         </ol>
 
         <p className="mt-8 text-sm text-fd-muted-foreground">
-          Also under research: Noir / RISC Zero proving backends, recursive proof
-          aggregation, and multi-asset settlement.
+          Also under research: Noir / RISC Zero proving backends, recursive proof aggregation, and
+          multi-asset settlement.
         </p>
       </div>
     </main>

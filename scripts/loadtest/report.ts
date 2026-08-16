@@ -17,7 +17,6 @@
  * to put a secret by construction. See the header of `types.ts`.
  */
 
-import { FAILURE_STAGES } from './types';
 import type {
   FailureStage,
   FundingOutcome,
@@ -26,6 +25,7 @@ import type {
   LoadTestReport,
   RecordAttempt,
 } from './types';
+import { FAILURE_STAGES } from './types';
 
 /**
  * The contract reads taken around a run, each explicitly nullable.
@@ -98,7 +98,12 @@ export function percentileNearestRank(sorted: readonly number[], p: number): num
   // Clamped so a `p` at or past either extreme resolves to the min or the max
   // instead of indexing off the end and returning `undefined` as a number.
   const index = Math.min(Math.max(rank, 1), sorted.length) - 1;
-  return sorted[index];
+  const value = sorted[index];
+  if (value === undefined) {
+    // Unreachable: the clamp above keeps `index` inside a non-empty array.
+    throw new RangeError('percentileNearestRank: rank resolved outside the sample set');
+  }
+  return value;
 }
 
 /**
@@ -137,11 +142,13 @@ export function summariseLatency(samples: readonly number[]): LatencySummary {
 
   return {
     count: sorted.length,
-    minMs: sorted[0],
+    // p=0 and p=100 clamp to the first and last rank, so min and max fall out
+    // of the same guarded lookup as the percentiles.
+    minMs: percentileNearestRank(sorted, 0),
     p50Ms: percentileNearestRank(sorted, 50),
     p95Ms: percentileNearestRank(sorted, 95),
     p99Ms: percentileNearestRank(sorted, 99),
-    maxMs: sorted[sorted.length - 1],
+    maxMs: percentileNearestRank(sorted, 100),
     meanMs: total / sorted.length,
   };
 }
@@ -161,7 +168,7 @@ export function summariseLatency(samples: readonly number[]): LatencySummary {
  */
 function tallyFailuresByStage(
   funding: FundingOutcome,
-  attempts: readonly RecordAttempt[]
+  attempts: readonly RecordAttempt[],
 ): Record<FailureStage, number> {
   const byStage = Object.fromEntries(FAILURE_STAGES.map((stage) => [stage, 0])) as Record<
     FailureStage,
@@ -197,7 +204,7 @@ export function buildReport(input: ReportInput): LoadTestReport {
 
   if (!Number.isFinite(startedAtMs) || !Number.isFinite(finishedAtMs)) {
     throw new TypeError(
-      'buildReport: startedAtMs and finishedAtMs must be finite epoch milliseconds'
+      'buildReport: startedAtMs and finishedAtMs must be finite epoch milliseconds',
     );
   }
 
@@ -214,7 +221,7 @@ export function buildReport(input: ReportInput): LoadTestReport {
   // not a fast write, and letting it into the distribution drags p50 down
   // exactly when the run went worst — the opposite of what the tail is for.
   const latency = summariseLatency(
-    attempts.filter((attempt) => attempt.ok).map((attempt) => attempt.latencyMs)
+    attempts.filter((attempt) => attempt.ok).map((attempt) => attempt.latencyMs),
   );
 
   const notes = [...(input.notes ?? [])];

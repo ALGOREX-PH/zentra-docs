@@ -165,8 +165,8 @@ pre {
   100% { box-shadow: 0 0 0 0 transparent; }
 }
 @keyframes zen-flare {
-  0%, 100% { background: color-mix(in srgb, var(--color-denied) 6%, transparent); }
-  50% { background: color-mix(in srgb, var(--color-denied) 20%, transparent); }
+  0%, 100% { background-color: color-mix(in srgb, var(--color-denied) 6%, transparent); }
+  50% { background-color: color-mix(in srgb, var(--color-denied) 20%, transparent); }
 }
 @keyframes zen-blink {
   0%, 49% { opacity: 1; }

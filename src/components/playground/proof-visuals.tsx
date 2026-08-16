@@ -1,8 +1,8 @@
-import { HudPanel, Eyebrow } from '@/components/landing/primitives';
+import { Eyebrow, HudPanel } from '@/components/landing/primitives';
+import { VizCommitment } from '@/components/playground/viz-commitment';
 import { VizFlow } from '@/components/playground/viz-flow';
 import { VizMerkle } from '@/components/playground/viz-merkle';
 import { VizPrivatePublic } from '@/components/playground/viz-private-public';
-import { VizCommitment } from '@/components/playground/viz-commitment';
 
 /** A visual-learner walkthrough of how a Zentra zero-knowledge proof works. */
 export function ProofVisuals() {
@@ -18,8 +18,8 @@ export function ProofVisuals() {
               accessible name rather than a paragraph that happens to sit above. */}
           <figure>
             <figcaption className="mt-2 max-w-[680px] text-sm text-muted">
-              Private and public inputs run through the circuit; out comes a tiny
-              proof anyone can verify in milliseconds.
+              Private and public inputs run through the circuit; out comes a tiny proof anyone can
+              verify in milliseconds.
             </figcaption>
             <div className="mt-5">
               <VizFlow />
@@ -62,8 +62,8 @@ export function ProofVisuals() {
           <Eyebrow>MEMBERSHIP · THE MERKLE TREE</Eyebrow>
           <figure>
             <figcaption className="mt-2 max-w-[680px] text-sm text-muted">
-              How &quot;the recipient is approved&quot; is proven against a single
-              root, without revealing the list.
+              How &quot;the recipient is approved&quot; is proven against a single root, without
+              revealing the list.
             </figcaption>
             <div className="mt-5">
               <VizMerkle />

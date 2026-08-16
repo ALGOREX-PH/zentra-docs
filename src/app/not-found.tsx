@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ZentraMark } from '@/components/brand/zentra-mark';
-import { HudPanel, Eyebrow } from '@/components/landing/primitives';
+import { Eyebrow, HudPanel } from '@/components/landing/primitives';
 
 export const metadata: Metadata = {
   title: 'Not found',
@@ -36,9 +36,7 @@ export default function NotFound() {
           className={`mb-8 inline-flex items-center gap-2.5 transition-colors hover:text-cyan ${linkFocus}`}
         >
           <ZentraMark size={24} title="Zentra Protocol" />
-          <span className="font-display text-sm font-bold tracking-[0.04em]">
-            ZENTRA PROTOCOL
-          </span>
+          <span className="font-display text-sm font-bold tracking-[0.04em]">ZENTRA PROTOCOL</span>
         </Link>
 
         <HudPanel>
@@ -56,8 +54,8 @@ export default function NotFound() {
               No route at this path.
             </h1>
             <p className="mt-3 text-[15px] leading-relaxed text-muted">
-              The page you requested does not exist, or it has moved — the
-              destinations below cover everything the protocol currently serves.
+              The page you requested does not exist, or it has moved — the destinations below cover
+              everything the protocol currently serves.
             </p>
 
             <ul className="mt-8 space-y-px border border-fd-border bg-fd-border">
@@ -84,9 +82,7 @@ export default function NotFound() {
           </div>
         </HudPanel>
 
-        <p className="mt-6 font-mono text-xs tracking-[0.08em] text-faint">
-          NO PROOF · NO PAYMENT
-        </p>
+        <p className="mt-6 font-mono text-xs tracking-[0.08em] text-faint">NO PROOF · NO PAYMENT</p>
       </div>
     </main>
   );

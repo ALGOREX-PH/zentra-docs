@@ -6,13 +6,7 @@
  */
 
 /** Lifecycle of a payment as the UI walks it from intent to settlement. */
-export type TxPhase =
-  | 'idle'
-  | 'building'
-  | 'signing'
-  | 'submitting'
-  | 'success'
-  | 'error';
+export type TxPhase = 'idle' | 'building' | 'signing' | 'submitting' | 'success' | 'error';
 
 /** What the UI renders at each step of a send. */
 export interface TxState {
@@ -21,13 +15,6 @@ export interface TxState {
   hash?: string;
   /** Human-readable status or error message. */
   message?: string;
-}
-
-/** A user's intent to move XLM on testnet. */
-export interface PaymentRequest {
-  destination: string;
-  /** XLM amount as a decimal string, e.g. "12.5". */
-  amount: string;
 }
 
 /** The result of a settled payment. */

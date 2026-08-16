@@ -28,6 +28,14 @@ wrapper mints one (`crypto.randomUUID()`, falling back to a base36 id). The
 header is set on every response — success and error alike — and is the same
 value that appears in the server logs for that request.
 
+**Methods.** A route answers the HTTP methods it does not serve with a `405`
+in the standard error envelope (`code: "method_not_allowed"`), carrying the
+`Allow` header RFC 9110 requires — e.g. `PUT /api/feedback` answers with
+`Allow: GET, POST`. These responses go through the same wrapper as everything
+else, so they carry a request id, are logged, and are `no-store`. (`HEAD` and
+`OPTIONS` remain the framework's: `HEAD` is derived from `GET` where one
+exists.)
+
 **Caching.** `json()` defaults to `cache-control: no-store`; anything the
 handler passes in its own headers wins.
 
@@ -42,7 +50,7 @@ handler passes in its own headers wins.
 | `GET /api/health` (200 / 503) | `no-store` |
 | `GET /api/sponsor` (200) | `no-store` — a per-deployment status, never cached at a CDN |
 | `POST /api/sponsor` (200) | `no-store` |
-| Error envelopes | not set by the wrapper (the last-resort 500 fallback sets `no-store`) |
+| Error envelopes | `no-store`, set by the wrapper — a 429 or 503 is a property of one attempt by one caller, and replaying it from a shared cache to somebody else is worse than useless |
 
 **Errors.** Every failure — validation, rate limiting, database, unexpected
 throw — returns the same envelope. Clients branch on `error.code`, not on the
@@ -65,8 +73,9 @@ message text.
 ```
 
 `details` is present only when the error carries per-field messages — in
-practice only `validation_failed`. An error that carries `retryAfterSeconds`
-also sets a `Retry-After` response header; only `rate_limited` does today.
+practice only `validation_failed`. Two errors carry headers of their own: one
+with `retryAfterSeconds` sets `Retry-After` (only `rate_limited` today), and a
+`method_not_allowed` sets `Allow` with the methods the route does serve.
 
 Codes and statuses come from `src/lib/api/errors.ts`:
 
@@ -74,15 +83,16 @@ Codes and statuses come from `src/lib/api/errors.ts`:
 | --- | --- | --- |
 | `bad_request` | 400 | Empty body, body that is not valid JSON, or a body that is not a JSON object (arrays and scalars are rejected). |
 | `unauthorized` | 401 | No usable credential was presented to an admin route. |
-| `forbidden` | 403 | A credential was presented to an admin route and was not accepted, **or** a `POST /api/sponsor` request whose inner transaction the allowlist refused (`malformed`, `fee_too_high`, `operation_not_allowed`, `wrong_network`). |
+| `forbidden` | 403 | A credential was presented to an admin route and was not accepted, **or** a `POST /api/sponsor` request whose inner transaction the allowlist refused (`malformed`, `fee_too_high`, `operation_not_allowed`, `wrong_network`), **or** — with budget enforcement on — one that busted a spend ceiling (`source_budget_exceeded`, `global_budget_exceeded`). |
 | `validation_failed` | 422 | One or more fields failed validation. Every failing field is reported in `details` in a single response. |
 | `conflict` | 409 | A unique index raised Postgres `23505`: the `tx_hash` has already been recorded, or the signup's email or wallet is already registered. |
 | `payload_too_large` | 413 | Request body exceeds the route's byte cap — 4096 bytes on most writes, 98304 bytes (96 KB) on `POST /api/sponsor` — by declared `content-length` or by measured UTF-8 length. |
+| `unsupported_media_type` | 415 | A body-reading route was sent something other than `application/json` (or a `+json` suffix type). The check is a security control, not pedantry: demanding a non-safelisted media type forces a browser preflight and closes the cross-site simple-request path. |
 | `rate_limited` | 429 | The caller exceeded the window for that route. Carries `Retry-After`. |
 | `not_found` | 404 | `PATCH /api/admin/feedback` was given an `id` no row matches. |
-| `upstream_unavailable` | 503 | A database read or write failed, `ADMIN_TOKEN` is not configured, or fee sponsorship is unavailable (`SPONSOR_SECRET` unset/unparseable, or an approved fee-bump failed to build) on this deployment. The real driver error is logged, never returned. |
+| `method_not_allowed` | 405 | The endpoint exists but does not serve the request's HTTP method. Carries `Allow` with the methods it does. |
+| `upstream_unavailable` | 503 | A database read or write failed, `ADMIN_TOKEN` is not configured, fee sponsorship is unavailable (`SPONSOR_SECRET` unset/unparseable, or an approved fee-bump failed to build), or — with budget enforcement on — the sponsor budget ledger is unreachable. The real driver error is logged, never returned. |
 | `internal` | 500 | Anything thrown that is not an `ApiError`. Message and stack are withheld because they may quote connection strings or query fragments. |
-| `method_not_allowed` | — | Declared in the `ApiErrorCode` union but not produced by any current route. |
 
 `unauthorized` and `forbidden` are distinct on purpose: a client that sent no
 credential should prompt for one, while a client whose credential was rejected
@@ -172,10 +182,12 @@ be revoked individually.
 
 ## 5. Rate limiting
 
-Limits are per client key, which is the route scope plus the best available
-client IP: first hop of `x-forwarded-for`, else `x-real-ip`, else
-`cf-connecting-ip`, else the literal `unknown`. The raw header value is never
-returned or logged.
+Limits are per client key, which is the route scope plus a digest of the best
+client address the *platform* vouches for: the platform-set headers first
+(`x-vercel-forwarded-for`, `cf-connecting-ip`, `x-real-ip`), then the
+**rightmost** hop of `x-forwarded-for` — the entry our own proxy appended, the
+only one a caller cannot choose — and the literal `unknown` when nothing
+identifies the caller. The raw header value is never returned or logged.
 
 | Endpoint | Scope | Limit | Window |
 | --- | --- | --- | --- |
@@ -183,6 +195,7 @@ returned or logged.
 | `POST /api/feedback` | `feedback:write` | 5 requests | 10 min |
 | `GET /api/onboard` | `onboard:read` | 60 requests | 60 s |
 | `POST /api/onboard` | `onboard:write` | 3 requests | 10 min |
+| `GET /api/search` | `search:read` | 120 requests | 60 s |
 | `GET /api/sponsor` | `sponsor:read` | 60 requests | 60 s |
 | `POST /api/sponsor` | `sponsor:write` | 5 requests | 10 min |
 | `GET /api/admin/users` | none | unlimited | — |
@@ -202,13 +215,18 @@ sponsor solvent: the contract allowlist is (see
 at all — the shared secret is the control there, and an operator exporting the
 registry twice in a minute is not abuse.
 
-Successful responses from the six rate-limited routes carry:
+Successful responses from the three writes and `GET /api/sponsor` carry:
 
 | Header | Meaning |
 | --- | --- |
 | `X-RateLimit-Limit` | Requests allowed in the window. |
 | `X-RateLimit-Remaining` | Requests left in the current window. |
 | `X-RateLimit-Reset` | Epoch **seconds** at which the window expires. |
+
+The publicly cached reads — `GET /api/feedback`, `GET /api/onboard` and
+`GET /api/search` — are counted but deliberately do **not** carry these
+headers: they describe one caller, and a shared cache would hand one visitor's
+remaining allowance to everybody served from the same entry.
 
 A rejected request gets `429` with the standard error envelope and a
 `Retry-After` header in seconds (minimum 1). The `X-RateLimit-*` headers are
@@ -307,9 +325,9 @@ resulting transaction hash here.
 | --- | --- | --- | --- |
 | `rating` | number | yes | Integer, 1–5 inclusive. Non-integers and out-of-range values are rejected. |
 | `comment` | string | yes | Whitespace runs collapsed to single spaces, ASCII control characters stripped, then trimmed. The result must be 1–280 characters. |
-| `wallet` | string \| null | no | Must match `^G[A-Z2-7]{55}$` when present. Absent, `null`, or a blank/whitespace-only string is treated as not supplied and stored as `null`. |
+| `wallet` | string \| null | on-chain only | Must match `^G[A-Z2-7]{55}$` when present. **Required when `onChain` is `true` and a `txHash` was supplied** — the ownership check below is only as strong as the wallet it is given, so a hash-backed claim with no wallet is a 422 (`Wallet is required when onChain is true.`), not a downgrade. Otherwise optional: absent, `null`, or a blank/whitespace-only string is treated as not supplied and stored as `null`. |
 | `txHash` | string \| null | no | Must be 64 hex characters. Accepted case-insensitively, **stored lowercase** — the database CHECK and unique index both assume lowercase hex. |
-| `onChain` | boolean | no | Coerced with `Boolean()`, then **downgraded to `false` unless a valid `txHash` was supplied** and that hash verifies on-chain (below). An unproven claim is quietly downgraded, not rejected. |
+| `onChain` | boolean | no | Coerced with `Boolean()`, then **downgraded to `false` unless a valid `txHash` was supplied** and that hash verifies on-chain (below). An unproven claim is quietly downgraded, not rejected — but a hash-backed claim must name its `wallet`, per the row above. |
 
 Unknown keys are ignored: the validated value is rebuilt field by field, so
 nothing caller-supplied reaches the database. The whole body is capped at
@@ -322,17 +340,21 @@ Sixty-four hex characters are free to invent, so a well-formed `txHash` proves
 nothing on its own. When `onChain` is claimed, `src/lib/api/verify-anchor.ts`
 resolves the hash against Horizon (`GET /transactions/{hash}`, 3 s timeout)
 before it is believed. The claim only survives if the transaction **exists**,
-**succeeded** (`successful === true`), and — when a `wallet` was supplied — was
-**sourced from that wallet**. Otherwise `onChain` is set to `false` and the
-`txHash` is cleared, so an invented hash can neither be stored nor occupy the
-one-row-per-transaction unique index.
+**succeeded** (`successful === true`), was **sourced from the claimed wallet**
+(required in the body for exactly this reason), and **invoked the feedback
+contract**: the record's `envelope_xdr` is decoded and its operations walked
+for an `invokeHostFunction` targeting that contract, descending into the inner
+transaction when the envelope is a fee-bump. Otherwise `onChain` is set to
+`false` and the `txHash` is cleared, so an invented hash can neither be stored
+nor occupy the one-row-per-transaction unique index.
 
 | Verdict | Meaning |
 | --- | --- |
 | `not_found` | Horizon has no such transaction. Retried once after 1.5 s first, because Horizon ingests closed ledgers on its own schedule and can lag the RPC the client submitted through. |
 | `failed` | Included in a ledger but unsuccessful — an anchor of nothing. |
 | `wrong_account` | Real transaction, different source account. Stops a public hash being replayed as your own. |
-| `unavailable` | Horizon timed out, errored, or answered something unparseable. Deliberately distinct from `not_found`: Horizon being down is not evidence against the user. |
+| `wrong_contract` | Real, successful transaction that never invoked the feedback contract — a harvested payment hash proves nothing about feedback. |
+| `unavailable` | Horizon timed out, errored, or answered something unparseable — including an envelope that cannot be decoded, which is no answer rather than a pass. Deliberately distinct from `not_found`: Horizon being down is not evidence against the user. |
 
 The submission is still stored in every case — the feedback is real, only the
 badge is unearned. Each negative verdict is logged as `anchor.unverified`, and
@@ -408,7 +430,7 @@ the rating, and the read path below exposes a bare count.
 | --- | --- | --- | --- |
 | `name` | string | yes | Whitespace runs collapsed to single spaces, ASCII control characters stripped, then trimmed. The result must be 1–80 characters (`MAX_NAME_LENGTH`). Message: `Name must be 1–80 characters.` |
 | `email` | string | yes | Trimmed and **lowercased**, then checked against a deliberately loose shape — something, an `@`, a dotted host (`^[^@\s]+@[^@\s]+\.[^@\s]+$`) — and a 254-character ceiling, the longest address SMTP permits. Message: `Email must be a valid address.` |
-| `wallet` | string | yes | Must match `^G[A-Z2-7]{55}$`. **Required here**, unlike on feedback: the programme is keyed to a wallet. Message: `Wallet must be a valid Stellar account id (G…).` |
+| `wallet` | string | yes | Must match `^G[A-Z2-7]{55}$`. **Required here** unconditionally, unlike on feedback (where it is required only for an on-chain claim): the programme is keyed to a wallet. Message: `Wallet must be a valid Stellar account id (G…).` |
 | `rating` | number \| null | no | When supplied: an integer, 1–5 inclusive. Absent, `null`, or a blank/whitespace-only string is treated as not supplied and stored as `null`. Message: `Rating must be an integer between 1 and 5.` |
 | `note` | string \| null | no | Normalised exactly like a feedback comment — the two are free text from the same form — then 1–500 characters (`MAX_NOTE_LENGTH`). Absent, `null` or blank is stored as `null`. Message: `Note must be 1–500 characters.` |
 
@@ -680,7 +702,11 @@ reports whether the instance can actually serve traffic, not merely whether the
 process is listening. It runs **two checks concurrently** (`Promise.all`, so the
 endpoint answers in the time of the slower one, not the sum):
 
-- **`database`** round-trips `SELECT 1` against Postgres and reports the latency.
+- **`database`** round-trips a schema-aware probe against Postgres and reports
+  the latency: it asks `to_regclass` whether the `feedback` and `users` tables
+  actually exist, because a bare `SELECT 1` passes against a brand-new branch
+  the schema was never applied to — exactly the state a readiness probe exists
+  to catch.
 - **`chain`** calls `getNetwork` on the Soroban RPC for the configured network
   and confirms the passphrase it returns matches the one this build expects.
 
@@ -841,11 +867,13 @@ The whole request body is capped at **98304 bytes** (96 KB): `content-length` is
 checked before the stream is read, then the decoded UTF-8 is measured again in
 case that header was absent or lying.
 
-**Why this route reads its own body.** Every other write uses the shared
-`readJsonBody`, which caps a body at 4096 bytes. A Soroban transaction envelope
-routinely exceeds that — the resource footprint of a contract call does not fit
-in 4 KB — so this route carries its own reader and its own far larger ceiling
-rather than rejecting legitimate envelopes as `payload_too_large`.
+**Why this route's byte cap is larger.** The shared `readJsonBody` defaults to
+4096 bytes, which a Soroban transaction envelope routinely exceeds — the
+resource footprint of a contract call does not fit in 4 KB — so this route
+raises the shared reader's ceiling (`maxBytes`) rather than rejecting
+legitimate envelopes as `payload_too_large`. Because it is the shared reader,
+the `application/json` content-type gate applies here exactly as on the other
+writes: anything else is a `415`.
 
 ```http
 POST /api/sponsor HTTP/1.1
@@ -940,22 +968,46 @@ bump.) A 403 message names the reason (`Fee sponsorship refused: <reason>.`) so 
 client can tell "you asked us to pay for the wrong thing" from "your envelope is
 broken", but the submitted XDR is never echoed into an error body or a log line.
 
+#### The spend budget runs in one of two modes
+
+Every approved transaction is also charged against a UTC-daily spend ledger
+(`sponsor_spend`): one ceiling per source account
+(`SPONSOR_DAILY_SOURCE_BUDGET_XLM`, default 10 XLM) and one for the whole
+deployment (`SPONSOR_DAILY_GLOBAL_BUDGET_XLM`, default 100 XLM). What a busted
+ceiling — or an unreachable ledger — means depends on the mode:
+
+- **Enforce mode** (`SPONSOR_BUDGET_ENFORCE=true`): the ledger is a solvency
+  control. A busted ceiling is a 403 (`Fee sponsorship refused:
+  source_budget_exceeded.` / `global_budget_exceeded.`), and a ledger outage is
+  a 503 (`Fee sponsorship accounting is unavailable.`) — signing bumps with the
+  accounting blind would let an outage become an unmetered spend.
+- **Shadow mode** (the default): the ledger is advisory. A busted ceiling is
+  logged (`sponsor.budget_shadow_exceeded`) and the bump proceeds; a ledger
+  outage is likewise logged and the bump proceeds. In particular a budget-ledger
+  outage does **not** 503 in shadow mode — the accounting is observability
+  there, and observability must not take down the feature it watches.
+
 **Failure statuses**
 
 | Status | Code | When |
 | --- | --- | --- |
 | 400 | `bad_request` | Body missing/blank, not valid JSON, or not a JSON object. |
 | 413 | `payload_too_large` | Body over 98304 bytes (96 KB), by declared `content-length` or measured UTF-8 length. |
+| 415 | `unsupported_media_type` | Body not sent as `application/json` (or a `+json` suffix type). |
 | 422 | `validation_failed` | `xdr` absent, non-string, blank, or over 65536 characters (64 KB); the detail is reported under `xdr`. |
-| 403 | `forbidden` | `inspectInnerTransaction` refused the envelope — `malformed`, `fee_too_high`, `operation_not_allowed` or `wrong_network` (table above). |
-| 503 | `upstream_unavailable` | Sponsorship not configured (`Fee sponsorship is not configured.`), or an approved transaction failed to build (`The fee-bump could not be built.`). |
+| 403 | `forbidden` | `inspectInnerTransaction` refused the envelope — `malformed`, `fee_too_high`, `operation_not_allowed` or `wrong_network` (table above) — or, in enforce mode only, a spend ceiling was busted (`source_budget_exceeded`, `global_budget_exceeded`). |
+| 503 | `upstream_unavailable` | Sponsorship not configured (`Fee sponsorship is not configured.`), an approved transaction failed to build (`The fee-bump could not be built.`), or — enforce mode only — the budget ledger is unreachable (`Fee sponsorship accounting is unavailable.`). |
 | 429 | `rate_limited` | More than 5 writes in 10 minutes from the same key. |
 | 500 | `internal` | Unexpected throw. |
 
-Each refusal logs `sponsor.refused` with the request id and the reason; a grant
-logs `sponsor.granted`; a build failure logs `sponsor.build_failed` with the
-underlying error attached. Neither the submitted XDR nor the sponsor secret is
-ever written to any of them.
+`sponsor.refused` is logged with the request id and the reason **only when the
+request is actually refused** — a shadow-mode budget verdict the route
+proceeds past never emits it, so counting `sponsor.refused` lines counts real
+refusals. A grant logs `sponsor.granted`; a build failure logs
+`sponsor.build_failed` with the underlying error attached; budget outcomes log
+`sponsor.budget_exceeded` (enforce), `sponsor.budget_shadow_exceeded` (shadow)
+or `sponsor.ledger_unavailable` (outage, either mode). Neither the submitted
+XDR nor the sponsor secret is ever written to any of them.
 
 ---
 
@@ -1070,11 +1122,13 @@ extensions.
 
 | Index | Purpose |
 | --- | --- |
-| `feedback_created_at_desc_idx` | Serves the `ORDER BY created_at DESC LIMIT 10` recent list. |
-| `feedback_on_chain_tx_hash_idx` | Partial (`WHERE on_chain`); serves the on-chain count. |
-| `feedback_wallet_idx` | Partial (`WHERE wallet IS NOT NULL`); per-wallet lookups. |
+| `feedback_on_chain_visible_idx` | Partial (`WHERE on_chain AND NOT hidden`); serves the on-chain count inside the `GET /api/feedback` aggregate, mirroring its predicate exactly — a hidden row must not inflate the total. |
 | `feedback_tx_hash_unique_idx` | **Unique**, partial (`WHERE tx_hash IS NOT NULL`); one row per anchoring transaction. Its violation is what becomes the API's 409. |
-| `feedback_visible_created_at_desc_idx` | Partial (`WHERE NOT hidden`); serves both halves of `GET /api/feedback`. It supersedes `feedback_created_at_desc_idx` for that query — the unfiltered index still has to read and discard hidden rows, this one never sees them. |
+| `feedback_visible_created_at_desc_idx` | Partial (`WHERE NOT hidden`); serves the recent-comments list. |
+
+Three earlier indexes — `feedback_created_at_desc_idx`, `feedback_wallet_idx`
+and the hidden-blind `feedback_on_chain_tx_hash_idx` — served no query the
+application issues and were removed by `db/migrations/004_index_cleanup.sql`.
 
 ### Table `users`
 
@@ -1098,7 +1152,10 @@ up, whether on the site or in a batch imported from the Google Form.
 | --- | --- |
 | `users_email_lower_unique_idx` | **Unique** on `lower(email)`; one signup per person, and serves lookup by address. Its violation is one of the two that become the onboard 409. |
 | `users_wallet_unique_idx` | **Unique** on `wallet`; one signup per account, so the same wallet cannot enrol twice. The other source of the onboard 409. |
-| `users_created_at_desc_idx` | Recent signups and growth over time. |
+
+`users_created_at_desc_idx` served a "recent signups" ordering no route reads —
+the app issues only `count(*)` and a full export ordered ASC — and was removed
+by migration 004.
 
 The API layer and the database enforce the same rules independently. The
 validation in `src/lib/api/validation.ts` exists to produce a useful 422; the
@@ -1142,16 +1199,24 @@ a failure it also carries `code`, and — only when the thrown value was not an
 | `health.database` | `GET /api/health` | The real cause behind a degraded database check. |
 | `health.chain` | `GET /api/health` | The real cause when the chain check cannot reach the RPC, at `error` level. |
 | `health.chain.mismatch` | `GET /api/health` | `requestId` and the expected `network`, at `error` level, when the RPC answers with the wrong passphrase. |
-| `sponsor.refused` | `POST /api/sponsor` | `requestId` and `reason`, at `warn` level, on any refusal. Never the submitted XDR. |
+| `sponsor.refused` | `POST /api/sponsor` | `requestId` and `reason`, at `warn` level — emitted **only when the request is actually refused**, never for a shadow-mode budget verdict the route proceeds past. Never the submitted XDR. |
 | `sponsor.granted` | `POST /api/sponsor` | `requestId` and `reason`, when a bump is signed. |
 | `sponsor.build_failed` | `POST /api/sponsor` | The underlying error, at `error` level, when an approved transaction fails to build. The sponsor secret is not in it. |
+| `sponsor.budget_exceeded` | `POST /api/sponsor` | `requestId`, `reason`, `sourceAccount`, `feeStroops`, at `warn` level, when a spend ceiling refuses a bump in enforce mode. |
+| `sponsor.budget_shadow_exceeded` | `POST /api/sponsor` | The same fields, at `warn` level, when a ceiling would have refused a bump but shadow mode proceeds — the signal for sizing the ceilings before enforcement is switched on. |
+| `sponsor.ledger_unavailable` | `POST /api/sponsor` | `requestId`, `enforced` and the underlying error, at `error` level, when the budget ledger cannot be reached. In enforce mode the request then 503s; in shadow mode it proceeds. |
 
 **Redaction.** Field values are masked with `[redacted]` when the *key name*
 matches `secret`, `token`, `password`, `key`, `authorization`, `cookie`,
-`database_url` or `connection` (case-insensitive). Matching is by key name
-only and is not recursive — keep anything sensitive at the top level of the
-fields you log. `Error` values are converted to `{name, message}`, plus `stack`
-outside production, so `JSON.stringify` does not silently drop them.
+`database_url` or `connection` (case-insensitive), applied recursively through
+plain objects and arrays. Below the top level, personal-data keys are masked
+too: any key containing `email`, and any key with `name` as a whole
+snake/camel segment — `fullName`, `firstName`, `user_name` — while `hostname`,
+`filename` and `nickname` stay readable. Top-level `name` is exempt because it
+is the route label the wrapper logs, not a person. `Error` values are
+converted to `{name, message}`, plus `stack` outside production, at any depth
+— a nested error no longer stringifies to `{}` — and an error message carrying
+an embedded connection-string credential is masked entirely.
 
 To trace one request end to end, take the `x-request-id` from the response and
 grep the logs for it — the wrapper's `request` line and any route-level event
@@ -1223,6 +1288,9 @@ cause.
   partial index and the whole `users` table, and needs no `NOT VALID` step: the
   new column carries a non-null default rather than a constraint, and `users` is
   a brand new table with no legacy rows for a constraint to trip over.
+  `003_sponsor_spend.sql` creates the sponsor budget ledger, and
+  `004_index_cleanup.sql` drops the indexes no query reads and re-scopes the
+  on-chain partial index to the read it serves.
 - **The fee sponsor is a hot key with a per-instance spend ceiling.** The
   account that pays for sponsored transactions signs from a seed held in the
   `SPONSOR_SECRET` environment variable — a hot key on a public route, so its

@@ -15,9 +15,11 @@
  * the caller chooses is not a limiter at all — it is a counter the attacker
  * resets — so that derivation matters more here than the counting does.
  *
- * Zero dependencies and no framework imports, so it can be exercised directly
- * in plain node.
+ * No framework imports — only the equally framework-free error vocabulary — so
+ * it can be exercised directly in plain node.
  */
+
+import { rateLimited } from './errors';
 
 /** Tuning for a single window: how many hits, over how long. */
 export interface RateLimitOptions {
@@ -223,6 +225,41 @@ export function rateLimitHeaders(result: RateLimitResult): Record<string, string
     'X-RateLimit-Remaining': String(result.remaining),
     'X-RateLimit-Reset': String(Math.ceil(result.resetAt / 1000)),
   };
+}
+
+/**
+ * Count one request against the caller's budget, or reject it with a 429.
+ *
+ * Returns the `X-RateLimit-*` headers to attach to a successful response so a
+ * well-behaved client can back off before it is turned away. This is the
+ * variant for writes and other responses that are never shared: the headers it
+ * returns describe one caller, so they belong only on a response no cache will
+ * replay to somebody else.
+ */
+export function enforceRateLimit(
+  request: Request,
+  scope: string,
+  options: RateLimitOptions,
+): Record<string, string> {
+  const result = rateLimit(clientKey(request, scope), options);
+  if (!result.ok) throw rateLimited(result.retryAfterSeconds);
+  return rateLimitHeaders(result);
+}
+
+/**
+ * Count one request without reporting the budget back.
+ *
+ * The variant for reads whose success response is `public` and cached at the
+ * edge: `X-RateLimit-*` describes one caller, so attaching the headers there
+ * would store one visitor's remaining allowance in a shared cache and hand it
+ * to every visitor served from that entry until it expired. Counters that
+ * describe nobody are worse than no counters, and the response they belong on
+ * is the 429, which the wrapper marks `no-store` and which still carries
+ * `Retry-After`.
+ */
+export function countRequest(request: Request, scope: string, options: RateLimitOptions): void {
+  const result = rateLimit(clientKey(request, scope), options);
+  if (!result.ok) throw rateLimited(result.retryAfterSeconds);
 }
 
 /** Clear every tracked window. Exists so unit tests can start from a clean slate. */

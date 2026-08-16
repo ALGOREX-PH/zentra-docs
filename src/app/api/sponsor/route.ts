@@ -14,36 +14,22 @@
  * line, returned in an error, or echoed back in a validation detail.
  */
 
-import {
-  badRequest,
-  forbidden,
-  payloadTooLarge,
-  rateLimited,
-  upstreamUnavailable,
-  validationFailed,
-} from '@/lib/api/errors';
+import { badRequest, forbidden, upstreamUnavailable, validationFailed } from '@/lib/api/errors';
 import { log } from '@/lib/api/logger';
 import { requireSameOrigin } from '@/lib/api/origin';
-import {
-  clientKey,
-  rateLimit,
-  rateLimitHeaders,
-  type RateLimitOptions,
-} from '@/lib/api/rate-limit';
-import { json, route } from '@/lib/api/route';
+import { enforceRateLimit, type RateLimitOptions } from '@/lib/api/rate-limit';
+import { json, methodNotAllowed, route } from '@/lib/api/route';
 import {
   buildFeeBump,
   inspectInnerTransaction,
   isSponsorConfigured,
-  sponsorPublicKey,
   MAX_SPONSORED_FEE_STROOPS,
   type SponsorDecision,
+  sponsorPublicKey,
   sponsorshipCharge,
 } from '@/lib/api/sponsor';
-import {
-  reserveSponsorBudget,
-  sponsorBudgetEnforced,
-} from '@/lib/api/sponsor-budget';
+import { reserveSponsorBudget, sponsorBudgetEnforced } from '@/lib/api/sponsor-budget';
+import { readJsonBody } from '@/lib/api/validation';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -62,7 +48,16 @@ const READ_LIMIT: RateLimitOptions = { limit: 60, windowMs: 60_000 };
  */
 const WRITE_LIMIT: RateLimitOptions = { limit: 5, windowMs: 10 * 60_000 };
 
-/** Largest request body we will read at all, leaving room for JSON framing. */
+/**
+ * Largest request body we will read at all, leaving room for JSON framing.
+ *
+ * `readJsonBody` defaults to 4KB, which a Soroban envelope routinely exceeds —
+ * the resource footprint of a contract call does not fit — so this route raises
+ * the shared reader's ceiling rather than rejecting legitimate envelopes. Using
+ * the shared reader (rather than a local copy without the check) also means the
+ * content-type gate applies here: the one route that spends money is the last
+ * place to leave the cross-site simple-request path open.
+ */
 const MAX_REQUEST_BYTES = 96 * 1024;
 
 /** Longest XDR string we will consider, in characters. */
@@ -92,7 +87,7 @@ export const POST = route('sponsor.bump', async (request, { requestId }) => {
 
   const headers = enforceRateLimit(request, 'sponsor:write', WRITE_LIMIT);
 
-  const xdr = readXdr(await readBody(request));
+  const xdr = readXdr(await readJsonBody(request, { maxBytes: MAX_REQUEST_BYTES }));
 
   if (!isSponsorConfigured()) {
     // A deployment without a funded sponsor is unavailable, not forbidden: the
@@ -112,24 +107,49 @@ export const POST = route('sponsor.bump', async (request, { requestId }) => {
     throw forbidden(`Fee sponsorship refused: ${decision.reason}.`);
   }
 
+  // The budget ledger runs in one of two modes, and every branch below is a
+  // deliberate decision, not an accident of ordering. In ENFORCE mode
+  // (SPONSOR_BUDGET_ENFORCE=true) the ledger is a solvency control: a busted
+  // ceiling is a 403, and a ledger outage is a 503 — signing bumps with the
+  // accounting blind would let an outage become an unmetered spend. In SHADOW
+  // mode the ledger is advisory — its verdicts are recorded and never acted on
+  // — so neither a busted ceiling nor an outage may cost the caller anything:
+  // both are logged and the bump proceeds. In particular, a ledger outage in
+  // shadow mode must NOT 503, or the observability tooling could take down the
+  // very feature it exists to watch. `sponsor.refused` is emitted only when a
+  // request is actually refused, so counting that event counts real refusals.
   const charge = sponsorshipCharge(xdr);
   const budget = await reserveSponsorBudget(charge);
   if (!budget.ok) {
-    const { reason } = budget;
-    refused(requestId, reason);
-    if (reason === 'ledger_unavailable') {
-      log('error', 'sponsor.ledger_unavailable', { requestId, err: budget.error });
-      throw upstreamUnavailable('Fee sponsorship accounting is unavailable.');
-    }
-    log('warn', 'sponsor.budget_exceeded', {
-      requestId,
-      reason,
-      sourceAccount: charge.sourceAccount,
-      feeStroops: charge.feeStroops,
-      enforced: sponsorBudgetEnforced(),
-    });
-    if (sponsorBudgetEnforced()) {
-      throw forbidden(`Fee sponsorship refused: ${reason}.`);
+    const enforced = sponsorBudgetEnforced();
+    if (budget.reason === 'ledger_unavailable') {
+      // Error-level in both modes — an accounting outage always needs an
+      // operator — but only enforce mode passes the outage on to the caller.
+      log('error', 'sponsor.ledger_unavailable', { requestId, enforced, err: budget.error });
+      if (enforced) {
+        refused(requestId, budget.reason);
+        throw upstreamUnavailable('Fee sponsorship accounting is unavailable.');
+      }
+    } else if (enforced) {
+      log('warn', 'sponsor.budget_exceeded', {
+        requestId,
+        reason: budget.reason,
+        sourceAccount: charge.sourceAccount,
+        feeStroops: charge.feeStroops,
+      });
+      refused(requestId, budget.reason);
+      throw forbidden(`Fee sponsorship refused: ${budget.reason}.`);
+    } else {
+      // A distinct event rather than `sponsor.budget_exceeded`: nothing is
+      // refused here. This is the shadow-mode signal for sizing the ceilings
+      // before enforcement is switched on, and it must stay tellable apart
+      // from a refusal when the two are counted.
+      log('warn', 'sponsor.budget_shadow_exceeded', {
+        requestId,
+        reason: budget.reason,
+        sourceAccount: charge.sourceAccount,
+        feeStroops: charge.feeStroops,
+      });
     }
   }
 
@@ -158,54 +178,12 @@ export const POST = route('sponsor.bump', async (request, { requestId }) => {
   return json({ xdr: signed }, { headers });
 });
 
+/** Everything else is a 405 in the standard envelope, not Next's bare default. */
+export const { PUT, PATCH, DELETE } = methodNotAllowed(['GET', 'POST']);
+
 /** Record one refusal, carrying the reason and nothing that could identify the payload. */
 function refused(requestId: string, reason: SponsorDecision['reason']): void {
   log('warn', 'sponsor.refused', { requestId, reason });
-}
-
-/**
- * Count one request against the caller's budget, or reject it with a 429.
- *
- * Returns the `X-RateLimit-*` headers to attach to a successful response so a
- * well-behaved client can back off before it is turned away.
- */
-function enforceRateLimit(
-  request: Request,
-  scope: string,
-  options: RateLimitOptions,
-): Record<string, string> {
-  const result = rateLimit(clientKey(request, scope), options);
-  if (!result.ok) throw rateLimited(result.retryAfterSeconds);
-  return rateLimitHeaders(result);
-}
-
-/**
- * Read and JSON-decode the request body, refusing anything over the byte cap.
- *
- * The shared `readJsonBody` caps bodies at 4KB, which a Soroban envelope
- * routinely exceeds, so this route carries its own ceiling. `content-length` is
- * checked before the stream is touched and the decoded text is measured again
- * in case that header was absent or lying.
- */
-async function readBody(request: Request): Promise<unknown> {
-  const declared = Number(request.headers.get('content-length'));
-  if (Number.isFinite(declared) && declared > MAX_REQUEST_BYTES) {
-    throw payloadTooLarge(MAX_REQUEST_BYTES);
-  }
-
-  const text = await request.text();
-  if (new TextEncoder().encode(text).length > MAX_REQUEST_BYTES) {
-    throw payloadTooLarge(MAX_REQUEST_BYTES);
-  }
-  if (text.trim().length === 0) {
-    throw badRequest('Request body is required.');
-  }
-
-  try {
-    return JSON.parse(text) as unknown;
-  } catch {
-    throw badRequest('Request body must be valid JSON.');
-  }
 }
 
 /**

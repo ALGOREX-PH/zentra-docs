@@ -1,20 +1,20 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { HudPanel } from '@/components/landing/primitives';
+import { cn } from '@/lib/cn';
+import { LANDING_MESSAGES, type LandingKey, OVERSPEND } from '@/lib/scenarios';
 
-const NODES: [number, number][] = [
+const NODES = [
   [90, 70], [260, 70], [430, 70], [260, 170], [90, 270], [260, 270], [430, 270],
-];
-const RECTS: [number, number][] = [
+] as const;
+const RECTS = [
   [81, 61], [251, 61], [421, 61], [251, 161], [81, 261], [251, 261], [421, 261],
-];
-type Scenario = 'valid' | 'injection' | 'overspend';
+] as const;
+type Scenario = LandingKey;
 
-const MSG: Record<Scenario, string[]> = {
-  valid: ['composing action', 'checking private policy', 'generating proof', 'binding to authority state', 'verifying on-chain', 'settling on Stellar', 'receipt emitted'],
-  injection: ['composing action', 'checking private policy'],
-  overspend: ['composing action', 'checking private policy', 'generating proof', 'binding to authority state'],
-};
+/** The per-scenario terminal lines, projected from the shared SCENARIOS data. */
+const MSG = LANDING_MESSAGES;
 const PILLS = ['COMPOSING', 'POLICY', 'PROVING', 'BINDING', 'VERIFYING', 'SETTLING', 'RELEASED'];
 // V/C/G/R tint the rail and nodes; VS is the readable violet used for pill text.
 const V = '#7c3aed', C = '#00e5ff', G = '#22c55e', R = '#ef4444', VS = '#a78bfa';
@@ -22,6 +22,10 @@ const V = '#7c3aed', C = '#00e5ff', G = '#22c55e', R = '#ef4444', VS = '#a78bfa'
 export function ProofEngine() {
   const root = useRef<HTMLDivElement>(null);
   const play = useRef<(s: Scenario) => void>(() => {});
+  // Mirrors the imperative run for the buttons: which scenario is playing
+  // (aria-pressed) and whether a walk is in flight (busy affordance).
+  const [playing, setPlaying] = useState<Scenario | null>(null);
+  const [running, setRunning] = useState(false);
 
   useEffect(() => {
     const el = root.current;
@@ -39,22 +43,34 @@ export function ProofEngine() {
 
     const cum = [0];
     for (let i = 1; i < NODES.length; i++) {
-      const a = NODES[i - 1], b = NODES[i];
-      cum.push(cum[i - 1] + Math.hypot(b[0] - a[0], b[1] - a[1]));
+      // Every index is in range by the loop bounds; the guard only narrows the types.
+      const a = NODES[i - 1], b = NODES[i], prev = cum[i - 1];
+      if (!a || !b || prev === undefined) continue;
+      cum.push(prev + Math.hypot(b[0] - a[0], b[1] - a[1]));
     }
-    const total = cum[cum.length - 1];
+    const total = cum[cum.length - 1] ?? 1;
     const len = fill.getTotalLength ? fill.getTotalLength() : total;
     fill.style.transition = 'stroke-dashoffset .55s ease, stroke .3s';
     fill.style.strokeDasharray = String(len);
     fill.style.strokeDashoffset = String(len);
     cap.style.transition = 'transform .55s cubic-bezier(.45,0,.3,1), opacity .3s';
 
-    const sleep = (ms: number) => new Promise<void>((res) => { const t = window.setTimeout(res, ms); timers.push(t); });
-    const setPill = (t: string, c: string) => { const p = q('[data-z-pill]'); if (p) { p.textContent = t; p.style.color = c; p.style.borderColor = c; p.style.background = c + '1f'; } };
+    // Fired ids are pruned on resolve so the array holds only live timeouts,
+    // instead of growing without bound across the idle loop's lifetime.
+    const sleep = (ms: number) =>
+      new Promise<void>((res) => {
+        const t = window.setTimeout(() => {
+          const i = timers.indexOf(t);
+          if (i !== -1) timers.splice(i, 1);
+          res();
+        }, ms);
+        timers.push(t);
+      });
+    const setPill = (t: string, c: string) => { const p = q('[data-z-pill]'); if (p) { p.textContent = t; p.style.color = c; p.style.borderColor = c; p.style.background = `${c}1f`; } };
     const setStatus = (t: string, c?: string) => { const s = q('[data-z-status]'); if (s) { s.textContent = t; s.style.color = c || '#e2e8f0'; } };
     const setOutput = (t: string, c?: string) => { const o = q('[data-z-output]'); if (o) { o.textContent = t; o.style.color = c || '#7d8ea6'; } };
-    const activate = (i: number, c: string) => { const r = rect(i); if (r) { r.style.stroke = c; r.style.fill = c + '26'; r.style.filter = `drop-shadow(0 0 6px ${c})`; } };
-    const advance = (i: number, c?: string) => { fill.style.strokeDashoffset = String(len * (1 - cum[i] / total)); if (c) fill.style.stroke = c; };
+    const activate = (i: number, c: string) => { const r = rect(i); if (r) { r.style.stroke = c; r.style.fill = `${c}26`; r.style.filter = `drop-shadow(0 0 6px ${c})`; } };
+    const advance = (i: number, c?: string) => { fill.style.strokeDashoffset = String(len * (1 - (cum[i] ?? 0) / total)); if (c) fill.style.stroke = c; };
     const reset = () => {
       for (let i = 0; i < 7; i++) { const r = rect(i); if (r) { r.style.stroke = 'rgba(148,163,184,0.6)'; r.style.fill = '#0d111a'; r.style.filter = 'none'; } }
       fill.style.strokeDashoffset = String(len); fill.style.stroke = 'url(#zgrad)';
@@ -64,40 +80,56 @@ export function ProofEngine() {
       setPill('COMPOSING', VS); setStatus('composing action'); setOutput('awaiting submission');
     };
     const burnAt = (i: number) => {
-      const [x, y] = NODES[i];
+      const [x, y] = NODES[i] ?? NODES[0];
       burn.setAttribute('x1', String(x - 17)); burn.setAttribute('y1', String(y - 17));
       burn.setAttribute('x2', String(x + 17)); burn.setAttribute('y2', String(y + 17));
       burn.style.opacity = '1'; cap.style.opacity = '0';
     };
 
+    // A click that lands while a walk is playing is never dropped: it parks in
+    // `pending`, preempts the current walk at its next step, and plays next.
+    let pending: Scenario | null = null;
+
     // Under reduced motion every wait is skipped, so the whole run resolves inside one
     // frame and only its end state is ever painted — a still, not a fast-forward.
     const run = async (scenario: Scenario) => {
-      if (busy) return; busy = true; reset();
+      if (busy) { pending = scenario; return; }
+      busy = true; setRunning(true); setPlaying(scenario);
+      reset();
       if (!reduced) await sleep(150);
       cap.style.opacity = '1';
-      const stop = scenario === 'valid' ? 6 : scenario === 'injection' ? 1 : 3;
+      // The run always halts on its last shared rail entry — a blocked
+      // scenario simply carries a shorter rail.
+      const stop = MSG[scenario].length - 1;
       for (let i = 0; i <= stop; i++) {
         if (!alive) { busy = false; return; }
+        if (pending) break;
         const fail = scenario !== 'valid' && i === stop;
         activate(i, fail ? R : i >= 4 ? C : V);
         advance(i, fail ? R : undefined);
-        cap.style.transform = `translate(${NODES[i][0]}px,${NODES[i][1]}px)`;
+        // `stop` never exceeds the rail, so the fallback node is never used.
+        const [nx, ny] = NODES[i] ?? NODES[0];
+        cap.style.transform = `translate(${nx}px,${ny}px)`;
         const m = MSG[scenario][i];
         if (m) setStatus(m, fail ? R : '#e2e8f0');
-        setPill(fail ? 'BLOCKED' : PILLS[i], fail ? R : i === 6 ? G : '#c4b5fd');
+        setPill(fail ? 'BLOCKED' : PILLS[i] ?? '', fail ? R : i === 6 ? G : '#c4b5fd');
         if (!reduced) await sleep(640);
       }
-      if (scenario === 'valid') {
-        cap.style.opacity = '0'; seal.style.transition = 'none'; seal.style.opacity = '1'; seal.style.transform = 'scale(1)';
-        setPill('RELEASED', G); setStatus('receipt emitted', G);
-        setOutput('proof verified · payment released · receipt 0x9f3a…a3c1d7', G);
-      } else if (scenario === 'injection') {
-        burnAt(1); setStatus('recipient not in approved set', R); setOutput('no proof generated · no payment moved', R);
-      } else {
-        burnAt(3); setStatus('state mismatch', R); setOutput('claimed prev_spent=0  ≠  chain spent=500  ·  no payment moved', R);
+      if (alive && !pending) {
+        if (scenario === 'valid') {
+          cap.style.opacity = '0'; seal.style.transition = 'none'; seal.style.opacity = '1'; seal.style.transform = 'scale(1)';
+          setPill('RELEASED', G); setStatus('receipt emitted', G);
+          setOutput('proof verified · payment released · receipt 0x9f3a…a3c1d7', G);
+        } else if (scenario === 'injection') {
+          burnAt(1); setStatus('recipient not in approved set', R); setOutput('no proof generated · no payment moved', R);
+        } else {
+          burnAt(3); setStatus('state mismatch', R);
+          setOutput(`claimed prev_spent=${OVERSPEND.claimed}  ≠  chain spent=${OVERSPEND.chainSpent}  ·  no payment moved`, R);
+        }
       }
       busy = false;
+      setRunning(false);
+      if (alive && pending) { const next = pending; pending = null; void run(next); }
     };
     play.current = (s: Scenario) => { loop = false; void run(s); };
 
@@ -115,12 +147,7 @@ export function ProofEngine() {
   }, []);
 
   return (
-    <div ref={root} className="relative border border-violet/35 bg-panel">
-      <span aria-hidden className="absolute -left-px -top-px h-3.5 w-3.5 border-l-2 border-t-2 border-violet" />
-      <span aria-hidden className="absolute -right-px -top-px h-3.5 w-3.5 border-r-2 border-t-2 border-violet" />
-      <span aria-hidden className="absolute -bottom-px -left-px h-3.5 w-3.5 border-b-2 border-l-2 border-violet" />
-      <span aria-hidden className="absolute -bottom-px -right-px h-3.5 w-3.5 border-b-2 border-r-2 border-violet" />
-
+    <HudPanel ref={root} corners={4} className="border-violet/35">
       <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 border-b border-fd-border bg-[#0a0c12] px-4 py-3">
         <div className="flex items-center gap-2.5">
           <span aria-hidden className="size-2 shrink-0 bg-violet" />
@@ -151,6 +178,7 @@ export function ProofEngine() {
           <path data-z-fill d="M90,70 L430,70 L90,270 L430,270" fill="none" stroke="url(#zgrad)" strokeWidth="6" strokeLinecap="square" strokeLinejoin="miter" style={{ filter: 'drop-shadow(0 0 5px rgba(124,58,237,0.7))' }} />
           <line data-z-burn x1="0" y1="0" x2="0" y2="0" stroke="#ef4444" strokeWidth="6" strokeLinecap="square" opacity="0" style={{ filter: 'drop-shadow(0 0 5px rgba(239,68,68,0.8))' }} />
           {RECTS.map(([x, y], i) => (
+            // biome-ignore lint/suspicious/noArrayIndexKey: static coordinate table; the index doubles as the data-i animation target.
             <g data-z-node="" data-i={i} key={i}>
               <rect x={x} y={y} width="18" height="18" fill="#0d111a" stroke="rgba(148,163,184,0.6)" strokeWidth="2" style={{ transition: 'all .3s' }} />
             </g>
@@ -168,20 +196,26 @@ export function ProofEngine() {
         </svg>
       </div>
 
+      {/* Buttons stay clickable mid-run — a click queues/preempts (see `pending`),
+          with cursor-progress dimming as the busy affordance and aria-pressed
+          marking the scenario currently on the rail. */}
       <div className="flex border-y border-fd-border">
-        <button type="button" onClick={() => play.current('valid')} className="flex-1 border-r border-fd-border py-2.5 font-mono text-[10px] font-semibold tracking-[0.04em] sm:py-3 sm:text-[11px] sm:tracking-[0.06em] text-live transition-colors hover:bg-live/15" style={{ background: 'rgba(34,197,94,0.06)' }}>VALID PAYMENT</button>
-        <button type="button" onClick={() => play.current('injection')} className="flex-1 border-r border-fd-border py-2.5 font-mono text-[10px] font-semibold tracking-[0.04em] sm:py-3 sm:text-[11px] sm:tracking-[0.06em] text-denied transition-colors hover:bg-denied/10" style={{ background: 'rgba(239,68,68,0.05)' }}>PROMPT INJECTION</button>
-        <button type="button" onClick={() => play.current('overspend')} className="flex-1 py-2.5 font-mono text-[10px] font-semibold tracking-[0.04em] sm:py-3 sm:text-[11px] sm:tracking-[0.06em] text-denied transition-colors hover:bg-denied/10" style={{ background: 'rgba(239,68,68,0.05)' }}>OVER-SPEND</button>
+        <button type="button" onClick={() => play.current('valid')} aria-pressed={playing === 'valid'} className={cn('flex-1 border-r border-fd-border py-2.5 font-mono text-[10px] font-semibold tracking-[0.04em] sm:py-3 sm:text-[11px] sm:tracking-[0.06em] text-live transition-colors hover:bg-live/15', running && 'cursor-progress opacity-70')} style={{ background: 'rgba(34,197,94,0.06)' }}>VALID PAYMENT</button>
+        <button type="button" onClick={() => play.current('injection')} aria-pressed={playing === 'injection'} className={cn('flex-1 border-r border-fd-border py-2.5 font-mono text-[10px] font-semibold tracking-[0.04em] sm:py-3 sm:text-[11px] sm:tracking-[0.06em] text-denied transition-colors hover:bg-denied/10', running && 'cursor-progress opacity-70')} style={{ background: 'rgba(239,68,68,0.05)' }}>PROMPT INJECTION</button>
+        <button type="button" onClick={() => play.current('overspend')} aria-pressed={playing === 'overspend'} className={cn('flex-1 py-2.5 font-mono text-[10px] font-semibold tracking-[0.04em] sm:py-3 sm:text-[11px] sm:tracking-[0.06em] text-denied transition-colors hover:bg-denied/10', running && 'cursor-progress opacity-70')} style={{ background: 'rgba(239,68,68,0.05)' }}>OVER-SPEND</button>
       </div>
 
+      {/* Both lines are updated imperatively during a run; role="status" makes
+          each a polite live region (the scenario-player pattern), so the
+          narration reaches assistive tech without stealing focus. */}
       <div className="px-4 pb-4 pt-3.5">
         <div className="flex items-center gap-2">
-          <span className="font-mono text-[13px] text-cyan">&gt;</span>
-          <span data-z-status className="font-mono text-[13px] text-[#e2e8f0]">composing action</span>
-          <span className="h-3.5 w-2 bg-cyan motion-safe:[animation:zen-blink_1.1s_step-end_infinite]" />
+          <span aria-hidden className="font-mono text-[13px] text-cyan">&gt;</span>
+          <span data-z-status role="status" className="font-mono text-[13px] text-[#e2e8f0]">composing action</span>
+          <span aria-hidden className="h-3.5 w-2 bg-cyan motion-safe:[animation:zen-blink_1.1s_step-end_infinite]" />
         </div>
-        <div data-z-output className="mt-2 font-mono text-[11px] tracking-[0.02em] text-[#7d8ea6]">awaiting submission</div>
+        <div data-z-output role="status" className="mt-2 font-mono text-[11px] tracking-[0.02em] text-[#7d8ea6]">awaiting submission</div>
       </div>
-    </div>
+    </HudPanel>
   );
 }

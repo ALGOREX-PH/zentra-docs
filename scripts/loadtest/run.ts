@@ -193,7 +193,7 @@ docs/LOADTEST.md has the framing this output must be read with.
 `;
 
 function isOptionName(name: string): name is OptionName {
-  return Object.prototype.hasOwnProperty.call(OPTIONS, name);
+  return Object.hasOwn(OPTIONS, name);
 }
 
 /**
@@ -211,6 +211,8 @@ function parseArgv(argv: readonly string[]): ParsedArgs {
 
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
+    // Unreachable by the loop bounds; narrows the indexed access.
+    if (arg === undefined) continue;
 
     if (arg === '--help' || arg === '-h') {
       help = true;
@@ -232,7 +234,8 @@ function parseArgv(argv: readonly string[]): ParsedArgs {
       problems.push(`unknown flag '--${name}' — run with --help for the list`);
       // Swallow the value that presumably followed it, so one typo produces one
       // complaint instead of also reporting its argument as a stray token.
-      if (eq === -1 && i + 1 < argv.length && !argv[i + 1].startsWith('--')) {
+      const follower = argv[i + 1];
+      if (eq === -1 && follower !== undefined && !follower.startsWith('--')) {
         i += 1;
       }
       continue;
@@ -326,21 +329,25 @@ function resolveRun(values: OptionValues, env: Env): { run: ResolvedRun; problem
   const reputationId = resolveOption('reputation', values, env);
 
   const config: LoadTestConfig = {
-    accounts: accountsRaw === undefined
-      ? DEFAULTS.accounts
-      : toInteger(accountsRaw, '--accounts', DEFAULTS.accounts, problems),
-    concurrency: concurrencyRaw === undefined
-      ? DEFAULTS.concurrency
-      : toInteger(concurrencyRaw, '--concurrency', DEFAULTS.concurrency, problems),
+    accounts:
+      accountsRaw === undefined
+        ? DEFAULTS.accounts
+        : toInteger(accountsRaw, '--accounts', DEFAULTS.accounts, problems),
+    concurrency:
+      concurrencyRaw === undefined
+        ? DEFAULTS.concurrency
+        : toInteger(concurrencyRaw, '--concurrency', DEFAULTS.concurrency, problems),
     rpcUrl: resolveOption('rpc-url', values, env) ?? DEFAULTS.rpcUrl,
-    networkPassphrase: resolveOption('network-passphrase', values, env) ?? DEFAULTS.networkPassphrase,
+    networkPassphrase:
+      resolveOption('network-passphrase', values, env) ?? DEFAULTS.networkPassphrase,
     friendbotUrl: resolveOption('friendbot-url', values, env) ?? DEFAULTS.friendbotUrl,
     actionLogId: actionLogId ?? '',
     reputationId: reputationId ?? '',
     message: resolveOption('message', values, env) ?? DEFAULTS.message,
-    timeoutMs: timeoutRaw === undefined
-      ? DEFAULTS.timeoutMs
-      : toInteger(timeoutRaw, '--timeout-ms', DEFAULTS.timeoutMs, problems),
+    timeoutMs:
+      timeoutRaw === undefined
+        ? DEFAULTS.timeoutMs
+        : toInteger(timeoutRaw, '--timeout-ms', DEFAULTS.timeoutMs, problems),
   };
 
   // The refusal the header explains. Stated as a consequence, not a rule, so
@@ -430,7 +437,10 @@ async function mapWithConcurrency<T, R>(
       const index = cursor;
       cursor += 1;
       if (index >= items.length) return;
-      results[index] = await worker(items[index], index);
+      const item = items[index];
+      // Unreachable: the bounds check above already returned for indexes past the end.
+      if (item === undefined) return;
+      results[index] = await worker(item, index);
     }
   };
 
@@ -470,7 +480,9 @@ async function safeRead(
   try {
     return await withWatchdog(read(), timeoutMs, label);
   } catch (cause) {
-    notes.push(`${label} could not be read: ${errorMessage(cause)}. Reported as null, not as zero.`);
+    notes.push(
+      `${label} could not be read: ${errorMessage(cause)}. Reported as null, not as zero.`,
+    );
     return null;
   }
 }
@@ -528,7 +540,7 @@ async function driveRecords(
             attempt.ok
               ? `  ok   ${attempt.publicKey} ${attempt.latencyMs}ms ${attempt.txHash ?? '-'}\n`
               : `  fail ${attempt.publicKey} ${attempt.latencyMs}ms ` +
-                `${attempt.failure?.stage ?? 'unknown'}: ${attempt.failure?.message ?? ''}\n`,
+                  `${attempt.failure?.stage ?? 'unknown'}: ${attempt.failure?.message ?? ''}\n`,
           );
         }
         return attempt;
@@ -568,7 +580,8 @@ interface NoteInput {
  * must never be missing.
  */
 function collectNotes(input: NoteInput): string[] {
-  const { config, funding, attempts, countBefore, countAfter, distinctAuthors, watchdogHits } = input;
+  const { config, funding, attempts, countBefore, countAfter, distinctAuthors, watchdogHits } =
+    input;
   const notes: string[] = [
     'These accounts are synthetic: created by this harness, funded by Friendbot, used for one ' +
       'transaction and then abandoned. They are not users, and no number in this report is ' +
@@ -692,7 +705,9 @@ function printSummary(report: LoadTestReport, jsonPath: string, markdownPath: st
 
   const stages = Object.entries(report.failuresByStage).filter(([, count]) => count > 0);
   if (stages.length > 0) {
-    lines.push(`  failures         ${stages.map(([stage, count]) => `${stage}=${count}`).join(' ')}`);
+    lines.push(
+      `  failures         ${stages.map(([stage, count]) => `${stage}=${count}`).join(' ')}`,
+    );
   }
 
   lines.push('', 'Notes:');
@@ -723,7 +738,6 @@ async function main(argv: readonly string[], env: Env): Promise<number> {
   const { config, outDir } = run;
   const verbose = parsed.verbose;
   const startedAtMs = Date.now();
-  const startedAt = new Date(startedAtMs).toISOString();
   const notes: string[] = [];
 
   process.stdout.write(
