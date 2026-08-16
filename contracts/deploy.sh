@@ -28,8 +28,9 @@ echo "==> Building contracts"
 ( cd zentra-reputation && stellar contract build )
 ( cd zentra-action-log && stellar contract build )
 
-REP_WASM="zentra-reputation/target/wasm32v1-none/release/zentra_reputation.wasm"
-LOG_WASM="zentra-action-log/target/wasm32v1-none/release/zentra_action_log.wasm"
+# The cargo workspace shares one target dir at contracts/target.
+REP_WASM="target/wasm32v1-none/release/zentra_reputation.wasm"
+LOG_WASM="target/wasm32v1-none/release/zentra_action_log.wasm"
 
 echo "==> Deploying reputation (admin=$ADMIN)"
 REPUTATION=$(stellar contract deploy --wasm "$REP_WASM" \
