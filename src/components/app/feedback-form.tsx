@@ -6,6 +6,8 @@ import { buildFeedbackXdr } from '@/lib/stellar/feedback';
 import { submitInvoke } from '@/lib/stellar/action-log';
 import { describeError } from '@/lib/stellar/errors';
 import { readApiError } from '@/lib/api/client';
+import { stellar } from '@/config/stellar';
+import { truncateAddress } from '@/lib/stellar/format';
 import { HudPanel, Eyebrow } from '@/components/landing/primitives';
 import { cn } from '@/lib/cn';
 
@@ -16,22 +18,46 @@ const focusRing =
 
 type Status = 'idle' | 'sending' | 'success' | 'error';
 
+/**
+ * The on-chain leg that already settled when the save to the API failed.
+ *
+ * The whole payload is frozen here, not just the hash: the retry must POST
+ * exactly what the chain recorded — same wallet, same rating, same comment —
+ * even if the fields have changed or the wallet has disconnected since.
+ * A settled anchor means a retry never builds or signs a second transaction.
+ */
+interface Anchor {
+  txHash: string;
+  wallet: string;
+  rating: number;
+  comment: string;
+}
+
 export function FeedbackForm({ onSubmitted }: { onSubmitted?: () => void }) {
   const { address, signTransaction } = useWallet();
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState('');
   const [status, setStatus] = useState<Status>('idle');
   const [error, setError] = useState<string | null>(null);
+  const [anchored, setAnchored] = useState<Anchor | null>(null);
 
   const inFlight = status === 'sending';
   const over = comment.length > MAX;
-  const disabled = inFlight || rating < 1 || comment.trim().length === 0 || over;
+  // An anchored retry submits the frozen payload, so the live fields no longer
+  // gate the button — only the in-flight lock does.
+  const disabled =
+    inFlight || (anchored === null && (rating < 1 || comment.trim().length === 0 || over));
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
+    // The button disables while sending, but Enter and a double-click racing
+    // the re-render can still submit — and a duplicate submission would sign
+    // and record a duplicate on-chain transaction.
+    if (inFlight) return;
+
     const trimmed = comment.trim();
-    if (rating < 1 || !trimmed || trimmed.length > MAX) {
+    if (!anchored && (rating < 1 || !trimmed || trimmed.length > MAX)) {
       setStatus('error');
       setError('Pick a rating (1–5) and a comment up to 280 characters.');
       return;
@@ -40,34 +66,55 @@ export function FeedbackForm({ onSubmitted }: { onSubmitted?: () => void }) {
     setStatus('sending');
     setError(null);
 
-    try {
-      let txHash: string | null = null;
-      let onChain = false;
+    // Read the anchor into a local so the catch below can tell which leg
+    // failed even before React commits the state update.
+    let anchor = anchored;
 
-      if (address) {
+    try {
+      if (!anchor && address) {
         const xdr = await buildFeedbackXdr(address, rating, trimmed);
         const signed = await signTransaction(xdr);
-        txHash = await submitInvoke(signed);
-        onChain = true;
+        const txHash = await submitInvoke(signed);
+        anchor = { txHash, wallet: address, rating, comment: trimmed };
+        setAnchored(anchor);
       }
 
       const res = await fetch('/api/feedback', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ rating, comment: trimmed, wallet: address, txHash, onChain }),
+        body: JSON.stringify(
+          anchor
+            ? {
+                rating: anchor.rating,
+                comment: anchor.comment,
+                wallet: anchor.wallet,
+                txHash: anchor.txHash,
+                onChain: true,
+              }
+            : { rating, comment: trimmed, wallet: address, txHash: null, onChain: false },
+        ),
       });
 
-      if (!res.ok) {
+      // A 409 on an anchored retry means the first POST landed after its
+      // response was lost: the feedback is already saved. That is success.
+      if (!res.ok && !(anchor && res.status === 409)) {
         throw new Error(await readApiError(res, 'Could not save feedback.'));
       }
 
       setStatus('success');
+      setAnchored(null);
       setRating(0);
       setComment('');
       onSubmitted?.();
     } catch (err: unknown) {
       setStatus('error');
-      setError(describeError(err));
+      // Once the anchor has settled, the only leg left to fail is the save —
+      // say so, and promise that retrying will not ask for another signature.
+      setError(
+        anchor
+          ? `Your feedback is recorded on-chain, but saving it failed (${describeError(err)}). Retrying will not ask for another signature.`
+          : describeError(err),
+      );
     }
   }
 
@@ -104,6 +151,7 @@ export function FeedbackForm({ onSubmitted }: { onSubmitted?: () => void }) {
                   type="button"
                   aria-label={`Rate ${value} of 5`}
                   aria-pressed={filled}
+                  disabled={anchored !== null}
                   onClick={() => setRating(value)}
                   className={cn(
                     'text-2xl leading-none transition-colors',
@@ -123,12 +171,18 @@ export function FeedbackForm({ onSubmitted }: { onSubmitted?: () => void }) {
           >
             Comment
           </label>
+          {/*
+            The fields lock while an anchor is pending so nothing typed after
+            the on-chain leg settled can be silently dropped: the retry saves
+            the frozen payload, and an editable field would suggest otherwise.
+          */}
           <textarea
             id="feedback-comment"
             rows={3}
             value={comment}
             onChange={(event) => setComment(event.target.value)}
             placeholder="What worked, what didn't…"
+            disabled={anchored !== null}
             aria-invalid={over}
             aria-describedby={[
               'feedback-comment-help',
@@ -167,7 +221,7 @@ export function FeedbackForm({ onSubmitted }: { onSubmitted?: () => void }) {
               focusRing,
             )}
           >
-            {inFlight ? 'Sending…' : 'Send feedback'}
+            {inFlight ? 'Sending…' : anchored ? 'Retry save' : 'Send feedback'}
           </button>
 
           {/*
@@ -187,7 +241,31 @@ export function FeedbackForm({ onSubmitted }: { onSubmitted?: () => void }) {
             role="alert"
             className={cn('font-mono text-xs text-denied', status === 'error' && error && 'mt-2')}
           >
-            {status === 'error' && error ? error : ''}
+            {status === 'error' && error ? (
+              <>
+                {error}
+                {/* The settled transaction is real even though the save is not:
+                    link it so the user can verify the anchor independently. */}
+                {anchored ? (
+                  <>
+                    {' '}
+                    <a
+                      href={stellar.explorerTxUrl(anchored.txHash)}
+                      target="_blank"
+                      rel="noreferrer"
+                      className={cn(
+                        'text-cyan underline-offset-2 hover:underline',
+                        focusRing,
+                      )}
+                    >
+                      Tx {truncateAddress(anchored.txHash)}
+                    </a>
+                  </>
+                ) : null}
+              </>
+            ) : (
+              ''
+            )}
           </p>
         </form>
       </div>
