@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useWallet } from '@/components/app/wallet-provider';
 import { buildPaymentXdr, submitSignedXdr } from '@/lib/stellar/payment';
 import { isValidPublicKey, isValidAmount } from '@/lib/stellar/format';
-import { describeError } from '@/lib/stellar/errors';
+import { describeError, SubmitTimeoutError } from '@/lib/stellar/errors';
 import { HudPanel, Eyebrow } from '@/components/landing/primitives';
 import { TxStatus } from '@/components/app/tx-status';
 import type { TxState } from '@/lib/stellar/types';
@@ -30,6 +30,11 @@ export function SendForm({ onPaid }: { onPaid?: () => void }) {
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
+    // The button disables while in flight, but a form can still be submitted
+    // by Enter or a double-click racing the re-render — and a duplicate
+    // submission here is a duplicate payment, not a duplicate request.
+    if (inFlight) return;
+
     if (!address) {
       setTx({ phase: 'error', message: 'Connect your wallet first.' });
       return;
@@ -47,9 +52,19 @@ export function SendForm({ onPaid }: { onPaid?: () => void }) {
       setTx({ phase: 'submitting' });
       const res = await submitSignedXdr(signed);
       setTx({ phase: 'success', hash: res.hash, message: `Sent ${amount} XLM.` });
+      // Clearing the amount makes a repeat send a deliberate re-entry, not a
+      // second Enter on a form still primed with the last payment.
+      setAmount('');
       onPaid?.();
     } catch (err: unknown) {
-      setTx({ phase: 'error', message: describeError(err) });
+      // A timeout carries the hash of a payment that may yet settle; passing
+      // it through lets the status panel link the explorer so the user can
+      // check the outcome before signing again.
+      setTx({
+        phase: 'error',
+        message: describeError(err),
+        hash: err instanceof SubmitTimeoutError ? err.hash : undefined,
+      });
     }
   }
 
