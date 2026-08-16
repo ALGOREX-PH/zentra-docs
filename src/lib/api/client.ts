@@ -25,6 +25,23 @@ export function isApiErrorBody(value: unknown): value is ApiErrorBody {
   return typeof code === 'string' && typeof message === 'string';
 }
 
+/** The success body of GET /api/onboard, as seen by the client. */
+export interface OnboardCount {
+  count: number;
+}
+
+/**
+ * Whether `value` is shaped like the onboard-count response.
+ *
+ * Two components render the signup progress; both must narrow the body the
+ * same way, so the guard lives here rather than being re-declared per file.
+ */
+export function isOnboardCount(value: unknown): value is OnboardCount {
+  if (typeof value !== 'object' || value === null) return false;
+  const { count } = value as { count?: unknown };
+  return typeof count === 'number' && Number.isFinite(count) && count >= 0;
+}
+
 /**
  * Extract a human-readable message from a failed response.
  *
