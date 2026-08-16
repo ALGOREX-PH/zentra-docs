@@ -23,13 +23,6 @@ export interface TxState {
   message?: string;
 }
 
-/** A user's intent to move XLM on testnet. */
-export interface PaymentRequest {
-  destination: string;
-  /** XLM amount as a decimal string, e.g. "12.5". */
-  amount: string;
-}
-
 /** The result of a settled payment. */
 export interface PaymentResult {
   hash: string;
