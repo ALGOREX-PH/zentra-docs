@@ -23,7 +23,7 @@ import {
 import { log } from '@/lib/api/logger';
 import { requireSameOrigin } from '@/lib/api/origin';
 import { enforceRateLimit, type RateLimitOptions } from '@/lib/api/rate-limit';
-import { json, route } from '@/lib/api/route';
+import { json, methodNotAllowed, route } from '@/lib/api/route';
 import { readJsonBody } from '@/lib/api/validation';
 import {
   buildFeeBump,
@@ -160,6 +160,9 @@ export const POST = route('sponsor.bump', async (request, { requestId }) => {
   // that can tell whether retrying is the right answer.
   return json({ xdr: signed }, { headers });
 });
+
+/** Everything else is a 405 in the standard envelope, not Next's bare default. */
+export const { PUT, PATCH, DELETE } = methodNotAllowed(['GET', 'POST']);
 
 /** Record one refusal, carrying the reason and nothing that could identify the payload. */
 function refused(requestId: string, reason: SponsorDecision['reason']): void {
