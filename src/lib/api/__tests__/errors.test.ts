@@ -3,6 +3,8 @@ import {
   ApiError,
   badRequest,
   isApiError,
+  methodNotAllowed,
+  notFound,
   payloadTooLarge,
   rateLimited,
   toErrorBody,
@@ -48,6 +50,31 @@ describe('rateLimited', () => {
     const result = toErrorBody(rateLimited(42));
     expect(result.status).toBe(429);
     expect(result.headers['Retry-After']).toBe('42');
+  });
+});
+
+describe('notFound', () => {
+  it('produces a 404 with the not_found code and the given message', () => {
+    const err = notFound('No feedback row with that id.');
+    expect(err.status).toBe(404);
+    expect(err.code).toBe('not_found');
+    expect(err.message).toBe('No feedback row with that id.');
+  });
+});
+
+describe('methodNotAllowed', () => {
+  it('produces a 405 with the method_not_allowed code carrying the served methods', () => {
+    const err = methodNotAllowed(['GET', 'POST']);
+    expect(err.status).toBe(405);
+    expect(err.code).toBe('method_not_allowed');
+    expect(err.allowedMethods).toEqual(['GET', 'POST']);
+  });
+
+  it('surfaces an Allow header from toErrorBody, as RFC 9110 requires of a 405', () => {
+    const result = toErrorBody(methodNotAllowed(['GET', 'POST']));
+    expect(result.status).toBe(405);
+    expect(result.body.error.code).toBe('method_not_allowed');
+    expect(result.headers.Allow).toBe('GET, POST');
   });
 });
 

@@ -28,12 +28,17 @@ export class ApiError extends Error {
   readonly code: ApiErrorCode;
   readonly details?: Record<string, string>;
   readonly retryAfterSeconds?: number;
+  readonly allowedMethods?: string[];
 
   constructor(
     status: number,
     code: ApiErrorCode,
     message: string,
-    options?: { details?: Record<string, string>; retryAfterSeconds?: number },
+    options?: {
+      details?: Record<string, string>;
+      retryAfterSeconds?: number;
+      allowedMethods?: string[];
+    },
   ) {
     super(message);
     this.name = 'ApiError';
@@ -41,6 +46,7 @@ export class ApiError extends Error {
     this.code = code;
     this.details = options?.details;
     this.retryAfterSeconds = options?.retryAfterSeconds;
+    this.allowedMethods = options?.allowedMethods;
     // Keeps `instanceof` working when TypeScript downlevels the class.
     Object.setPrototypeOf(this, ApiError.prototype);
   }
@@ -72,6 +78,23 @@ export function validationFailed(details: Record<string, string>): ApiError {
 export function rateLimited(retryAfterSeconds: number): ApiError {
   return new ApiError(429, 'rate_limited', 'Too many requests.', {
     retryAfterSeconds,
+  });
+}
+
+/** 404 — the resource the request names does not exist. */
+export function notFound(message: string): ApiError {
+  return new ApiError(404, 'not_found', message);
+}
+
+/**
+ * 405 — the endpoint exists but does not serve this HTTP method.
+ *
+ * Carries the methods it does serve, which `toErrorBody` surfaces as the
+ * `Allow` header RFC 9110 requires a 405 to send.
+ */
+export function methodNotAllowed(allowedMethods: string[]): ApiError {
+  return new ApiError(405, 'method_not_allowed', 'Method not allowed.', {
+    allowedMethods,
   });
 }
 
@@ -143,10 +166,13 @@ export function toErrorBody(error: unknown): {
     };
   }
 
-  const headers: Record<string, string> =
-    typeof error.retryAfterSeconds === 'number'
-      ? { 'Retry-After': String(error.retryAfterSeconds) }
-      : {};
+  const headers: Record<string, string> = {};
+  if (typeof error.retryAfterSeconds === 'number') {
+    headers['Retry-After'] = String(error.retryAfterSeconds);
+  }
+  if (error.allowedMethods !== undefined && error.allowedMethods.length > 0) {
+    headers.Allow = error.allowedMethods.join(', ');
+  }
 
   return {
     status: error.status,
