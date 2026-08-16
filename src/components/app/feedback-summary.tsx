@@ -5,10 +5,8 @@ import { truncateAddress } from '@/lib/stellar/format';
 import { readApiError } from '@/lib/api/client';
 import { stellar } from '@/config/stellar';
 import { HudPanel, Eyebrow } from '@/components/landing/primitives';
+import { focusRing } from '@/lib/ui';
 import { cn } from '@/lib/cn';
-
-const focusRing =
-  'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan';
 
 interface FeedbackItem {
   rating: number;
@@ -115,6 +113,16 @@ export function FeedbackSummary({ refreshSignal = 0 }: { refreshSignal?: number 
   return (
     <HudPanel accent="cyan">
       <div className="p-5 sm:p-6">
+        {/*
+          Pre-mounted alert region, as in tx-status: the visible error line and
+          the stale banner both appear in the same render as the failure they
+          announce, and a live region born with its text is routinely missed by
+          screen readers. This span exists from the first render.
+        */}
+        <span role="alert" className="sr-only">
+          {error ? (data ? `${error} Showing the last response loaded.` : error) : ''}
+        </span>
+
         <Eyebrow accent="cyan">WHAT USERS SAY</Eyebrow>
 
         {loading && !data ? (
