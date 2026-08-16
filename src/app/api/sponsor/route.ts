@@ -17,7 +17,6 @@
 import {
   badRequest,
   forbidden,
-  payloadTooLarge,
   rateLimited,
   upstreamUnavailable,
   validationFailed,
@@ -31,6 +30,7 @@ import {
   type RateLimitOptions,
 } from '@/lib/api/rate-limit';
 import { json, route } from '@/lib/api/route';
+import { readJsonBody } from '@/lib/api/validation';
 import {
   buildFeeBump,
   inspectInnerTransaction,
@@ -62,7 +62,16 @@ const READ_LIMIT: RateLimitOptions = { limit: 60, windowMs: 60_000 };
  */
 const WRITE_LIMIT: RateLimitOptions = { limit: 5, windowMs: 10 * 60_000 };
 
-/** Largest request body we will read at all, leaving room for JSON framing. */
+/**
+ * Largest request body we will read at all, leaving room for JSON framing.
+ *
+ * `readJsonBody` defaults to 4KB, which a Soroban envelope routinely exceeds —
+ * the resource footprint of a contract call does not fit — so this route raises
+ * the shared reader's ceiling rather than rejecting legitimate envelopes. Using
+ * the shared reader (rather than a local copy without the check) also means the
+ * content-type gate applies here: the one route that spends money is the last
+ * place to leave the cross-site simple-request path open.
+ */
 const MAX_REQUEST_BYTES = 96 * 1024;
 
 /** Longest XDR string we will consider, in characters. */
@@ -92,7 +101,7 @@ export const POST = route('sponsor.bump', async (request, { requestId }) => {
 
   const headers = enforceRateLimit(request, 'sponsor:write', WRITE_LIMIT);
 
-  const xdr = readXdr(await readBody(request));
+  const xdr = readXdr(await readJsonBody(request, { maxBytes: MAX_REQUEST_BYTES }));
 
   if (!isSponsorConfigured()) {
     // A deployment without a funded sponsor is unavailable, not forbidden: the
@@ -177,35 +186,6 @@ function enforceRateLimit(
   const result = rateLimit(clientKey(request, scope), options);
   if (!result.ok) throw rateLimited(result.retryAfterSeconds);
   return rateLimitHeaders(result);
-}
-
-/**
- * Read and JSON-decode the request body, refusing anything over the byte cap.
- *
- * The shared `readJsonBody` caps bodies at 4KB, which a Soroban envelope
- * routinely exceeds, so this route carries its own ceiling. `content-length` is
- * checked before the stream is touched and the decoded text is measured again
- * in case that header was absent or lying.
- */
-async function readBody(request: Request): Promise<unknown> {
-  const declared = Number(request.headers.get('content-length'));
-  if (Number.isFinite(declared) && declared > MAX_REQUEST_BYTES) {
-    throw payloadTooLarge(MAX_REQUEST_BYTES);
-  }
-
-  const text = await request.text();
-  if (new TextEncoder().encode(text).length > MAX_REQUEST_BYTES) {
-    throw payloadTooLarge(MAX_REQUEST_BYTES);
-  }
-  if (text.trim().length === 0) {
-    throw badRequest('Request body is required.');
-  }
-
-  try {
-    return JSON.parse(text) as unknown;
-  } catch {
-    throw badRequest('Request body must be valid JSON.');
-  }
 }
 
 /**
