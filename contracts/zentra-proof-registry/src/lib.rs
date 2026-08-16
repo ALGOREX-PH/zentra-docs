@@ -58,7 +58,9 @@ impl ProofRegistry {
             ledger: env.ledger().sequence(),
         };
 
-        env.storage().persistent().set(&DataKey::Entry(index), &entry);
+        env.storage()
+            .persistent()
+            .set(&DataKey::Entry(index), &entry);
         env.storage()
             .persistent()
             .extend_ttl(&DataKey::Entry(index), ENTRY_THRESHOLD, ENTRY_BUMP);
