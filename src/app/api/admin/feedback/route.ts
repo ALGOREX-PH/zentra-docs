@@ -17,7 +17,7 @@ import { requireAdmin } from '@/lib/api/auth';
 import { badRequest, notFound, upstreamUnavailable, validationFailed } from '@/lib/api/errors';
 import { log } from '@/lib/api/logger';
 import { requireSameOrigin } from '@/lib/api/origin';
-import { json, route } from '@/lib/api/route';
+import { json, methodNotAllowed, route } from '@/lib/api/route';
 import { readJsonBody } from '@/lib/api/validation';
 import { query } from '@/lib/db';
 
@@ -49,6 +49,9 @@ export const PATCH = route('admin.feedback.moderate', async (request, { requestI
 
   return json({ ok: true, id, hidden });
 });
+
+/** Everything else is a 405 in the standard envelope, not Next's bare default. */
+export const { GET, POST, PUT, DELETE } = methodNotAllowed(['PATCH']);
 
 /**
  * Validate a decoded request body into a `ModerationInput`.
