@@ -23,7 +23,7 @@ import { countRequest, enforceRateLimit, type RateLimitOptions } from '@/lib/api
 import { json, READ_CACHE_CONTROL, route } from '@/lib/api/route';
 import { parseFeedbackInput, readJsonBody, type FeedbackInput } from '@/lib/api/validation';
 import { verifyAnchor } from '@/lib/api/verify-anchor';
-import { sql } from '@/lib/db';
+import { query, sql } from '@/lib/db';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -47,6 +47,16 @@ interface Summary {
   count: number;
   average: number;
   onChain: number;
+}
+
+/** One recent comment as the SELECT below aliases it for the response. */
+interface RecentRow {
+  rating: number;
+  comment: string;
+  wallet: string | null;
+  txHash: string | null;
+  onChain: boolean;
+  createdAt: Date;
 }
 
 export const GET = route('feedback.list', async (request) => {
@@ -141,22 +151,20 @@ function delay(ms: number): Promise<void> {
  * The two statements are issued together because neither depends on the other;
  * over Neon's HTTP driver that halves the round trips the page waits on.
  */
-async function readFeedback(): Promise<{ summary: Summary; recent: unknown[] }> {
-  const db = sql();
-
+async function readFeedback(): Promise<{ summary: Summary; recent: RecentRow[] }> {
   try {
     const [summaryRows, recentRows] = await Promise.all([
       // Moderated rows are excluded from both halves, not just the visible
       // list: a withheld comment must not inflate the count or drag the
       // average either. `feedback_visible_created_at_desc_idx` serves this.
-      db`
+      query<Summary>`
         SELECT count(*)::int AS count,
                coalesce(round(avg(rating)::numeric, 2), 0)::float AS average,
                coalesce(sum(case when on_chain then 1 else 0 end), 0)::int AS "onChain"
         FROM feedback
         WHERE NOT hidden
       `,
-      db`
+      query<RecentRow>`
         SELECT rating,
                comment,
                wallet,
@@ -170,16 +178,14 @@ async function readFeedback(): Promise<{ summary: Summary; recent: unknown[] }> 
       `,
     ]);
 
-    // The driver types a tagged query as one of several row shapes, so the cast
-    // is where we assert what these two statements actually select. An empty
-    // table returns a row of zeroes rather than no row, but defaulting here
-    // keeps the response shape stable even if that ever changes.
-    const summary = (summaryRows as unknown as Summary[])[0] ?? {
+    // An empty table returns a row of zeroes rather than no row, but
+    // defaulting here keeps the response shape stable even if that changes.
+    const summary = summaryRows[0] ?? {
       count: 0,
       average: 0,
       onChain: 0,
     };
-    return { summary, recent: recentRows as unknown as unknown[] };
+    return { summary, recent: recentRows };
   } catch (error) {
     throw storageUnavailable(error, 'feedback.read', STORAGE_MESSAGE);
   }
