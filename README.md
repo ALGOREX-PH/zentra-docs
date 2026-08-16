@@ -19,7 +19,7 @@ before any money moves. The rules stay secret; compliance is provable.
 
 **Repos:** [zentra-docs](https://github.com/ALGOREX-PH/zentra-docs) (this app + contracts) · [zentra-protocol](https://github.com/ALGOREX-PH/zentra-protocol) (circuit + SDK + CLI)
 
-![Zentra landing](docs/screenshots/landing.png)
+![Zentra landing](public/img/landing.png)
 
 ## The one question
 
@@ -545,7 +545,7 @@ you **anchor it on-chain**.
 
 _A real proof being anchored on-chain through Freighter:_
 
-![Anchoring a proof on-chain](docs/screenshots/playground-anchor.png)
+![Anchoring a proof on-chain](public/img/playground-anchor.png)
 
 …and confirmed on-chain — wallet `GA7A…5OQV` invoking `anchor(commitment, 14 signals)`
 on the registry,
