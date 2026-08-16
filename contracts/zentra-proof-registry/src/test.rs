@@ -2,8 +2,9 @@
 use super::*;
 use soroban_sdk::{
     testutils::{Address as _, Events as _},
+    vec,
     xdr::{ScErrorCode, ScErrorType},
-    Address, BytesN, Env, Error,
+    Address, BytesN, Env, Error as SdkError, Event as _,
 };
 
 fn client(env: &Env) -> ProofRegistryClient<'_> {
@@ -98,7 +99,24 @@ fn emits_anchored_event() {
     let commitment = BytesN::from_array(&env, &[7u8; 32]);
 
     client.anchor(&prover, &commitment, &14);
-    assert_eq!(env.events().all().events().len(), 1);
+    let anchored = Anchored {
+        index: 0,
+        prover: prover.clone(),
+        commitment: commitment.clone(),
+        signals: 14,
+        ledger: env.ledger().sequence(),
+    };
+    assert_eq!(
+        env.events().all(),
+        vec![
+            &env,
+            (
+                client.address.clone(),
+                anchored.topics(&env),
+                anchored.data(&env)
+            )
+        ]
+    );
 }
 
 #[test]
@@ -112,7 +130,7 @@ fn anchor_requires_prover_authorization() {
 
     assert_eq!(
         result,
-        Err(Ok(Error::from_type_and_code(
+        Err(Ok(SdkError::from_type_and_code(
             ScErrorType::Context,
             ScErrorCode::InvalidAction,
         )))

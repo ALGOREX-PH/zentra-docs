@@ -30,12 +30,14 @@ pub struct Entry {
 }
 
 /// Emitted whenever a proof is anchored — the frontend streams these for the
-/// live feed (topic `anchored`).
+/// live feed (topic `anchored`, data carries the full entry).
 #[contractevent(topics = ["anchored"])]
 pub struct Anchored {
     pub index: u64,
     pub prover: Address,
     pub commitment: BytesN<32>,
+    pub signals: u32,
+    pub ledger: u32,
 }
 
 #[contract]
@@ -74,6 +76,8 @@ impl ProofRegistry {
             index,
             prover,
             commitment,
+            signals,
+            ledger: entry.ledger,
         }
         .publish(&env);
 
