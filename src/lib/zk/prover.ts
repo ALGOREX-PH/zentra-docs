@@ -176,13 +176,23 @@ function workerError(value: unknown): string {
   return 'The circuit rejected these inputs, so no witness could be computed.';
 }
 
+/**
+ * How long a single worker round-trip may take before the run is declared
+ * hung. Proving is seconds even on slow hardware, so this is generous — it
+ * exists so a wedged worker can never leave the lab stuck at "proving" forever.
+ */
+const PROVING_TIMEOUT_MS = 120_000;
+
 function runWorker(
   input: Record<string, unknown>,
   signal: AbortSignal | undefined,
 ): Promise<ProofResult> {
   return new Promise<ProofResult>((resolve, reject) => {
     const worker = new Worker('/zk-worker.js');
+    // Whatever ends the run — reply, crash, abort, timeout — the worker is
+    // terminated and every pending handler is detached exactly once.
     const stop = () => {
+      clearTimeout(watchdog);
       worker.terminate();
       signal?.removeEventListener('abort', onAbort);
     };
@@ -190,6 +200,15 @@ function runWorker(
       stop();
       reject(new ProofError('proving', 'Proof run cancelled.'));
     };
+    const watchdog = setTimeout(() => {
+      stop();
+      reject(
+        new ProofError(
+          'proving',
+          `The prover did not respond within ${PROVING_TIMEOUT_MS / 1000}s, so the run was abandoned.`,
+        ),
+      );
+    }, PROVING_TIMEOUT_MS);
     signal?.addEventListener('abort', onAbort, { once: true });
 
     worker.onmessage = (event: MessageEvent<unknown>) => {
@@ -204,6 +223,12 @@ function runWorker(
     worker.onerror = (event: ErrorEvent) => {
       stop();
       reject(new ProofError('proving', event.message || 'The proof worker crashed.'));
+    };
+    // A reply that fails structured deserialisation raises messageerror, not
+    // message — without this handler such a run would only die by watchdog.
+    worker.onmessageerror = () => {
+      stop();
+      reject(new ProofError('proving', 'The proof worker sent a reply that could not be read.'));
     };
     worker.postMessage({ input });
   });
