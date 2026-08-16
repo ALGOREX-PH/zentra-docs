@@ -204,13 +204,16 @@ export function ProofEngine() {
         <button type="button" onClick={() => play.current('overspend')} aria-pressed={playing === 'overspend'} className={cn('flex-1 py-2.5 font-mono text-[10px] font-semibold tracking-[0.04em] sm:py-3 sm:text-[11px] sm:tracking-[0.06em] text-denied transition-colors hover:bg-denied/10', running && 'cursor-progress opacity-70')} style={{ background: 'rgba(239,68,68,0.05)' }}>OVER-SPEND</button>
       </div>
 
+      {/* Both lines are updated imperatively during a run; role="status" makes
+          each a polite live region (the scenario-player pattern), so the
+          narration reaches assistive tech without stealing focus. */}
       <div className="px-4 pb-4 pt-3.5">
         <div className="flex items-center gap-2">
-          <span className="font-mono text-[13px] text-cyan">&gt;</span>
-          <span data-z-status className="font-mono text-[13px] text-[#e2e8f0]">composing action</span>
-          <span className="h-3.5 w-2 bg-cyan motion-safe:[animation:zen-blink_1.1s_step-end_infinite]" />
+          <span aria-hidden className="font-mono text-[13px] text-cyan">&gt;</span>
+          <span data-z-status role="status" className="font-mono text-[13px] text-[#e2e8f0]">composing action</span>
+          <span aria-hidden className="h-3.5 w-2 bg-cyan motion-safe:[animation:zen-blink_1.1s_step-end_infinite]" />
         </div>
-        <div data-z-output className="mt-2 font-mono text-[11px] tracking-[0.02em] text-[#7d8ea6]">awaiting submission</div>
+        <div data-z-output role="status" className="mt-2 font-mono text-[11px] tracking-[0.02em] text-[#7d8ea6]">awaiting submission</div>
       </div>
     </div>
   );
