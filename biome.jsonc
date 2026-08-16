@@ -1,0 +1,62 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.5.8/schema.json",
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true
+  },
+  "files": {
+    // Unknown extensions (.svg, .mdx, .rs, .sql, ...) are skipped silently
+    // rather than warned about; the excludes below make the intent explicit.
+    "ignoreUnknown": true,
+    "includes": [
+      "**",
+      // Vendored zk assets (snarkjs worker, wasm glue) — not ours to restyle.
+      "!public/**",
+      // MDX docs content — Biome does not parse MDX; keep it out entirely.
+      "!content/**",
+      // Prose markdown, not JS.
+      "!docs/**",
+      // SQL schema and migrations.
+      "!db/**",
+      // Rust workspace with its own toolchain (cargo fmt / clippy in CI).
+      "!contracts/**",
+      // Generated knowledge-graph output (also gitignored).
+      "!graphify-out/**"
+    ]
+  },
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineWidth": 100
+  },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "single",
+      "jsxQuoteStyle": "double",
+      "semicolons": "always",
+      "trailingCommas": "all",
+      "arrowParentheses": "always"
+    }
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "recommended": true,
+      "correctness": {
+        "useExhaustiveDependencies": "error",
+        "noUnusedImports": "error",
+        "noUnusedVariables": "error"
+      }
+    }
+  },
+  "assist": {
+    "enabled": true,
+    "actions": {
+      "source": {
+        "organizeImports": "on"
+      }
+    }
+  }
+}
