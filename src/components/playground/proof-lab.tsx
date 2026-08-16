@@ -144,6 +144,19 @@ export function ProofLab({ onAnchored }: { onAnchored?: () => void }) {
     }
   }
 
+  /**
+   * Abandon the in-flight run: the AbortController tears the worker down (see
+   * `runWorker`), and the lab returns to a clean idle state, ready to re-run.
+   */
+  function cancel() {
+    run.current?.abort();
+    run.current = null;
+    setPhase('idle');
+    setStage('circuit');
+    setPercent(0);
+    setElapsed(0);
+  }
+
   const proving = phase === 'proving';
 
   return (
@@ -160,22 +173,31 @@ export function ProofLab({ onAnchored }: { onAnchored?: () => void }) {
             agent&apos;s action obeys a private policy — without revealing the policy.
           </p>
 
-          <button
-            type="button"
-            onClick={prove}
-            disabled={proving}
-            aria-busy={proving}
-            className="mt-5 inline-flex items-center gap-2 bg-violet px-5 py-3 font-mono text-xs uppercase tracking-[0.1em] text-white transition-colors hover:bg-[#8b5cf6] disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            <span aria-hidden className="size-1.5 bg-cyan" />
-            {proving
-              ? 'Proving…'
-              : phase === 'error'
+          {proving ? (
+            // While a run is live the primary control becomes its escape hatch,
+            // so a slow or hung prove never leaves the user with a dead button.
+            <button
+              type="button"
+              onClick={cancel}
+              className="mt-5 inline-flex items-center gap-2 border border-denied/50 bg-denied/[0.06] px-5 py-3 font-mono text-xs uppercase tracking-[0.1em] text-denied transition-colors hover:bg-denied/15"
+            >
+              <span aria-hidden className="size-1.5 bg-denied" />
+              Cancel proving
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={prove}
+              className="mt-5 inline-flex items-center gap-2 bg-violet px-5 py-3 font-mono text-xs uppercase tracking-[0.1em] text-white transition-colors hover:bg-[#8b5cf6]"
+            >
+              <span aria-hidden className="size-1.5 bg-cyan" />
+              {phase === 'error'
                 ? 'Try again'
                 : phase === 'done'
                   ? 'Generate another proof'
                   : 'Generate real proof'}
-          </button>
+            </button>
+          )}
 
           {phase === 'idle' ? (
             <p className="mt-4 font-mono text-[11px] text-faint">
