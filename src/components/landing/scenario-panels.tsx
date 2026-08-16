@@ -159,7 +159,9 @@ function Panel({ cfg }: { cfg: LandingPanelConfig }) {
         )}
       </div>
 
-      <div className="mb-4 min-h-[18px] text-center font-mono text-xs tracking-[0.04em]" style={{ color: stat.c }}>{stat.t}</div>
+      {/* The imperative rail is decorative; this line is the accessible narration
+          of the run, announced politely as it changes (see scenario-player). */}
+      <div role="status" className="mb-4 min-h-[18px] text-center font-mono text-xs tracking-[0.04em]" style={{ color: stat.c }}>{stat.t}</div>
       <p className="mb-[18px] text-[13px] leading-relaxed text-muted">{cfg.desc}</p>
       {/* Stays clickable while a run plays — a mid-run click queues a replay,
           and the dimmed cursor-progress treatment signals the wait. */}
