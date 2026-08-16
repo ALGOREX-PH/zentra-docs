@@ -74,6 +74,7 @@ export function ConnectButton() {
     if (!nodes || nodes.length === 0) return;
     const first = nodes[0];
     const last = nodes[nodes.length - 1];
+    if (!first || !last) return;
     if (event.shiftKey && document.activeElement === first) {
       event.preventDefault();
       last.focus();

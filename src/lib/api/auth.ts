@@ -171,7 +171,9 @@ function readCredential(request: Request): string | null {
   if (authorization !== null) {
     const match = BEARER.exec(authorization.trim());
     if (match === null) return null;
-    return nonEmpty(match[1]);
+    // The capture group is non-optional, so a successful match always fills it;
+    // `?? ''` narrows the indexed access and lands in the same "no credential" answer.
+    return nonEmpty(match[1] ?? '');
   }
 
   const header = request.headers.get('x-admin-token');

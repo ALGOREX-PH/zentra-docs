@@ -5,12 +5,12 @@ import { HudPanel } from '@/components/landing/primitives';
 import { cn } from '@/lib/cn';
 import { LANDING_MESSAGES, type LandingKey, OVERSPEND } from '@/lib/scenarios';
 
-const NODES: [number, number][] = [
+const NODES = [
   [90, 70], [260, 70], [430, 70], [260, 170], [90, 270], [260, 270], [430, 270],
-];
-const RECTS: [number, number][] = [
+] as const;
+const RECTS = [
   [81, 61], [251, 61], [421, 61], [251, 161], [81, 261], [251, 261], [421, 261],
-];
+] as const;
 type Scenario = LandingKey;
 
 /** The per-scenario terminal lines, projected from the shared SCENARIOS data. */
@@ -43,10 +43,12 @@ export function ProofEngine() {
 
     const cum = [0];
     for (let i = 1; i < NODES.length; i++) {
-      const a = NODES[i - 1], b = NODES[i];
-      cum.push(cum[i - 1] + Math.hypot(b[0] - a[0], b[1] - a[1]));
+      // Every index is in range by the loop bounds; the guard only narrows the types.
+      const a = NODES[i - 1], b = NODES[i], prev = cum[i - 1];
+      if (!a || !b || prev === undefined) continue;
+      cum.push(prev + Math.hypot(b[0] - a[0], b[1] - a[1]));
     }
-    const total = cum[cum.length - 1];
+    const total = cum[cum.length - 1] ?? 1;
     const len = fill.getTotalLength ? fill.getTotalLength() : total;
     fill.style.transition = 'stroke-dashoffset .55s ease, stroke .3s';
     fill.style.strokeDasharray = String(len);
@@ -68,7 +70,7 @@ export function ProofEngine() {
     const setStatus = (t: string, c?: string) => { const s = q('[data-z-status]'); if (s) { s.textContent = t; s.style.color = c || '#e2e8f0'; } };
     const setOutput = (t: string, c?: string) => { const o = q('[data-z-output]'); if (o) { o.textContent = t; o.style.color = c || '#7d8ea6'; } };
     const activate = (i: number, c: string) => { const r = rect(i); if (r) { r.style.stroke = c; r.style.fill = `${c}26`; r.style.filter = `drop-shadow(0 0 6px ${c})`; } };
-    const advance = (i: number, c?: string) => { fill.style.strokeDashoffset = String(len * (1 - cum[i] / total)); if (c) fill.style.stroke = c; };
+    const advance = (i: number, c?: string) => { fill.style.strokeDashoffset = String(len * (1 - (cum[i] ?? 0) / total)); if (c) fill.style.stroke = c; };
     const reset = () => {
       for (let i = 0; i < 7; i++) { const r = rect(i); if (r) { r.style.stroke = 'rgba(148,163,184,0.6)'; r.style.fill = '#0d111a'; r.style.filter = 'none'; } }
       fill.style.strokeDashoffset = String(len); fill.style.stroke = 'url(#zgrad)';
@@ -78,7 +80,7 @@ export function ProofEngine() {
       setPill('COMPOSING', VS); setStatus('composing action'); setOutput('awaiting submission');
     };
     const burnAt = (i: number) => {
-      const [x, y] = NODES[i];
+      const [x, y] = NODES[i] ?? NODES[0];
       burn.setAttribute('x1', String(x - 17)); burn.setAttribute('y1', String(y - 17));
       burn.setAttribute('x2', String(x + 17)); burn.setAttribute('y2', String(y + 17));
       burn.style.opacity = '1'; cap.style.opacity = '0';
@@ -105,10 +107,12 @@ export function ProofEngine() {
         const fail = scenario !== 'valid' && i === stop;
         activate(i, fail ? R : i >= 4 ? C : V);
         advance(i, fail ? R : undefined);
-        cap.style.transform = `translate(${NODES[i][0]}px,${NODES[i][1]}px)`;
+        // `stop` never exceeds the rail, so the fallback node is never used.
+        const [nx, ny] = NODES[i] ?? NODES[0];
+        cap.style.transform = `translate(${nx}px,${ny}px)`;
         const m = MSG[scenario][i];
         if (m) setStatus(m, fail ? R : '#e2e8f0');
-        setPill(fail ? 'BLOCKED' : PILLS[i], fail ? R : i === 6 ? G : '#c4b5fd');
+        setPill(fail ? 'BLOCKED' : PILLS[i] ?? '', fail ? R : i === 6 ? G : '#c4b5fd');
         if (!reduced) await sleep(640);
       }
       if (alive && !pending) {
