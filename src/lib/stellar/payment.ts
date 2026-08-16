@@ -19,6 +19,40 @@ const SETTLE_POLL_ATTEMPTS = 6;
 const SETTLE_POLL_INTERVAL_MS = 5_000;
 
 /**
+ * How long a fetched network base fee stays fresh. Fees move ledger to ledger,
+ * not keystroke to keystroke — a short memo spares Horizon a round-trip per
+ * build without pinning a stale fee across a real congestion change.
+ */
+const BASE_FEE_TTL_MS = 60_000;
+
+let cachedBaseFee: { value: string; fetchedAt: number } | null = null;
+
+/**
+ * The network's current base fee in stroops, memoised for {@link BASE_FEE_TTL_MS}.
+ *
+ * Horizon's fee stats reflect what ledgers actually charge under load; pinning
+ * the protocol minimum (`BASE_FEE`, 100 stroops) starves the transaction out
+ * of ledgers during surge pricing. When Horizon cannot answer, the minimum is
+ * still a valid bid, so failure degrades to `BASE_FEE` rather than blocking
+ * the payment — and the fallback is memoised too, so an unhealthy Horizon is
+ * not re-asked on every build.
+ */
+async function currentBaseFee(): Promise<string> {
+  const now = Date.now();
+  if (cachedBaseFee && now - cachedBaseFee.fetchedAt < BASE_FEE_TTL_MS) {
+    return cachedBaseFee.value;
+  }
+  let value: string;
+  try {
+    value = String(await horizon.fetchBaseFee());
+  } catch {
+    value = BASE_FEE;
+  }
+  cachedBaseFee = { value, fetchedAt: now };
+  return value;
+}
+
+/**
  * Build an unsigned native-XLM payment transaction, returned as XDR.
  *
  * The source account is loaded fresh so the sequence number is current; the
@@ -31,7 +65,7 @@ export async function buildPaymentXdr(
 ): Promise<string> {
   const account = await horizon.loadAccount(source);
   const tx = new TransactionBuilder(account, {
-    fee: BASE_FEE,
+    fee: await currentBaseFee(),
     networkPassphrase: stellar.networkPassphrase,
   })
     .addOperation(
