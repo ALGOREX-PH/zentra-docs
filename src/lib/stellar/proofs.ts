@@ -8,10 +8,11 @@ import {
   TransactionBuilder,
   xdr,
 } from '@stellar/stellar-sdk';
+import { log } from '@/lib/api/logger';
 import { stellar } from '@/config/stellar';
 import { actionLog } from '@/config/contract';
 import { soroban } from './rpc';
-import { simulateRead } from './action-log';
+import { isChainInt, simulateRead } from './action-log';
 import type { ProofEntry } from './types';
 
 const registry = new Contract(actionLog.proofRegistryId);
@@ -77,8 +78,26 @@ interface RawProof {
   index: bigint | number;
   prover: string;
   commitment: Uint8Array;
-  signals: number;
-  ledger: number;
+  signals: bigint | number;
+  ledger: bigint | number;
+}
+
+/**
+ * Runtime guard for one decoded proof entry. The simulation result crosses an
+ * API boundary — whatever the deployed registry emitted, not what this
+ * interface hopes — so every consumed field is checked before it can reach the
+ * UI. Bytes decode as `Buffer`, which `instanceof Uint8Array` covers.
+ */
+export function isRawProof(value: unknown): value is RawProof {
+  if (typeof value !== 'object' || value === null) return false;
+  const v = value as Record<string, unknown>;
+  return (
+    isChainInt(v.index) &&
+    typeof v.prover === 'string' &&
+    v.commitment instanceof Uint8Array &&
+    isChainInt(v.signals) &&
+    isChainInt(v.ledger)
+  );
 }
 
 /** Recent anchored proofs, newest first. */
@@ -87,14 +106,24 @@ export async function getRecentProofs(limit = 20): Promise<ProofEntry[]> {
     nativeToScVal(limit, { type: 'u32' }),
   ]);
   if (!Array.isArray(value)) return [];
-  return value.map((entry) => {
-    const raw = entry as RawProof;
-    return {
-      index: Number(raw.index),
-      prover: raw.prover,
-      commitment: toHex(new Uint8Array(raw.commitment)),
-      signals: Number(raw.signals),
-      ledger: Number(raw.ledger),
-    };
-  });
+  const proofs: ProofEntry[] = [];
+  let skipped = 0;
+  for (const entry of value) {
+    if (isRawProof(entry)) {
+      proofs.push({
+        index: Number(entry.index),
+        prover: entry.prover,
+        commitment: toHex(new Uint8Array(entry.commitment)),
+        signals: Number(entry.signals),
+        ledger: Number(entry.ledger),
+      });
+    } else {
+      skipped += 1;
+    }
+  }
+  // One structured line per batch — drift belongs in the logs, not as NaN rows.
+  if (skipped > 0) {
+    log('warn', 'proofs.entry_skipped', { source: 'get_recent', skipped, total: value.length });
+  }
+  return proofs;
 }
