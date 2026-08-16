@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { cn } from '@/lib/cn';
+import { HudPanel } from '@/components/landing/primitives';
 import { LANDING_MESSAGES, OVERSPEND, type LandingKey } from '@/lib/scenarios';
 
 const NODES: [number, number][] = [
@@ -142,12 +143,7 @@ export function ProofEngine() {
   }, []);
 
   return (
-    <div ref={root} className="relative border border-violet/35 bg-panel">
-      <span aria-hidden className="absolute -left-px -top-px h-3.5 w-3.5 border-l-2 border-t-2 border-violet" />
-      <span aria-hidden className="absolute -right-px -top-px h-3.5 w-3.5 border-r-2 border-t-2 border-violet" />
-      <span aria-hidden className="absolute -bottom-px -left-px h-3.5 w-3.5 border-b-2 border-l-2 border-violet" />
-      <span aria-hidden className="absolute -bottom-px -right-px h-3.5 w-3.5 border-b-2 border-r-2 border-violet" />
-
+    <HudPanel ref={root} corners={4} className="border-violet/35">
       <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 border-b border-fd-border bg-[#0a0c12] px-4 py-3">
         <div className="flex items-center gap-2.5">
           <span aria-hidden className="size-2 shrink-0 bg-violet" />
@@ -215,6 +211,6 @@ export function ProofEngine() {
         </div>
         <div data-z-output role="status" className="mt-2 font-mono text-[11px] tracking-[0.02em] text-[#7d8ea6]">awaiting submission</div>
       </div>
-    </div>
+    </HudPanel>
   );
 }
