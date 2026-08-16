@@ -60,7 +60,7 @@ impl Feedback {
     pub fn submit(env: Env, author: Address, rating: u32, comment: String) -> Result<u64, Error> {
         author.require_auth();
 
-        if rating < 1 || rating > 5 {
+        if !(1..=5).contains(&rating) {
             return Err(Error::InvalidRating);
         }
 
@@ -121,7 +121,7 @@ impl Feedback {
     pub fn get_recent(env: Env, limit: u32) -> Vec<Entry> {
         let count: u64 = env.storage().instance().get(&DataKey::Count).unwrap_or(0);
         let mut out: Vec<Entry> = vec![&env];
-        let capped = if limit > MAX_RECENT { MAX_RECENT } else { limit };
+        let capped = limit.min(MAX_RECENT);
         if count == 0 || capped == 0 {
             return out;
         }
