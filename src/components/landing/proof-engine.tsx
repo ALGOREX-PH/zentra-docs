@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
+import { LANDING_MESSAGES, OVERSPEND, type LandingKey } from '@/lib/scenarios';
 
 const NODES: [number, number][] = [
   [90, 70], [260, 70], [430, 70], [260, 170], [90, 270], [260, 270], [430, 270],
@@ -8,13 +9,10 @@ const NODES: [number, number][] = [
 const RECTS: [number, number][] = [
   [81, 61], [251, 61], [421, 61], [251, 161], [81, 261], [251, 261], [421, 261],
 ];
-type Scenario = 'valid' | 'injection' | 'overspend';
+type Scenario = LandingKey;
 
-const MSG: Record<Scenario, string[]> = {
-  valid: ['composing action', 'checking private policy', 'generating proof', 'binding to authority state', 'verifying on-chain', 'settling on Stellar', 'receipt emitted'],
-  injection: ['composing action', 'checking private policy'],
-  overspend: ['composing action', 'checking private policy', 'generating proof', 'binding to authority state'],
-};
+/** The per-scenario terminal lines, projected from the shared SCENARIOS data. */
+const MSG = LANDING_MESSAGES;
 const PILLS = ['COMPOSING', 'POLICY', 'PROVING', 'BINDING', 'VERIFYING', 'SETTLING', 'RELEASED'];
 // V/C/G/R tint the rail and nodes; VS is the readable violet used for pill text.
 const V = '#7c3aed', C = '#00e5ff', G = '#22c55e', R = '#ef4444', VS = '#a78bfa';
@@ -76,7 +74,9 @@ export function ProofEngine() {
       if (busy) return; busy = true; reset();
       if (!reduced) await sleep(150);
       cap.style.opacity = '1';
-      const stop = scenario === 'valid' ? 6 : scenario === 'injection' ? 1 : 3;
+      // The run always halts on its last shared rail entry — a blocked
+      // scenario simply carries a shorter rail.
+      const stop = MSG[scenario].length - 1;
       for (let i = 0; i <= stop; i++) {
         if (!alive) { busy = false; return; }
         const fail = scenario !== 'valid' && i === stop;
@@ -95,7 +95,8 @@ export function ProofEngine() {
       } else if (scenario === 'injection') {
         burnAt(1); setStatus('recipient not in approved set', R); setOutput('no proof generated · no payment moved', R);
       } else {
-        burnAt(3); setStatus('state mismatch', R); setOutput('claimed prev_spent=0  ≠  chain spent=500  ·  no payment moved', R);
+        burnAt(3); setStatus('state mismatch', R);
+        setOutput(`claimed prev_spent=${OVERSPEND.claimed}  ≠  chain spent=${OVERSPEND.chainSpent}  ·  no payment moved`, R);
       }
       busy = false;
     };
