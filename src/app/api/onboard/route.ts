@@ -15,16 +15,12 @@
  * driver message that could carry the connection string.
  */
 
-import { conflict, rateLimited, upstreamUnavailable } from '@/lib/api/errors';
+import { isUniqueViolation, storageUnavailable } from '@/lib/api/db-errors';
+import { conflict } from '@/lib/api/errors';
 import { log } from '@/lib/api/logger';
 import { requireSameOrigin } from '@/lib/api/origin';
-import {
-  clientKey,
-  rateLimit,
-  rateLimitHeaders,
-  type RateLimitOptions,
-} from '@/lib/api/rate-limit';
-import { json, route } from '@/lib/api/route';
+import { countRequest, enforceRateLimit, type RateLimitOptions } from '@/lib/api/rate-limit';
+import { json, READ_CACHE_CONTROL, route } from '@/lib/api/route';
 import { parseUserInput, readJsonBody, type UserInput } from '@/lib/api/validation';
 import { sql } from '@/lib/db';
 
@@ -41,17 +37,8 @@ const READ_LIMIT: RateLimitOptions = { limit: 60, windowMs: 60_000 };
  */
 const WRITE_LIMIT: RateLimitOptions = { limit: 3, windowMs: 10 * 60_000 };
 
-/**
- * How long a CDN may serve the counter before revalidating.
- *
- * The campaign page shows a live number, so the window is short;
- * `stale-while-revalidate` absorbs a launch-day spike without ever letting the
- * figure drift far behind the table.
- */
-const READ_CACHE_CONTROL = 'public, s-maxage=30, stale-while-revalidate=120';
-
-/** Postgres unique-violation code, raised by the email and wallet indexes. */
-const UNIQUE_VIOLATION = '23505';
+/** What the client is told when a query fails; the real error goes to the log. */
+const STORAGE_MESSAGE = 'Signup storage is temporarily unavailable.';
 
 export const GET = route('onboard.count', async (request) => {
   countRequest(request, 'onboard:read', READ_LIMIT);
@@ -87,37 +74,6 @@ export const POST = route('onboard.create', async (request, { requestId }) => {
   return json({ ok: true }, { status: 201, headers });
 });
 
-/**
- * Count one request against the caller's budget, or reject it with a 429.
- *
- * Returns the `X-RateLimit-*` headers to attach to a successful response so a
- * well-behaved client can back off before it is turned away.
- */
-function enforceRateLimit(
-  request: Request,
-  scope: string,
-  options: RateLimitOptions,
-): Record<string, string> {
-  const result = rateLimit(clientKey(request, scope), options);
-  if (!result.ok) throw rateLimited(result.retryAfterSeconds);
-  return rateLimitHeaders(result);
-}
-
-/**
- * Count one request without reporting the budget back.
- *
- * The counter response is `public` and cached at the edge, and `X-RateLimit-*`
- * describes one caller — so attaching them here would store one visitor's
- * remaining allowance in a shared cache and hand it to every visitor served
- * from that entry until it expired. Counters that describe nobody are worse
- * than no counters, and the response they belong on is the 429, which the
- * wrapper marks `no-store` and which still carries `Retry-After`.
- */
-function countRequest(request: Request, scope: string, options: RateLimitOptions): void {
-  const result = rateLimit(clientKey(request, scope), options);
-  if (!result.ok) throw rateLimited(result.retryAfterSeconds);
-}
-
 /** Fetch the number of registered users, and nothing else about them. */
 async function readUserCount(): Promise<number> {
   const db = sql();
@@ -130,7 +86,7 @@ async function readUserCount(): Promise<number> {
     // response shape stable even if that ever changes.
     return (rows as unknown as { count: number }[])[0]?.count ?? 0;
   } catch (error) {
-    throw storageUnavailable(error, 'onboard.read');
+    throw storageUnavailable(error, 'onboard.read', STORAGE_MESSAGE);
   }
 }
 
@@ -152,27 +108,6 @@ async function insertUser(input: UserInput): Promise<void> {
     if (isUniqueViolation(error)) {
       throw conflict('This email or wallet is already registered.');
     }
-    throw storageUnavailable(error, 'onboard.write');
+    throw storageUnavailable(error, 'onboard.write', STORAGE_MESSAGE);
   }
-}
-
-/**
- * Log the real database failure and return the error to send in its place.
- *
- * Driver messages routinely quote the failing statement and the connection
- * target — and here the statement carries the signup itself — so the client
- * only ever learns that storage is unavailable.
- */
-function storageUnavailable(error: unknown, event: string) {
-  log('error', event, { err: error });
-  return upstreamUnavailable('Signup storage is temporarily unavailable.');
-}
-
-/** Whether `error` is the Postgres unique-violation this table can raise. */
-function isUniqueViolation(error: unknown): boolean {
-  return (
-    typeof error === 'object' &&
-    error !== null &&
-    (error as { code?: unknown }).code === UNIQUE_VIOLATION
-  );
 }
