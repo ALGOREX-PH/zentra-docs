@@ -29,7 +29,10 @@ fn submits_and_summarizes() {
         recent.get(0).unwrap().comment,
         String::from_str(&env, "could be better")
     );
-    assert_eq!(recent.get(1).unwrap().comment, String::from_str(&env, "love it"));
+    assert_eq!(
+        recent.get(1).unwrap().comment,
+        String::from_str(&env, "love it")
+    );
 }
 
 #[test]
@@ -84,8 +87,14 @@ fn recent_skipped_entries_do_not_count_toward_limit() {
 
     let recent = client.get_recent(&2);
     assert_eq!(recent.len(), 2);
-    assert_eq!(recent.get(0).unwrap().comment, String::from_str(&env, "three"));
-    assert_eq!(recent.get(1).unwrap().comment, String::from_str(&env, "one"));
+    assert_eq!(
+        recent.get(0).unwrap().comment,
+        String::from_str(&env, "three")
+    );
+    assert_eq!(
+        recent.get(1).unwrap().comment,
+        String::from_str(&env, "one")
+    );
 }
 
 #[test]

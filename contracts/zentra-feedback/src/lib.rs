@@ -82,13 +82,20 @@ impl Feedback {
             ledger: env.ledger().sequence(),
         };
 
-        env.storage().persistent().set(&DataKey::Entry(index), &entry);
+        env.storage()
+            .persistent()
+            .set(&DataKey::Entry(index), &entry);
         env.storage()
             .persistent()
             .extend_ttl(&DataKey::Entry(index), ENTRY_THRESHOLD, ENTRY_BUMP);
 
         env.storage().instance().set(&DataKey::Count, &(index + 1));
-        let sum: u64 = env.storage().instance().get(&DataKey::RatingSum).unwrap_or(0) + rating as u64;
+        let sum: u64 = env
+            .storage()
+            .instance()
+            .get(&DataKey::RatingSum)
+            .unwrap_or(0)
+            + rating as u64;
         env.storage().instance().set(&DataKey::RatingSum, &sum);
         env.storage()
             .instance()
@@ -113,7 +120,11 @@ impl Feedback {
     /// these to show the average.
     pub fn summary(env: Env) -> (u64, u64) {
         let count: u64 = env.storage().instance().get(&DataKey::Count).unwrap_or(0);
-        let sum: u64 = env.storage().instance().get(&DataKey::RatingSum).unwrap_or(0);
+        let sum: u64 = env
+            .storage()
+            .instance()
+            .get(&DataKey::RatingSum)
+            .unwrap_or(0);
         (count, sum)
     }
 
