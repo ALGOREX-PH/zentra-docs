@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { ZentraMark } from '@/components/brand/zentra-mark';
+import { Eyebrow } from '@/components/landing/primitives';
 
 const Check = () => (
   <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden>
@@ -35,10 +36,7 @@ export function TheGap() {
   return (
     <section aria-labelledby="trust-gap-title" className="border-t border-violet/20 px-5 py-14 sm:px-7 sm:py-20">
       <div className="mx-auto max-w-[920px]">
-        <div className="mb-5 flex items-center gap-3.5">
-          <span className="font-mono text-xs tracking-[0.12em] text-violet-soft">[ 01 ] THE TRUST GAP</span>
-          <span className="h-px flex-1 bg-violet/25" />
-        </div>
+        <Eyebrow index="01">THE TRUST GAP</Eyebrow>
         <h2 id="trust-gap-title" className="font-display text-3xl font-bold tracking-[-0.025em] sm:text-[40px]">
           Three questions in agentic finance.
         </h2>
