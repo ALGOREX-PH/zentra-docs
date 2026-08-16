@@ -157,7 +157,7 @@ console.log(result.status); // released`;
                       height="14"
                       viewBox="0 0 15 15"
                       className="shrink-0"
-                      aria-hidden
+                      aria-hidden="true"
                     >
                       <polyline
                         points="2,8 6,12 13,3"

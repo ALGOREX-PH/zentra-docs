@@ -19,7 +19,7 @@ export function WhatThisProves() {
                   height="14"
                   viewBox="0 0 15 15"
                   className="shrink-0 mt-0.5"
-                  aria-hidden
+                  aria-hidden="true"
                 >
                   <polyline
                     points="2,8 6,12 13,3"

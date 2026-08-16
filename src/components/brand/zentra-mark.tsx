@@ -43,6 +43,7 @@ export function ZentraMark({
     : { 'aria-hidden': true };
 
   return (
+    // biome-ignore lint/a11y/noSvgWithoutTitle: the a11y spread above carries either role="img" + aria-label + <title> (named) or aria-hidden (decorative); the rule cannot see through the spread.
     <svg
       width={size}
       height={size}

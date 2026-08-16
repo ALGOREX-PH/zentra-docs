@@ -129,14 +129,14 @@ function Panel({ cfg }: { cfg: LandingPanelConfig }) {
 
       <div className="mb-1.5 flex h-[92px] items-center justify-center">
         {outcome === 'valid' && (
-          <svg width="70" height="70" viewBox="0 0 70 70" className="motion-safe:[animation:zen-seal-pulse_1.3s_ease-out]" aria-hidden>
+          <svg width="70" height="70" viewBox="0 0 70 70" className="motion-safe:[animation:zen-seal-pulse_1.3s_ease-out]" aria-hidden="true">
             <polygon points="35,5 60,20 60,50 35,65 10,50 10,20" fill="rgba(34,197,94,0.06)" stroke="#22c55e" strokeWidth="2" />
             <polyline points="27,35 32,41 45,27" fill="none" stroke="#22c55e" strokeWidth="2.6" strokeLinecap="square" strokeLinejoin="miter" />
           </svg>
         )}
         {outcome === 'injection' && (
           <div className="flex flex-col items-center gap-2" aria-hidden>
-            <svg width="54" height="54" viewBox="0 0 56 56">
+            <svg width="54" height="54" viewBox="0 0 56 56" aria-hidden="true">
               <rect x="6" y="6" width="44" height="44" fill="rgba(239,68,68,0.06)" stroke="#ef4444" strokeWidth="2" />
               <line x1="18" y1="18" x2="38" y2="38" stroke="#ef4444" strokeWidth="3" strokeLinecap="square" />
               <line x1="38" y1="18" x2="18" y2="38" stroke="#ef4444" strokeWidth="3" strokeLinecap="square" />

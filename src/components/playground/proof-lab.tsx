@@ -291,7 +291,7 @@ export function ProofLab({ onAnchored }: { onAnchored?: () => void }) {
                   <Point label="π_c (G1)" values={result.proof.pi_c} />
                 </dl>
                 <div className="mt-4 flex flex-wrap items-center gap-x-2 gap-y-1 border border-live/40 bg-live/[0.06] px-3 py-2 font-mono text-xs text-live">
-                  <svg width="14" height="14" viewBox="0 0 15 15" aria-hidden>
+                  <svg width="14" height="14" viewBox="0 0 15 15" aria-hidden="true">
                     <polyline
                       points="2,8 6,12 13,3"
                       fill="none"

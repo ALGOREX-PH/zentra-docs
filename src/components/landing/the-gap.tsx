@@ -3,7 +3,7 @@ import { ZentraMark } from '@/components/brand/zentra-mark';
 import { Eyebrow } from '@/components/landing/primitives';
 
 const Check = () => (
-  <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden>
+  <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true">
     <polyline
       points="2,7 6,11 12,3"
       fill="none"
@@ -15,7 +15,7 @@ const Check = () => (
   </svg>
 );
 const Cross = () => (
-  <svg width="12" height="12" viewBox="0 0 13 13" aria-hidden>
+  <svg width="12" height="12" viewBox="0 0 13 13" aria-hidden="true">
     <line x1="3" y1="3" x2="10" y2="10" stroke="#ef4444" strokeWidth="2.2" strokeLinecap="square" />
     <line x1="10" y1="3" x2="3" y2="10" stroke="#ef4444" strokeWidth="2.2" strokeLinecap="square" />
   </svg>
