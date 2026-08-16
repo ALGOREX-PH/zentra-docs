@@ -3,6 +3,7 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import Link from 'next/link';
 import { ConnectButton } from '@/components/app/connect-button';
+import { StarRating } from '@/components/app/star-rating';
 import { WalletProvider, useWallet } from '@/components/app/wallet-provider';
 import { readApiError } from '@/lib/api/client';
 import { HudPanel, Eyebrow } from '@/components/landing/primitives';
@@ -661,36 +662,7 @@ function SignupForm() {
             <span id={`${ids}-rating-label`} className={cn(labelClass, 'mt-4')}>
               Rating (optional)
             </span>
-            {/*
-              A group rather than a radiogroup: these stay ordinary buttons, so
-              every star keeps its own tab stop and Enter/Space, and the filled
-              state is carried by aria-pressed instead of a glyph nobody hears.
-            */}
-            <div
-              role="group"
-              aria-labelledby={`${ids}-rating-label`}
-              className="flex items-center gap-1"
-            >
-              {[1, 2, 3, 4, 5].map((value) => {
-                const filled = value <= rating;
-                return (
-                  <button
-                    key={value}
-                    type="button"
-                    aria-label={`Rate ${value} of 5`}
-                    aria-pressed={filled}
-                    onClick={() => setRating(value)}
-                    className={cn(
-                      'text-2xl leading-none transition-colors',
-                      filled ? 'text-cyan' : 'text-faint',
-                      focusRing,
-                    )}
-                  >
-                    {filled ? '★' : '☆'}
-                  </button>
-                );
-              })}
-            </div>
+            <StarRating value={rating} onChange={setRating} labelledBy={`${ids}-rating-label`} />
 
             <label htmlFor={`${ids}-note`} className={cn(labelClass, 'mt-4')}>
               Note (optional)
