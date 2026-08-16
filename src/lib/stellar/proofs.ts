@@ -102,9 +102,7 @@ export function isRawProof(value: unknown): value is RawProof {
 
 /** Recent anchored proofs, newest first. */
 export async function getRecentProofs(limit = 20): Promise<ProofEntry[]> {
-  const value = await simulateRead(registry, 'get_recent', [
-    nativeToScVal(limit, { type: 'u32' }),
-  ]);
+  const value = await simulateRead(registry, 'get_recent', [nativeToScVal(limit, { type: 'u32' })]);
   if (!Array.isArray(value)) return [];
   const proofs: ProofEntry[] = [];
   let skipped = 0;

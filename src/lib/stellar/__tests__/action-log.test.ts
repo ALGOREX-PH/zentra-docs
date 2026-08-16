@@ -224,9 +224,9 @@ describe('simulateRead', () => {
       error: 'sim exploded',
     } as unknown as SorobanRpc.Api.SimulateTransactionResponse);
 
-    await expect(
-      simulateRead(new Contract(actionLog.contractId), 'get_count', []),
-    ).rejects.toThrow('sim exploded');
+    await expect(simulateRead(new Contract(actionLog.contractId), 'get_count', [])).rejects.toThrow(
+      'sim exploded',
+    );
   });
 
   it('returns null when the simulation succeeds without a return value', async () => {

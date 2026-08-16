@@ -127,9 +127,7 @@ describe('validate', () => {
   });
 
   it('carries the wallet grading through as the field error', () => {
-    expect(validate({ ...GOOD, wallet: '' }).wallet).toBe(
-      'Enter your Stellar testnet account id.',
-    );
+    expect(validate({ ...GOOD, wallet: '' }).wallet).toBe('Enter your Stellar testnet account id.');
     expect(validate({ ...GOOD, wallet: 'S' }).wallet).toMatch(/secret key/i);
   });
 

@@ -3,9 +3,7 @@ import { describeError, InvokeFailedError, SubmitTimeoutError } from '@/lib/stel
 
 describe('describeError', () => {
   it('treats wallet rejections as a declined signature', () => {
-    expect(describeError(new Error('User declined the request'))).toMatch(
-      /declined/i,
-    );
+    expect(describeError(new Error('User declined the request'))).toMatch(/declined/i);
   });
 
   it('explains an insufficient-balance transaction code', () => {

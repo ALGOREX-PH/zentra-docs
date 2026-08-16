@@ -96,7 +96,10 @@ export function inspectWallet(value: string): WalletState {
   // rather than inferring validity from three checks that happen to agree.
   return STELLAR_ACCOUNT_ID.test(value)
     ? { kind: 'valid' }
-    : { kind: 'invalid', reason: `Enter a Stellar account id — G followed by ${WALLET_LENGTH - 1} characters.` };
+    : {
+        kind: 'invalid',
+        reason: `Enter a Stellar account id — G followed by ${WALLET_LENGTH - 1} characters.`,
+      };
 }
 
 /** The reason a wallet state cannot be submitted, or null when it can. */
@@ -138,7 +141,8 @@ export function validate({ name, email, wallet, note }: Values): FieldErrors {
 
   const trimmedName = name.trim();
   if (trimmedName.length < 1) errors.name = 'Enter your name.';
-  else if (trimmedName.length > MAX_NAME) errors.name = `Name must be ${MAX_NAME} characters or fewer.`;
+  else if (trimmedName.length > MAX_NAME)
+    errors.name = `Name must be ${MAX_NAME} characters or fewer.`;
 
   if (!EMAIL.test(email.trim())) errors.email = 'Enter a valid email address.';
 

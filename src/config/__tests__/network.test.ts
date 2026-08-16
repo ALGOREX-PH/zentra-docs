@@ -54,9 +54,7 @@ describe('PROFILES', () => {
   it('carries the passphrase constants from the SDK', () => {
     expect(PROFILES.testnet.networkPassphrase).toBe(Networks.TESTNET);
     expect(PROFILES.public.networkPassphrase).toBe(Networks.PUBLIC);
-    expect(PROFILES.testnet.networkPassphrase).not.toBe(
-      PROFILES.public.networkPassphrase,
-    );
+    expect(PROFILES.testnet.networkPassphrase).not.toBe(PROFILES.public.networkPassphrase);
   });
 
   it('has a friendbot on testnet and none on mainnet', () => {

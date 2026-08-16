@@ -12,7 +12,11 @@ describe('isApiErrorBody', () => {
   it('is true for an envelope carrying details', () => {
     expect(
       isApiErrorBody({
-        error: { code: 'validation_failed', message: 'Validation failed.', details: { rating: 'bad' } },
+        error: {
+          code: 'validation_failed',
+          message: 'Validation failed.',
+          details: { rating: 'bad' },
+        },
       }),
     ).toBe(true);
   });
@@ -79,7 +83,9 @@ describe('readApiError', () => {
 
   it('returns just the message when details is an empty object', async () => {
     const response = new Response(
-      JSON.stringify({ error: { code: 'internal', message: 'Internal server error.', details: {} } }),
+      JSON.stringify({
+        error: { code: 'internal', message: 'Internal server error.', details: {} },
+      }),
       { status: 500, headers: JSON_HEADERS },
     );
 

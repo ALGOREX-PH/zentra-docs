@@ -70,9 +70,7 @@ export function hasAuthor(value: unknown): value is { author: string } {
 
 /** Authors of recent on-chain feedback — folded into the distinct-wallet count. */
 export async function getFeedbackAuthors(limit = 20): Promise<string[]> {
-  const value = await simulateRead(feedback, 'get_recent', [
-    nativeToScVal(limit, { type: 'u32' }),
-  ]);
+  const value = await simulateRead(feedback, 'get_recent', [nativeToScVal(limit, { type: 'u32' })]);
   if (!Array.isArray(value)) return [];
   const authors: string[] = [];
   let skipped = 0;

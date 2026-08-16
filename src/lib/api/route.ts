@@ -97,17 +97,14 @@ export function route(
       } catch {
         // The catch block is the last line of defence, so it may not throw
         // either — fall back to a hand-written envelope with no dependencies.
-        return new Response(
-          '{"error":{"code":"internal","message":"Internal server error."}}',
-          {
-            status: 500,
-            headers: {
-              'content-type': 'application/json',
-              'cache-control': 'no-store',
-              'x-request-id': requestId,
-            },
+        return new Response('{"error":{"code":"internal","message":"Internal server error."}}', {
+          status: 500,
+          headers: {
+            'content-type': 'application/json',
+            'cache-control': 'no-store',
+            'x-request-id': requestId,
           },
-        );
+        });
       }
     }
   };
@@ -181,11 +178,7 @@ export function methodNotAllowed(
  */
 function resolveRequestId(request: Request): string {
   const inbound = request.headers.get('x-request-id')?.trim();
-  if (
-    inbound &&
-    inbound.length <= MAX_INBOUND_REQUEST_ID &&
-    REQUEST_ID_ALPHABET.test(inbound)
-  ) {
+  if (inbound && inbound.length <= MAX_INBOUND_REQUEST_ID && REQUEST_ID_ALPHABET.test(inbound)) {
     return inbound;
   }
   return newRequestId();

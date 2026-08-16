@@ -1,10 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import {
-  ADMIN_TOKEN_ENV,
-  isAdminConfigured,
-  requireAdmin,
-  timingSafeEqual,
-} from '@/lib/api/auth';
+import { ADMIN_TOKEN_ENV, isAdminConfigured, requireAdmin, timingSafeEqual } from '@/lib/api/auth';
 import type { ApiError } from '@/lib/api/errors';
 import { resetRateLimiter } from '@/lib/api/rate-limit';
 
@@ -132,9 +127,9 @@ describe('requireAdmin with a valid credential', () => {
   });
 
   it('accepts an uppercase BEARER scheme', () => {
-    expect(
-      requireAdmin(requestWith({ authorization: `BEARER ${SECRET}` }), REQUEST_ID),
-    ).toEqual({ authorized: true });
+    expect(requireAdmin(requestWith({ authorization: `BEARER ${SECRET}` }), REQUEST_ID)).toEqual({
+      authorized: true,
+    });
   });
 
   it('accepts x-admin-token when authorization is absent', () => {

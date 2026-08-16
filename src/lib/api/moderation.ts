@@ -78,7 +78,7 @@ const LEET_SUBSTITUTIONS: Record<string, string> = {
   '4': 'a',
   '5': 's',
   '@': 'a',
-  '$': 's',
+  $: 's',
 };
 
 /** Combining marks left behind by an NFD decomposition. */

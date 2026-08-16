@@ -32,7 +32,9 @@ describe('reserveSponsorBudget', () => {
 
     expect(result).toEqual({ ok: true });
     expect(calls).toBe(1);
-    expect(statement).toMatch(/INSERT INTO sponsor_spend[\s\S]*ON CONFLICT[\s\S]*WHERE[\s\S]*RETURNING/i);
+    expect(statement).toMatch(
+      /INSERT INTO sponsor_spend[\s\S]*ON CONFLICT[\s\S]*WHERE[\s\S]*RETURNING/i,
+    );
     expect(values).toContain(`G${'A'.repeat(55)}`);
     // The global charge is a CTE-gated second INSERT, not an independent row:
     // it may only land WHERE the source charge already did.

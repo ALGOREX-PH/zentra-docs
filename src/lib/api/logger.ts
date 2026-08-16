@@ -16,8 +16,7 @@ export interface LogFields {
 }
 
 /** Keys whose values are never safe to write to a log drain, at any depth. */
-const SENSITIVE_KEY =
-  /(secret|token|password|key|authorization|cookie|database_url|connection)/i;
+const SENSITIVE_KEY = /(secret|token|password|key|authorization|cookie|database_url|connection)/i;
 
 /**
  * Whether `key` carries personal data. Applied only below the top level.

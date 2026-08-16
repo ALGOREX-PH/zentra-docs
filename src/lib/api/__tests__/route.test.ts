@@ -210,7 +210,10 @@ describe('methodNotAllowed', () => {
     const { DELETE } = methodNotAllowed(['GET']);
 
     const response = await DELETE(
-      new Request('https://x.test/api', { method: 'DELETE', headers: { 'x-request-id': 'trace-405' } }),
+      new Request('https://x.test/api', {
+        method: 'DELETE',
+        headers: { 'x-request-id': 'trace-405' },
+      }),
     );
 
     expect(response.headers.get('x-request-id')).toBe('trace-405');

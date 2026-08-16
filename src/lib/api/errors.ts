@@ -118,11 +118,7 @@ export function conflict(message: string): ApiError {
 
 /** 413 — the request body exceeded the byte ceiling for this route. */
 export function payloadTooLarge(maxBytes: number): ApiError {
-  return new ApiError(
-    413,
-    'payload_too_large',
-    `Request body exceeds the ${maxBytes} byte limit.`,
-  );
+  return new ApiError(413, 'payload_too_large', `Request body exceeds the ${maxBytes} byte limit.`);
 }
 
 /**
@@ -133,11 +129,7 @@ export function payloadTooLarge(maxBytes: number): ApiError {
  * code can correct the request rather than the data.
  */
 export function unsupportedMediaType(expected: string): ApiError {
-  return new ApiError(
-    415,
-    'unsupported_media_type',
-    `Request body must be sent as ${expected}.`,
-  );
+  return new ApiError(415, 'unsupported_media_type', `Request body must be sent as ${expected}.`);
 }
 
 /** 503 — a dependency we call out to is down or unreachable. */

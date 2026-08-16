@@ -78,7 +78,8 @@ export const PITCH_SLIDES: PitchSlide[] = [
     ],
     stat: {
       value: 'After the fact',
-      caption: 'The default control for agentic payments today — a trail written once the money has already moved.',
+      caption:
+        'The default control for agentic payments today — a trail written once the money has already moved.',
     },
     note: 'The three failure modes named here are the three the protocol demo exercises end to end on testnet: a legitimate payment settles, a prompt-injected payment to a recipient outside the allowlist cannot produce a proof at all, and an agent that understates prior spend is rejected on-chain (src/lib/scenarios.ts; the zentra-protocol README records the settled and blocked cases).',
   },
@@ -108,7 +109,8 @@ export const PITCH_SLIDES: PitchSlide[] = [
     ],
     stat: {
       value: '14 public signals',
-      caption: 'The entire public surface of a proof. Everything else stays in the prover, in the user’s browser.',
+      caption:
+        'The entire public surface of a proof. Everything else stays in the prover, in the user’s browser.',
     },
     note: 'The scope is deliberately narrow: Zentra is a proof-of-compliance and settlement layer, not an identity system, an oracle, a policy author, or a key manager (docs/start-here/what-zentra-is-not).',
   },
@@ -164,7 +166,8 @@ export const PITCH_SLIDES: PitchSlide[] = [
     ],
     stat: {
       value: `${protocol.cpuBudget} CPU`,
-      caption: 'What the repo reports for a full on-chain verification — the MSM plus the multi-pairing — against the per-transaction budget on testnet.',
+      caption:
+        'What the repo reports for a full on-chain verification — the MSM plus the multi-pairing — against the per-transaction budget on testnet.',
     },
     note: `The ${protocol.cpuBudget} figure is quoted, not re-measured for this deck: it is recorded in src/config/protocol.ts and stated in the zentra-protocol README as the cost of verifying a real proof against the 100M per-transaction budget on testnet, measured against the verifier in that repository. Nothing in this application re-verifies a pairing on-chain today.`,
   },
@@ -228,7 +231,8 @@ export const PITCH_SLIDES: PitchSlide[] = [
     ],
     stat: {
       value: '5.00 / 5',
-      caption: '13 published submissions from 12 distinct wallets; 13 anchored on-chain to the feedback contract.',
+      caption:
+        '13 published submissions from 12 distinct wallets; 13 anchored on-chain to the feedback contract.',
     },
     note: 'Testnet only and unaudited. The feedback figures are a snapshot — /metrics recomputes them live — and cover published submissions only: one abusive entry is withheld by moderation and excluded from both the count and the average. The distinct-wallet count is a lower bound, derived from the 20 most recent action-log entries and feedback authors. The 201 Vitest tests cover pure modules only; there are no component or end-to-end tests. Anchoring is a commitment, not on-chain re-verification: the deployed verifying key predates the current circuit build.',
   },

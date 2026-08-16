@@ -112,9 +112,7 @@ export async function getCount(): Promise<number> {
 
 /** The most recent entries, newest first. */
 export async function getRecent(limit = 20): Promise<ActionEntry[]> {
-  const value = await simulateRead(contract, 'get_recent', [
-    nativeToScVal(limit, { type: 'u32' }),
-  ]);
+  const value = await simulateRead(contract, 'get_recent', [nativeToScVal(limit, { type: 'u32' })]);
   if (!Array.isArray(value)) return [];
   return collectEntries(value, 'get_recent');
 }

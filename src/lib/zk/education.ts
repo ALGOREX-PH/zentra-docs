@@ -146,7 +146,10 @@ export const SIGNALS: SignalInfo[] = [
 export const PRIVATE_INPUTS: { label: string; desc: string }[] = [
   { label: 'Max amount', desc: 'The largest single payment the policy allows.' },
   { label: 'Daily limit', desc: 'The most the agent may spend per window.' },
-  { label: 'Allowed vendors', desc: 'The full approved-recipient list (only the Merkle root is public).' },
+  {
+    label: 'Allowed vendors',
+    desc: 'The full approved-recipient list (only the Merkle root is public).',
+  },
   { label: 'Policy salt', desc: 'Randomness that hides the policy behind its commitment.' },
   { label: 'Invoice', desc: 'The invoice pre-image behind the invoice hash.' },
 ];
@@ -181,8 +184,7 @@ export const PIPELINE: PipelineStep[] = [
 /** What the run is actually doing, per observable phase. */
 export const STAGE_STATUS: Record<ProofStage, string> = {
   circuit: 'Downloading the compiled circuit, proving key and verification key.',
-  proving:
-    'Computing the witness, proving and verifying — in a Web Worker, off the main thread.',
+  proving: 'Computing the witness, proving and verifying — in a Web Worker, off the main thread.',
 };
 
 export interface GlossaryTerm {

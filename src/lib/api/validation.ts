@@ -399,11 +399,7 @@ export async function readJsonBody(
  * spaces does not leave a double space behind.
  */
 function cleanComment(value: string): string {
-  return value
-    .replace(/\s+/g, ' ')
-    .replace(CONTROL_CHARACTERS, '')
-    .replace(/\s+/g, ' ')
-    .trim();
+  return value.replace(/\s+/g, ' ').replace(CONTROL_CHARACTERS, '').replace(/\s+/g, ' ').trim();
 }
 
 /** Whether an optional field was supplied as something other than an empty value. */

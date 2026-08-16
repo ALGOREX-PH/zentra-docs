@@ -1,10 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {
-  truncateAddress,
-  isValidPublicKey,
-  isValidAmount,
-  formatXlm,
-} from '@/lib/stellar/format';
+import { truncateAddress, isValidPublicKey, isValidAmount, formatXlm } from '@/lib/stellar/format';
 
 const VALID_KEY = 'GDUY4FYOA7C5FF45OL5HN2IMVE5CDXO2DZZQNKQXVVDRNCXOSDRHY7LO';
 

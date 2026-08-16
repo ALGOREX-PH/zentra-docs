@@ -1,10 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  LANDING_MESSAGES,
-  LANDING_PANELS,
-  OVERSPEND,
-  SCENARIOS,
-} from '@/lib/scenarios';
+import { LANDING_MESSAGES, LANDING_PANELS, OVERSPEND, SCENARIOS } from '@/lib/scenarios';
 
 /**
  * The landing strip's panel configs and terminal lines are projections of
@@ -68,9 +63,7 @@ describe('LANDING_MESSAGES', () => {
 
   it('takes each line list from the scenario rail', () => {
     for (const s of SCENARIOS) {
-      expect(LANDING_MESSAGES[s.landing.key]).toEqual(
-        s.landing.rail.map((step) => step.engine),
-      );
+      expect(LANDING_MESSAGES[s.landing.key]).toEqual(s.landing.rail.map((step) => step.engine));
     }
   });
 });
