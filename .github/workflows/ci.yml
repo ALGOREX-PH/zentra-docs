@@ -13,32 +13,23 @@ concurrency:
 jobs:
   contracts:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: contracts
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
-      - name: Cache cargo
-        uses: actions/cache@v4
         with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            contracts/zentra-reputation/target
-            contracts/zentra-action-log/target
-            contracts/zentra-feedback/target
-            contracts/zentra-proof-registry/target
-          key: cargo-${{ runner.os }}-${{ hashFiles('contracts/*/Cargo.toml') }}
-          restore-keys: |
-            cargo-${{ runner.os }}-
-      - name: Test reputation contract
-        run: cargo test --manifest-path contracts/zentra-reputation/Cargo.toml
-      - name: Test action-log contract
-        run: cargo test --manifest-path contracts/zentra-action-log/Cargo.toml
-      - name: Test feedback contract
-        run: cargo test --manifest-path contracts/zentra-feedback/Cargo.toml
-      - name: Test proof-registry contract
-        run: cargo test --manifest-path contracts/zentra-proof-registry/Cargo.toml
-      - name: Test multisig contract
-        run: cargo test --manifest-path contracts/zentra-multisig/Cargo.toml
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: contracts
+      - name: Format
+        run: cargo fmt --all --check
+      - name: Clippy
+        run: cargo clippy --all-targets --locked -- -D warnings
+      - name: Test
+        run: cargo test --locked
 
   frontend:
     runs-on: ubuntu-latest
