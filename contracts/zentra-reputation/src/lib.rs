@@ -47,6 +47,13 @@ pub enum Error {
     ScoreOverflow = 3,
 }
 
+/// The admin fixed at construction, loaded from instance storage. Panics only
+/// if the contract was never constructed, which the host makes impossible for
+/// a deployed contract.
+fn admin_of(env: &Env) -> Address {
+    env.storage().instance().get(&DataKey::Admin).unwrap()
+}
+
 #[contract]
 pub struct Reputation;
 
@@ -60,8 +67,7 @@ impl Reputation {
     /// Authorize a single Action Log contract as the only caller allowed to
     /// `bump`. Admin-gated.
     pub fn set_logger(env: Env, logger: Address) {
-        let admin: Address = env.storage().instance().get(&DataKey::Admin).unwrap();
-        admin.require_auth();
+        admin_of(&env).require_auth();
         env.storage().instance().set(&DataKey::Logger, &logger);
         env.storage()
             .instance()

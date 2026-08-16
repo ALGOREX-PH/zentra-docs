@@ -69,6 +69,13 @@ pub trait Reputation {
     fn bump(env: Env, logger: Address, author: Address) -> Result<u32, ReputationError>;
 }
 
+/// The reputation contract this log bumps, loaded from instance storage. Panics
+/// only if the contract was never constructed, which the host makes impossible
+/// for a deployed contract.
+fn reputation_of(env: &Env) -> Address {
+    env.storage().instance().get(&DataKey::Reputation).unwrap()
+}
+
 #[contract]
 pub struct ActionLog;
 
@@ -83,7 +90,7 @@ impl ActionLog {
 
     /// The reputation contract this log calls cross-contract.
     pub fn reputation(env: Env) -> Address {
-        env.storage().instance().get(&DataKey::Reputation).unwrap()
+        reputation_of(&env)
     }
 
     /// Record an action authored by `author`. Stores it, bumps the global
@@ -114,7 +121,7 @@ impl ActionLog {
         // reputation pointer is immutable. `try_bump` turns that dependency
         // failure into a recorded score of 0 so the action is still logged.
         // See docs/SECURITY-REVIEW.md ZEN-01.
-        let reputation: Address = env.storage().instance().get(&DataKey::Reputation).unwrap();
+        let reputation = reputation_of(&env);
         let score = match ReputationClient::new(&env, &reputation)
             .try_bump(&env.current_contract_address(), &author)
         {
