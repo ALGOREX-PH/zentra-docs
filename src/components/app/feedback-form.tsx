@@ -10,6 +10,7 @@ import { stellar } from '@/config/stellar';
 import { truncateAddress } from '@/lib/stellar/format';
 import { HudPanel, Eyebrow } from '@/components/landing/primitives';
 import { inFlightLabels } from '@/components/app/tx-status';
+import { StarRating } from '@/components/app/star-rating';
 import { focusRing } from '@/lib/ui';
 import { cn } from '@/lib/cn';
 
@@ -143,37 +144,14 @@ export function FeedbackForm({ onSubmitted }: { onSubmitted?: () => void }) {
           >
             Rating
           </span>
-          {/*
-            A group rather than a radiogroup: these stay ordinary buttons, so
-            every star keeps its own tab stop and Enter/Space, and the filled
-            state is carried by aria-pressed instead of a glyph nobody hears.
-          */}
-          <div
-            role="group"
-            aria-labelledby="feedback-rating-label"
-            className="flex items-center gap-1"
-          >
-            {[1, 2, 3, 4, 5].map((value) => {
-              const filled = value <= rating;
-              return (
-                <button
-                  key={value}
-                  type="button"
-                  aria-label={`Rate ${value} of 5`}
-                  aria-pressed={filled}
-                  disabled={anchored !== null}
-                  onClick={() => setRating(value)}
-                  className={cn(
-                    'text-2xl leading-none transition-colors',
-                    filled ? 'text-cyan' : 'text-faint',
-                    focusRing,
-                  )}
-                >
-                  {filled ? '★' : '☆'}
-                </button>
-              );
-            })}
-          </div>
+          {/* Disabled while an anchor is pending, like the textarea below:
+              the retry saves the frozen payload, so edits must not look live. */}
+          <StarRating
+            value={rating}
+            onChange={setRating}
+            labelledBy="feedback-rating-label"
+            disabled={anchored !== null}
+          />
 
           <label
             htmlFor="feedback-comment"
