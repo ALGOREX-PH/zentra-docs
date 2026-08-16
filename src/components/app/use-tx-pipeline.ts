@@ -56,8 +56,7 @@ export function useTxPipeline() {
   const [tx, setTx] = useState<TxState>({ phase: 'idle' });
   const running = useRef(false);
 
-  const inFlight =
-    tx.phase === 'building' || tx.phase === 'signing' || tx.phase === 'submitting';
+  const inFlight = tx.phase === 'building' || tx.phase === 'signing' || tx.phase === 'submitting';
 
   const run = useCallback(
     async (

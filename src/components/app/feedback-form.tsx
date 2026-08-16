@@ -247,10 +247,7 @@ export function FeedbackForm({ onSubmitted }: { onSubmitted?: () => void }) {
                       href={stellar.explorerTxUrl(anchored.txHash)}
                       target="_blank"
                       rel="noreferrer"
-                      className={cn(
-                        'text-cyan underline-offset-2 hover:underline',
-                        focusRing,
-                      )}
+                      className={cn('text-cyan underline-offset-2 hover:underline', focusRing)}
                     >
                       Tx {truncateAddress(anchored.txHash)}
                     </a>

@@ -101,16 +101,12 @@ export function MetricsStats({ refreshSignal = 0 }: { refreshSignal?: number }) 
         setLedger(sequence);
         setReadAt(new Date());
         setInteractions(actionTotal + feedbackTotal);
-        setWallets(
-          new Set([...actionRecent.map((e) => e.author), ...feedbackAuthors]).size,
-        );
+        setWallets(new Set([...actionRecent.map((e) => e.author), ...feedbackAuthors]).size);
         // Compare against the contracts' own totals rather than the requested
         // window: they clamp the limit internally, so a returned page being
         // "full" proves nothing. If either total exceeds what we actually saw,
         // older authors went uncounted and the figure is a floor.
-        setPartial(
-          actionTotal > actionRecent.length || feedbackTotal > feedbackAuthors.length,
-        );
+        setPartial(actionTotal > actionRecent.length || feedbackTotal > feedbackAuthors.length);
       } catch {
         if (cancelled) return;
         // Everything the failed read was meant to produce is cleared, provenance
@@ -225,9 +221,7 @@ export function MetricsStats({ refreshSignal = 0 }: { refreshSignal?: number }) 
                   {SIGNUP_GOAL} registry signups
                   <span className="text-faint">
                     {' · '}
-                    {signups >= SIGNUP_GOAL
-                      ? 'target met'
-                      : `${SIGNUP_GOAL - signups} remaining`}
+                    {signups >= SIGNUP_GOAL ? 'target met' : `${SIGNUP_GOAL - signups} remaining`}
                   </span>
                 </p>
                 <div
@@ -259,9 +253,8 @@ export function MetricsStats({ refreshSignal = 0 }: { refreshSignal?: number }) 
             // otherwise read as an outage when the truth is that this network
             // has no contracts deployed to read from yet.
             <p className="font-mono text-xs text-denied">
-              Contracts are not configured for {activeProfile.label} yet, so
-              the on-chain figures cannot be read. Registry signups above are
-              unaffected.
+              Contracts are not configured for {activeProfile.label} yet, so the on-chain figures
+              cannot be read. Registry signups above are unaffected.
             </p>
           ) : loading ? (
             <p className="font-mono text-xs text-muted">Reading the contracts…</p>
@@ -269,8 +262,7 @@ export function MetricsStats({ refreshSignal = 0 }: { refreshSignal?: number }) 
             <p className="font-mono text-xs text-denied">{error}</p>
           ) : interactions === 0 ? (
             <p className="font-mono text-xs text-muted">
-              No on-chain activity yet — record an action or leave feedback to start these
-              counters.
+              No on-chain activity yet — record an action or leave feedback to start these counters.
             </p>
           ) : null}
 

@@ -82,9 +82,7 @@ export function JoinProgress({ goal = SIGNUP_GOAL }: { goal?: number }) {
           // An empty bar next to "0 of 50" reads as a stalled programme. Saying
           // it plainly turns the same fact into the reason to be the first.
           <>
-            <p className="font-mono text-sm text-muted">
-              No signups yet — be the first of {goal}.
-            </p>
+            <p className="font-mono text-sm text-muted">No signups yet — be the first of {goal}.</p>
             <p className="mt-2.5 font-mono text-[11px] text-faint">
               Counted live from the registry. Nothing is seeded, so this is a real zero.
             </p>

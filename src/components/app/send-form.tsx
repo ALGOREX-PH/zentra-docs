@@ -146,9 +146,7 @@ export function SendForm({ onPaid }: { onPaid?: () => void }) {
           </button>
 
           {!address ? (
-            <p className="font-mono text-[11px] text-faint">
-              Connect your wallet to send.
-            </p>
+            <p className="font-mono text-[11px] text-faint">Connect your wallet to send.</p>
           ) : null}
 
           <div className="mt-4">

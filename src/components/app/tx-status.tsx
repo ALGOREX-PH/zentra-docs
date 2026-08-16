@@ -122,13 +122,7 @@ function StatusPanel({ state, labels }: { state: TxState; labels: TxStatusLabels
     return (
       <div className="border border-live/40 bg-live/[0.06] px-4 py-3">
         <h3 className="flex items-center gap-2 font-mono uppercase tracking-wide text-live">
-          <svg
-            width="15"
-            height="15"
-            viewBox="0 0 15 15"
-            fill="none"
-            aria-hidden="true"
-          >
+          <svg width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true">
             {/* stroke-live rather than a literal hex, so the checkmark follows
                 the theme token the border and heading already read from. */}
             <polyline
@@ -156,9 +150,7 @@ function StatusPanel({ state, labels }: { state: TxState; labels: TxStatusLabels
 
   return (
     <div className="border border-denied/40 bg-denied/[0.06] px-4 py-3">
-      <h3 className="font-mono uppercase tracking-wide text-denied">
-        {labels.failure}
-      </h3>
+      <h3 className="font-mono uppercase tracking-wide text-denied">{labels.failure}</h3>
       <p className="mt-1 font-mono text-[13px] text-muted">
         {state.message ?? 'Something went wrong.'}
       </p>

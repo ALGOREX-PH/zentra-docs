@@ -72,12 +72,9 @@ export function InviteLink() {
 
   return (
     <div className="mt-5 border-t border-fd-border pt-5">
-      <p className="font-mono text-[11px] uppercase tracking-[0.08em] text-faint">
-        Bring one more
-      </p>
+      <p className="font-mono text-[11px] uppercase tracking-[0.08em] text-faint">Bring one more</p>
       <p className="mt-2 max-w-[520px] text-[13px] leading-relaxed text-muted">
-        The programme is fifty people. Send this to one person building with agents
-        on Stellar.
+        The programme is fifty people. Send this to one person building with agents on Stellar.
       </p>
       <div className="mt-3 flex flex-col gap-2 sm:flex-row">
         <input

@@ -114,7 +114,11 @@ function onVisibilityChange(): void {
   schedule();
   // Coming back to a visible tab, the poll may have been paused for hours;
   // answer immediately rather than making the user wait out a full period.
-  if (document.visibilityState === 'visible' && watchedAddress !== null && snapshot.funded !== true) {
+  if (
+    document.visibilityState === 'visible' &&
+    watchedAddress !== null &&
+    snapshot.funded !== true
+  ) {
     void read(watchedAddress);
   }
 }

@@ -27,8 +27,7 @@ const fieldClass = cn(
   focusRing,
 );
 
-const labelClass =
-  'mb-1.5 block font-mono text-[11px] uppercase tracking-[0.08em] text-faint';
+const labelClass = 'mb-1.5 block font-mono text-[11px] uppercase tracking-[0.08em] text-faint';
 
 const primaryAction = cn(
   'inline-flex shrink-0 items-center gap-2 bg-violet px-4 py-2.5 font-mono text-xs uppercase tracking-[0.1em] text-white transition-colors hover:bg-violet-bright',
@@ -67,15 +66,13 @@ const NEXT_STEPS: ReadonlyArray<{
     href: '/app',
     cta: 'Fund the wallet',
     title: 'Fund your testnet wallet',
-    body:
-      'Friendbot seeds the account you just registered with free test XLM. Do this first — the next step pays a network fee, and a fresh account has nothing to pay it with.',
+    body: 'Friendbot seeds the account you just registered with free test XLM. Do this first — the next step pays a network fee, and a fresh account has nothing to pay it with.',
   },
   {
     href: '/board',
     cta: 'Record an action',
     title: 'Record an action on-chain',
-    body:
-      'Write a message to the Action Log contract. Your wallet signs it, a cross-contract call bumps your reputation score, and the settled transaction hash links to stellar.expert so anyone can verify it.',
+    body: 'Write a message to the Action Log contract. Your wallet signs it, a cross-contract call bumps your reputation score, and the settled transaction hash links to stellar.expert so anyone can verify it.',
   },
 ];
 
@@ -209,8 +206,8 @@ function SignupForm() {
               // whether a given address is registered — so neither is claimed
               // back, and no wallet is echoed as "yours".
               <p className="max-w-[520px] text-[15px] leading-relaxed text-text">
-                This email or wallet is already registered, so there is nothing left
-                to fill in here.
+                This email or wallet is already registered, so there is nothing left to fill in
+                here.
               </p>
             ) : (
               <p className="max-w-[520px] text-[15px] leading-relaxed text-text">
@@ -497,19 +494,15 @@ function SignupForm() {
                 filled in the same tick, which screen readers routinely miss. */}
             <p
               role="alert"
-              className={cn(
-                'font-mono text-xs text-denied',
-                status === 'error' && error && 'mt-2',
-              )}
+              className={cn('font-mono text-xs text-denied', status === 'error' && error && 'mt-2')}
             >
               {status === 'error' && error ? error : ''}
             </p>
           </form>
 
           <p className="mt-4 max-w-[520px] text-[12px] leading-relaxed text-faint">
-            Your email is used only to contact you about the Zentra testnet
-            programme. It is never displayed publicly, never shown alongside your
-            wallet, and never sold or shared.
+            Your email is used only to contact you about the Zentra testnet programme. It is never
+            displayed publicly, never shown alongside your wallet, and never sold or shared.
           </p>
         </div>
       </HudPanel>

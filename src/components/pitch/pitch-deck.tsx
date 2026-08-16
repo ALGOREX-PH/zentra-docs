@@ -263,7 +263,9 @@ export function PitchDeck() {
                 aria-hidden
                 className={cn(
                   'block h-px transition-all duration-200',
-                  isActive ? 'w-7 bg-cyan' : 'w-3.5 bg-faint group-hover:w-5 group-hover:bg-violet-soft',
+                  isActive
+                    ? 'w-7 bg-cyan'
+                    : 'w-3.5 bg-faint group-hover:w-5 group-hover:bg-violet-soft',
                 )}
               />
               <span

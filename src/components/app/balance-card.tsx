@@ -118,12 +118,7 @@ export function BalanceCard({ refreshSignal }: BalanceCardProps) {
           // be reported as "this account isn't funded".
           <div className="mt-4 space-y-4">
             <p className="font-mono text-sm text-denied">{error}</p>
-            <button
-              type="button"
-              onClick={refresh}
-              disabled={funding}
-              className={buttonClass}
-            >
+            <button type="button" onClick={refresh} disabled={funding} className={buttonClass}>
               Retry
             </button>
           </div>
@@ -148,9 +143,8 @@ export function BalanceCard({ refreshSignal }: BalanceCardProps) {
               </>
             ) : (
               <p className="font-mono text-sm text-muted">
-                This account isn&apos;t funded yet. There is no faucet on{' '}
-                {activeProfile.label} — send it XLM from an exchange or another
-                wallet to activate it.
+                This account isn&apos;t funded yet. There is no faucet on {activeProfile.label} —
+                send it XLM from an exchange or another wallet to activate it.
               </p>
             )}
           </div>
@@ -173,12 +167,7 @@ export function BalanceCard({ refreshSignal }: BalanceCardProps) {
             </a>
 
             <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={refresh}
-                disabled={funding}
-                className={buttonClass}
-              >
+              <button type="button" onClick={refresh} disabled={funding} className={buttonClass}>
                 Refresh
               </button>
               {/* Topping up an already-active account is still a Friendbot

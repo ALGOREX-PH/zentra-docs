@@ -119,9 +119,7 @@ export function RecordForm({ onRecorded }: { onRecorded?: () => void }) {
           </button>
 
           {!address && (
-            <p className="mt-2 font-mono text-[11px] text-muted">
-              Connect a wallet to record.
-            </p>
+            <p className="mt-2 font-mono text-[11px] text-muted">Connect a wallet to record.</p>
           )}
 
           <div className="mt-4">

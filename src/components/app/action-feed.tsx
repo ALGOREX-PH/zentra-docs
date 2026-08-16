@@ -1,12 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import {
-  getCount,
-  getLatestLedger,
-  getRecent,
-  pollEvents,
-} from '@/lib/stellar/action-log';
+import { getCount, getLatestLedger, getRecent, pollEvents } from '@/lib/stellar/action-log';
 import { stellar } from '@/config/stellar';
 import { contractsConfigured } from '@/config/contract';
 import { activeProfile } from '@/config/network';
@@ -47,9 +42,7 @@ export function ActionFeed({ refreshSignal = 0 }: { refreshSignal?: number }) {
       const seen = new Set(prev.map((e) => e.index));
       const fresh = incoming.filter((e) => !seen.has(e.index));
       if (fresh.length === 0) return prev;
-      return [...fresh, ...prev]
-        .sort((a, b) => b.index - a.index)
-        .slice(0, MAX_SHOWN);
+      return [...fresh, ...prev].sort((a, b) => b.index - a.index).slice(0, MAX_SHOWN);
     });
   }, []);
 
@@ -137,9 +130,8 @@ export function ActionFeed({ refreshSignal = 0 }: { refreshSignal?: number }) {
         <div className="p-5 sm:p-6">
           <Eyebrow accent="cyan">LIVE ON-CHAIN FEED</Eyebrow>
           <p className="font-mono text-sm text-muted">
-            Contracts are not configured for {activeProfile.label} yet, so
-            there is no feed to read. See docs/MAINNET.md for the deployment
-            checklist.
+            Contracts are not configured for {activeProfile.label} yet, so there is no feed to read.
+            See docs/MAINNET.md for the deployment checklist.
           </p>
         </div>
       </HudPanel>
@@ -156,17 +148,14 @@ export function ActionFeed({ refreshSignal = 0 }: { refreshSignal?: number }) {
           This span exists from the first render; only its contents change.
         */}
         <span role="alert" className="sr-only">
-          {error
-            ? entries.length > 0
-              ? `${error} Showing the last entries loaded.`
-              : error
-            : ''}
+          {error ? (entries.length > 0 ? `${error} Showing the last entries loaded.` : error) : ''}
         </span>
 
         <Eyebrow accent="cyan">LIVE ON-CHAIN FEED</Eyebrow>
         <div className="mb-4 flex items-center gap-2 font-mono text-[11px] text-faint">
           <span aria-hidden className="size-1.5 rounded-full bg-live animate-pulse" />
-          {count === null ? '—' : count} action{count === 1 ? '' : 's'} recorded · polling every {LIVE_POLL_MS / 1000}s
+          {count === null ? '—' : count} action{count === 1 ? '' : 's'} recorded · polling every{' '}
+          {LIVE_POLL_MS / 1000}s
         </div>
 
         {loading && entries.length === 0 ? (

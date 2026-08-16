@@ -59,9 +59,7 @@ function readPersisted(raw: string): PersistedWallet | null {
   if (!('address' in parsed) || typeof parsed.address !== 'string') return null;
   if (parsed.address.length === 0) return null;
   const walletId =
-    'walletId' in parsed && typeof parsed.walletId === 'string'
-      ? parsed.walletId
-      : FREIGHTER_ID;
+    'walletId' in parsed && typeof parsed.walletId === 'string' ? parsed.walletId : FREIGHTER_ID;
   return { walletId, address: parsed.address };
 }
 
@@ -193,9 +191,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       // A wallet id means the caller already ran its own picker, so the kit's
       // modal is skipped and the chosen module is asked for the address direct.
       if (walletId) kit.setWallet(walletId);
-      const { address: addr } = walletId
-        ? await kit.fetchAddress()
-        : await kit.authModal();
+      const { address: addr } = walletId ? await kit.fetchAddress() : await kit.authModal();
       setAddress(addr);
       window.localStorage.setItem(
         STORAGE_KEY,
