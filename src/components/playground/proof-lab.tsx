@@ -14,6 +14,7 @@ import { PIPELINE, STAGE_STATUS, type PipelineStep } from '@/lib/zk/education';
 import { SignalsTable } from '@/components/playground/signals-table';
 import { WhatThisProves } from '@/components/playground/what-this-proves';
 import { cn } from '@/lib/cn';
+import { shorten } from '@/lib/ui';
 
 /**
  * Anchoring is only reachable once a proof exists and it pulls in the Stellar
@@ -48,11 +49,6 @@ const STEP_CLASS: Record<StepState, string> = {
   done: 'border-live/40 text-live',
   failed: 'border-denied/50 text-denied',
 };
-
-function short(value: string, head = 10, tail = 6) {
-  if (value.length <= head + tail) return value;
-  return `${value.slice(0, head)}…${value.slice(-tail)}`;
-}
 
 /** Where a step sits relative to the phase the run has actually reached. */
 function stepState(
@@ -323,7 +319,7 @@ function Point({ label, values }: { label: string; values: string[] }) {
       <dd className="mt-0.5 space-y-0.5">
         {values.map((v, i) => (
           <div key={i} className="break-all text-violet-soft">
-            {short(v, 12, 8)}
+            {shorten(v, 12, 8)}
           </div>
         ))}
       </dd>
