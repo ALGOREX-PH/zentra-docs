@@ -159,7 +159,7 @@ describe('loadCircuit', () => {
   it('reports an indeterminate total until every artefact size is known', async () => {
     const sizes = [10, 20, 30];
     let call = 0;
-    const fetchMock = vi.fn(async () => okResponse(sizes[call++ % sizes.length]));
+    const fetchMock = vi.fn(async () => okResponse(sizes[call++ % sizes.length] ?? 0));
     vi.stubGlobal('fetch', fetchMock);
     const { loadCircuit } = await freshProver();
 
@@ -172,7 +172,9 @@ describe('loadCircuit', () => {
       if (total !== 0) expect(total).toBe(sum);
     }
     // …and the download ends fully accounted for.
-    const [lastLoaded, lastTotal] = reports[reports.length - 1];
+    const last = reports[reports.length - 1];
+    if (!last) throw new Error('expected at least one progress report');
+    const [lastLoaded, lastTotal] = last;
     expect(lastLoaded).toBe(sum);
     expect(lastTotal).toBe(sum);
   });

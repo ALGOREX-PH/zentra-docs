@@ -80,7 +80,7 @@ describe('fundWithFriendbot', () => {
 
     await expect(fundWithFriendbot(ADDRESS)).resolves.toBeUndefined();
 
-    const url = String(fetchMock.mock.calls[0][0]);
+    const url = String(fetchMock.mock.calls[0]?.[0]);
     expect(url.startsWith(stellar.friendbotUrl)).toBe(true);
     expect(url).toContain(encodeURIComponent(ADDRESS));
   });

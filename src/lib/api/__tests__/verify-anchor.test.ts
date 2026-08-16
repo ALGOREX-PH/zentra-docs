@@ -188,7 +188,7 @@ describe('verifyAnchor', () => {
     await verifyAnchor(HASH, WALLET, CONTRACT);
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
-    const url = String(fetchMock.mock.calls[0][0]);
+    const url = String(fetchMock.mock.calls[0]?.[0]);
     expect(url).toBe(`${stellar.horizonUrl}/transactions/${HASH}`);
     expect(url).toContain(HASH);
     expect(url.startsWith(stellar.horizonUrl)).toBe(true);
@@ -199,7 +199,7 @@ describe('verifyAnchor', () => {
 
     await verifyAnchor(HASH, WALLET, CONTRACT);
 
-    const init = fetchMock.mock.calls[0][1] as RequestInit;
+    const init = fetchMock.mock.calls[0]?.[1] as RequestInit;
     expect(init.signal).toBeInstanceOf(AbortSignal);
     expect(init.signal?.aborted).toBe(false);
     expect(init.headers).toEqual({ accept: 'application/json' });
@@ -248,7 +248,7 @@ describe('verifyAnchor', () => {
     const warn = vi.mocked(console.warn);
     expect(warn).toHaveBeenCalledTimes(1);
 
-    const entry = JSON.parse(String(warn.mock.calls[0][0]));
+    const entry = JSON.parse(String(warn.mock.calls[0]?.[0]));
     expect(entry.level).toBe('warn');
     expect(entry.event).toBe('anchor.unverified');
     expect(entry.reason).toBe('not_found');
@@ -260,7 +260,7 @@ describe('verifyAnchor', () => {
 
     await verifyAnchor(HASH, WALLET, CONTRACT);
 
-    const entry = JSON.parse(String(vi.mocked(console.warn).mock.calls[0][0]));
+    const entry = JSON.parse(String(vi.mocked(console.warn).mock.calls[0]?.[0]));
     expect(entry.reason).toBe('wrong_account');
   });
 
@@ -338,7 +338,7 @@ describe('verifyAnchor contract check', () => {
 
     await verifyAnchor(HASH, WALLET, CONTRACT);
 
-    const entry = JSON.parse(String(vi.mocked(console.warn).mock.calls[0][0]));
+    const entry = JSON.parse(String(vi.mocked(console.warn).mock.calls[0]?.[0]));
     expect(entry.reason).toBe('wrong_contract');
   });
 });

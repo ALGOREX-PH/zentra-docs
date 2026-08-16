@@ -116,7 +116,7 @@ describe('getRecentProofs', () => {
       },
     ]);
     expect(console.warn).toHaveBeenCalledTimes(1);
-    const line = JSON.parse(String(vi.mocked(console.warn).mock.calls[0][0])) as Record<
+    const line = JSON.parse(String(vi.mocked(console.warn).mock.calls[0]?.[0])) as Record<
       string,
       unknown
     >;

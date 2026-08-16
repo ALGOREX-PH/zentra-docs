@@ -106,10 +106,10 @@ describe('requireAdmin with no secret configured', () => {
 
     const entries = logEntries();
     expect(entries).toHaveLength(1);
-    expect(entries[0].level).toBe('warn');
-    expect(entries[0].event).toBe('admin.denied');
-    expect(entries[0].reason).toBe('not_configured');
-    expect(entries[0].requestId).toBe(REQUEST_ID);
+    expect(entries[0]?.level).toBe('warn');
+    expect(entries[0]?.event).toBe('admin.denied');
+    expect(entries[0]?.reason).toBe('not_configured');
+    expect(entries[0]?.requestId).toBe(REQUEST_ID);
   });
 });
 
@@ -152,9 +152,9 @@ describe('requireAdmin with a valid credential', () => {
 
     const entries = logEntries();
     expect(entries).toHaveLength(1);
-    expect(entries[0].level).toBe('info');
-    expect(entries[0].event).toBe('admin.authorized');
-    expect(entries[0].requestId).toBe(REQUEST_ID);
+    expect(entries[0]?.level).toBe('info');
+    expect(entries[0]?.event).toBe('admin.authorized');
+    expect(entries[0]?.requestId).toBe(REQUEST_ID);
   });
 });
 
@@ -197,8 +197,8 @@ describe('requireAdmin with a missing or malformed credential', () => {
 
     const entries = logEntries();
     expect(entries).toHaveLength(1);
-    expect(entries[0].event).toBe('admin.denied');
-    expect(entries[0].reason).toBe('missing');
+    expect(entries[0]?.event).toBe('admin.denied');
+    expect(entries[0]?.reason).toBe('missing');
   });
 });
 
@@ -233,8 +233,8 @@ describe('requireAdmin with a wrong credential', () => {
 
     const entries = logEntries();
     expect(entries).toHaveLength(1);
-    expect(entries[0].event).toBe('admin.denied');
-    expect(entries[0].reason).toBe('invalid');
+    expect(entries[0]?.event).toBe('admin.denied');
+    expect(entries[0]?.reason).toBe('invalid');
   });
 });
 
@@ -271,7 +271,13 @@ describe('requireAdmin log hygiene', () => {
     denialFrom(requestWith({ authorization: `Bearer ${WRONG}` }));
 
     const entry = logEntries()[0];
-    expect(Object.keys(entry).sort()).toEqual(['event', 'level', 'reason', 'requestId', 'ts']);
+    expect(Object.keys(entry ?? {}).sort()).toEqual([
+      'event',
+      'level',
+      'reason',
+      'requestId',
+      'ts',
+    ]);
   });
 });
 

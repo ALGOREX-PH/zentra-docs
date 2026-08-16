@@ -109,7 +109,7 @@ describe('log', () => {
     log('info', 'faucet.requested', { route: '/api/faucet', attempt: 2 });
 
     expect(spy).toHaveBeenCalledTimes(1);
-    const line = spy.mock.calls[0][0] as string;
+    const line = spy.mock.calls[0]?.[0] as string;
     expect(typeof line).toBe('string');
     expect(line).not.toContain('\n');
 
@@ -132,7 +132,7 @@ describe('log', () => {
 
     expect(errorSpy).toHaveBeenCalledTimes(1);
     expect(logSpy).not.toHaveBeenCalled();
-    expect(JSON.parse(errorSpy.mock.calls[0][0] as string).level).toBe('error');
+    expect(JSON.parse(errorSpy.mock.calls[0]?.[0] as string).level).toBe('error');
   });
 
   it('routes warn level to console.warn', () => {
@@ -143,7 +143,7 @@ describe('log', () => {
 
     expect(warnSpy).toHaveBeenCalledTimes(1);
     expect(logSpy).not.toHaveBeenCalled();
-    expect(JSON.parse(warnSpy.mock.calls[0][0] as string).level).toBe('warn');
+    expect(JSON.parse(warnSpy.mock.calls[0]?.[0] as string).level).toBe('warn');
   });
 
   it('pipes fields through redaction before emitting', () => {
@@ -151,7 +151,7 @@ describe('log', () => {
 
     log('info', 'auth.attempt', { password: 'hunter2', user: 'ada' });
 
-    const line = spy.mock.calls[0][0] as string;
+    const line = spy.mock.calls[0]?.[0] as string;
     expect(line).not.toContain('hunter2');
     expect(JSON.parse(line).password).toBe('[redacted]');
     expect(JSON.parse(line).user).toBe('ada');
@@ -166,7 +166,7 @@ describe('log', () => {
     expect(() => log('info', 'circular.event', { payload: circular })).not.toThrow();
 
     expect(spy).toHaveBeenCalledTimes(1);
-    const line = spy.mock.calls[0][0] as string;
+    const line = spy.mock.calls[0]?.[0] as string;
     expect(line).toContain('serializationError');
 
     const parsed = JSON.parse(line) as Record<string, unknown>;
@@ -182,7 +182,7 @@ describe('log', () => {
       failures: [new Error('first'), new Error('second')],
     });
 
-    const parsed = JSON.parse(spy.mock.calls[0][0] as string) as {
+    const parsed = JSON.parse(spy.mock.calls[0]?.[0] as string) as {
       context: { err: { name: string; message: string; stack?: string } };
       failures: Array<{ name: string; message: string }>;
     };
@@ -199,7 +199,7 @@ describe('log', () => {
 
     log('error', 'batch.failed', { context: { err: new Error(`refused: ${secret}`) } });
 
-    const line = spy.mock.calls[0][0] as string;
+    const line = spy.mock.calls[0]?.[0] as string;
     expect(line).not.toContain(secret);
     expect(JSON.parse(line).context.err).toEqual({ name: 'Error', message: '[redacted]' });
   });
@@ -210,7 +210,7 @@ describe('log', () => {
 
     log('error', 'database.failed', { err: new Error(`Connection refused: ${secret}`) });
 
-    const line = spy.mock.calls[0][0] as string;
+    const line = spy.mock.calls[0]?.[0] as string;
     expect(line).not.toContain(secret);
     expect(line).not.toContain('password@');
     expect(JSON.parse(line).err).toEqual({ name: 'Error', message: '[redacted]' });

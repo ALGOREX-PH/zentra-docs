@@ -260,7 +260,7 @@ describe('getRecent', () => {
       { index: 1, author: AUTHOR, message: 'hello', ledger: 123, score: 4 },
     ]);
     expect(console.warn).toHaveBeenCalledTimes(1);
-    const line = JSON.parse(String(vi.mocked(console.warn).mock.calls[0][0])) as Record<
+    const line = JSON.parse(String(vi.mocked(console.warn).mock.calls[0]?.[0])) as Record<
       string,
       unknown
     >;
@@ -281,9 +281,9 @@ describe('pollEvents', () => {
   it('requests only recorded events from the action-log contract', async () => {
     await pollEvents(4000);
 
-    const request = vi.mocked(soroban.getEvents).mock.calls[0][0];
-    expect(request.startLedger).toBe(4000);
-    expect(request.filters).toEqual([
+    const request = vi.mocked(soroban.getEvents).mock.calls[0]?.[0];
+    expect(request?.startLedger).toBe(4000);
+    expect(request?.filters).toEqual([
       {
         type: 'contract',
         contractIds: [actionLog.contractId],
@@ -300,7 +300,7 @@ describe('pollEvents', () => {
     ]);
     expect(latestLedger).toBe(4242);
     expect(console.warn).toHaveBeenCalledTimes(1);
-    const line = JSON.parse(String(vi.mocked(console.warn).mock.calls[0][0])) as Record<
+    const line = JSON.parse(String(vi.mocked(console.warn).mock.calls[0]?.[0])) as Record<
       string,
       unknown
     >;

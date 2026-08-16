@@ -31,6 +31,8 @@ describe('LANDING_PANELS', () => {
   it('takes every field from its scenario entry', () => {
     LANDING_PANELS.forEach((panel, i) => {
       const s = SCENARIOS[i];
+      // The projection test above already pins the arrays to the same length.
+      if (!s) throw new Error(`no scenario at index ${i}`);
       expect(panel.key).toBe(s.landing.key);
       expect(panel.label).toBe(s.landing.panelLabel);
       expect(panel.title).toBe(s.title);
