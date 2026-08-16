@@ -281,6 +281,62 @@ fn rejects_approval_of_missing_proposal() {
     ));
 }
 
+// ------------------------------------------------------------------ edges
+
+#[test]
+fn propose_rejects_counter_overflow() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (a, b, c) = signers(&env);
+    let (client, contract) = deploy(&env, vec![&env, a.clone(), b, c], 2);
+
+    // Seed the counter at its ceiling; the next proposal must fail with a
+    // typed error rather than wrap and overwrite proposal 0.
+    env.as_contract(&contract, || {
+        env.storage().instance().set(&DataKey::Count, &u64::MAX);
+    });
+
+    assert_eq!(
+        client.try_propose(&a, &kind(&env), &payload(&env)),
+        Err(Ok(Error::CounterOverflow))
+    );
+    assert_eq!(client.get_count(), u64::MAX);
+}
+
+#[test]
+fn one_of_one_proposes_approves_and_executes() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let solo = Address::generate(&env);
+    let (client, _) = deploy(&env, vec![&env, solo.clone()], 1);
+
+    let id = client.propose(&solo, &kind(&env), &payload(&env));
+    // Proposing is still not approving, even for a committee of one.
+    assert_eq!(client.try_execute(&id), Err(Ok(Error::ThresholdNotMet)));
+
+    client.approve(&solo, &id);
+    client.execute(&id);
+    assert!(client.get_proposal(&id).executed);
+}
+
+#[test]
+fn full_committee_threshold_requires_every_signer() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (a, b, c) = signers(&env);
+    let (client, _) = deploy(&env, vec![&env, a.clone(), b.clone(), c.clone()], 3);
+
+    let id = client.propose(&a, &kind(&env), &payload(&env));
+    client.approve(&a, &id);
+    client.approve(&b, &id);
+    // 2 of 3 is not enough when the threshold is the whole signer set.
+    assert_eq!(client.try_execute(&id), Err(Ok(Error::ThresholdNotMet)));
+
+    client.approve(&c, &id);
+    client.execute(&id);
+    assert!(client.get_proposal(&id).executed);
+}
+
 // ---------------------------------------------------------------- events
 
 #[test]
