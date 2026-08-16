@@ -229,3 +229,17 @@ fn emits_recorded_event() {
     client.record(&author, &String::from_str(&env, "hi"));
     assert_eq!(env.events().all().events().len(), 1);
 }
+
+// Pins the hand-maintained `ReputationError` mirror to the real reputation
+// contract's `Error`: if a variant code drifts over there, this fails here.
+#[test]
+fn reputation_error_mirror_matches_real_contract() {
+    assert_eq!(
+        ReputationError::LoggerNotSet as u32,
+        zentra_reputation::Error::LoggerNotSet as u32
+    );
+    assert_eq!(
+        ReputationError::Unauthorized as u32,
+        zentra_reputation::Error::Unauthorized as u32
+    );
+}

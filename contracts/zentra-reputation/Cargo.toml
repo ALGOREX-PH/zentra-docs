@@ -5,7 +5,11 @@ edition = "2021"
 description = "Per-author reputation for the Zentra dApp — bumped by the Action Log via a cross-contract call."
 
 [lib]
-crate-type = ["cdylib"]
+# rlib only: zentra-action-log dev-depends on this crate, and building the
+# cdylib for the native host fails on windows-gnu (export ordinal overflow).
+# The wasm artifact is unaffected: `stellar contract build` injects
+# `--crate-type=cdylib` itself (see `stellar contract build --print-commands-only`).
+crate-type = ["lib"]
 doctest = false
 
 [dependencies]

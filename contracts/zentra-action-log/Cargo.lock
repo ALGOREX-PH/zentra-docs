@@ -1857,6 +1857,14 @@ name = "zentra-action-log"
 version = "0.1.0"
 dependencies = [
  "soroban-sdk",
+ "zentra-reputation",
+]
+
+[[package]]
+name = "zentra-reputation"
+version = "0.1.0"
+dependencies = [
+ "soroban-sdk",
 ]
 
 [[package]]

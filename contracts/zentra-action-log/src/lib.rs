@@ -50,10 +50,21 @@ pub enum Error {
     MessageTooLong = 2,
 }
 
+/// Mirror of the reputation contract's `Error` enum. Kept in lockstep by a
+/// test that compares each variant's code against the real crate, so any
+/// drift over there becomes a test failure here.
+#[contracterror]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[repr(u32)]
+pub enum ReputationError {
+    LoggerNotSet = 1,
+    Unauthorized = 2,
+}
+
 /// The slice of the Reputation contract this log calls cross-contract.
 #[contractclient(name = "ReputationClient")]
 pub trait Reputation {
-    fn bump(env: Env, logger: Address, author: Address) -> u32;
+    fn bump(env: Env, logger: Address, author: Address) -> Result<u32, ReputationError>;
 }
 
 #[contract]
@@ -101,7 +112,9 @@ impl ActionLog {
             .try_bump(&env.current_contract_address(), &author)
         {
             Ok(Ok(score)) => score,
-            _ => 0,
+            // Typed rejection (LoggerNotSet/Unauthorized), a trap, or a
+            // success value that failed to convert: all degrade to 0.
+            Ok(Err(_)) | Err(_) => 0,
         };
 
         let entry = Entry {
