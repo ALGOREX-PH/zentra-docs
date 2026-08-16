@@ -87,5 +87,30 @@ This is a **code-quality** audit against best practices — distinct from `docs/
 | FX-14 | LOW | `shared.ts`, `zentra-mark.tsx`, `logo.tsx`, `the-gap.tsx` | Dead exports (`appName`, `docsImageRoute`, `docsContentRoute`), dead props (`mono`/`onlight`, `showProtocolTag`), ignored `desc` field. → Delete or wire up. | S |
 | FX-15 | LOW | `verifier-monolith.tsx:29`, `proof-engine.tsx:52` | Untracked timers fire after unmount in the monolith; the engine's timer array grows unbounded for the page's life. → Track-and-clear; prune fired ids. | S |
 
+---
+
+## 4. Infrastructure / config / CI — findings
+
+| ID | Sev | Where | Problem → Fix | Effort |
+| --- | --- | --- | --- | --- |
+| IN-01 | HIGH | `.github/workflows/ci.yml:48` | `bun install` without `--frozen-lockfile` — a PR with a drifted lockfile merges green while testing different dependency versions. → Add the flag. | S |
+| IN-02 | MED | ci.yml:44, package.json | Bun unpinned everywhere (`latest` in CI vs 1.3.13 local; no `packageManager`/`engines`). → Pin both. | S |
+| IN-03 | MED | repo root | **No linter or formatter exists at all** — and Next 16 dropped `next lint`, so react-hooks rules, unused imports, and a11y rules are checked by nothing. → Add Biome (or ESLint flat + eslint-config-next) + script + CI step. | M |
+| IN-04 | MED | ci.yml:29-38 | Contracts job runs tests only — no `cargo fmt --check`, no `cargo clippy -- -D warnings` (a live warning exists today, CT-12). → Add both steps. | S |
+| IN-05 | MED | ci.yml:3-5 | `on: push` (all branches) + `pull_request` double-runs every PR commit; no concurrency cancellation. → Restrict push to main; add `concurrency` with cancel-in-progress. | S |
+| IN-06 | MED | ci.yml:19-26 | Cargo cache omits `zentra-multisig/target` and keys on `Cargo.toml` instead of `Cargo.lock`. → Fix paths + key, or `Swatinem/rust-cache`. | S |
+| IN-07 | MED | package.json | No aggregate `check` script reproducing the CI gate locally. → `"check": "bun run types:check && bun run test"` (+ lint once IN-03 lands); CI calls it. | S |
+| IN-08 | MED | tsconfig.json:7 | `strict` but no `noUncheckedIndexedAccess`/`noUnusedLocals` — cheap insurance given `Record` lookups in config. → Enable, narrow the few call sites. | M |
+| IN-09 | MED | .gitignore:29 | Plain `.env` not ignored, and the env contract includes `SPONSOR_SECRET` (a funded key). → Ignore `.env`/`.env.*`, keep `!.env.example`. | S |
+| IN-10 | MED | package.json:23,27,36 | Unused direct deps: `lucide-react` (transitive via fumadocs-ui), `snarkjs` + types (worker loads the vendored UMD). → Remove or document as provenance pin (see FX-11). | S |
+| IN-11 | MED | `.github/` | No Dependabot/Renovate, no `bun audit`/`cargo audit` — for an app with a server-side fee-sponsoring key path. → Dependabot (npm+cargo+actions) + audit step. | S |
+| IN-12 | MED | `contracts/deploy.sh` | Deploys 2 of the 4 contracts `src/config/contract.ts` requires (5 counting multisig); accepts `NETWORK=mainnet` with no confirmation. → Extend to all contracts; prompt when NETWORK != testnet. (= CT-10) | M |
+| IN-13 | LOW | ci.yml | No wasm-size or bundle-size budget despite the "size-optimized wasm" claim. → Budget check step. | S |
+| IN-14 | LOW | git history | 3.26MB wasm + 2.32MB zkey tracked (defensible but history-fattening); two screenshots tracked twice byte-for-byte (`public/img/` + `docs/screenshots/`). → Consider LFS; dedupe images. | S |
+| IN-15 | LOW | README.md:245 | Stale hardcoded test counts (says 324/15; actual 438/18). → Update or stop hardcoding. | S |
+| IN-16 | LOW | `src/config/protocol.ts:22` | Hand-typed passphrase contradicts network.ts's own "passphrases come from the SDK" rule. → Use `Networks.TESTNET`. | S |
+| IN-17 | LOW | vitest.config.ts | No coverage provider/thresholds (gitignore already anticipates `/coverage`). → `@vitest/coverage-v8` + modest thresholds. | S |
+
+
 
 
