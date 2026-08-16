@@ -7,6 +7,7 @@ import { fundWithFriendbot } from '@/lib/stellar/account';
 import { formatXlm, truncateAddress } from '@/lib/stellar/format';
 import { describeError } from '@/lib/stellar/errors';
 import { stellar } from '@/config/stellar';
+import { activeProfile } from '@/config/network';
 import { HudPanel, Eyebrow } from '@/components/landing/primitives';
 import { cn } from '@/lib/cn';
 
@@ -73,7 +74,9 @@ export function BalanceCard({ refreshSignal }: BalanceCardProps) {
   return (
     <HudPanel accent="cyan">
       <div className="p-5 sm:p-6">
-        <Eyebrow accent="cyan">TESTNET BALANCE</Eyebrow>
+        {/* Named for the chain actually being read, so a mainnet build never
+            captions real funds as a testnet figure. */}
+        <Eyebrow accent="cyan">{activeProfile.label.toUpperCase()} BALANCE</Eyebrow>
 
         {!address ? (
           <p className="mt-4 font-mono text-sm text-muted">
@@ -97,18 +100,31 @@ export function BalanceCard({ refreshSignal }: BalanceCardProps) {
             </button>
           </div>
         ) : balance === null ? (
+          // Friendbot only exists where `hasFriendbot` says it does. On
+          // mainnet the truthful offer is no button at all: lumens there are
+          // bought, and a "Fund" control would promise a faucet that isn't.
           <div className="mt-4 space-y-4">
-            <p className="font-mono text-sm text-muted">
-              This account isn&apos;t funded on testnet yet.
-            </p>
-            <button
-              type="button"
-              onClick={handleFund}
-              disabled={funding}
-              className={cn(buttonClass, 'border-cyan/40 text-cyan')}
-            >
-              {funding ? 'Funding…' : 'Fund with Friendbot'}
-            </button>
+            {stellar.hasFriendbot ? (
+              <>
+                <p className="font-mono text-sm text-muted">
+                  This account isn&apos;t funded on testnet yet.
+                </p>
+                <button
+                  type="button"
+                  onClick={handleFund}
+                  disabled={funding}
+                  className={cn(buttonClass, 'border-cyan/40 text-cyan')}
+                >
+                  {funding ? 'Funding…' : 'Fund with Friendbot'}
+                </button>
+              </>
+            ) : (
+              <p className="font-mono text-sm text-muted">
+                This account isn&apos;t funded yet. There is no faucet on{' '}
+                {activeProfile.label} — send it XLM from an exchange or another
+                wallet to activate it.
+              </p>
+            )}
           </div>
         ) : (
           <div className="mt-4 space-y-4">
@@ -137,14 +153,18 @@ export function BalanceCard({ refreshSignal }: BalanceCardProps) {
               >
                 Refresh
               </button>
-              <button
-                type="button"
-                onClick={handleFund}
-                disabled={funding}
-                className={buttonClass}
-              >
-                {funding ? 'Funding…' : 'Fund'}
-              </button>
+              {/* Topping up an already-active account is still a Friendbot
+                  call, so it is gated the same way as the first funding. */}
+              {stellar.hasFriendbot ? (
+                <button
+                  type="button"
+                  onClick={handleFund}
+                  disabled={funding}
+                  className={buttonClass}
+                >
+                  {funding ? 'Funding…' : 'Fund'}
+                </button>
+              ) : null}
             </div>
           </div>
         )}
