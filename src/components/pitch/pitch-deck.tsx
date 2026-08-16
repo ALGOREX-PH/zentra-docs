@@ -162,7 +162,10 @@ export function PitchDeck() {
     const target = Math.min(Math.max(index, 0), TOTAL - 1);
     const node = slideRefs.current[target];
     if (!node) return;
-    node.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    // Queried per jump so a live OS-setting change is honoured immediately:
+    // reduced motion cuts straight to the slide instead of animating to it.
+    const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
+    node.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' });
     activeRef.current = target;
     setActive(target);
   }, []);
@@ -293,7 +296,13 @@ export function PitchDeck() {
         >
           ←
         </button>
-        <span className="flex items-center border-x border-violet/25 px-3 font-mono text-[11px] tabular-nums tracking-[0.1em] text-muted">
+        {/* A polite live region, so keyboard navigation announces the new
+            position without the reader having to hunt for the counter. */}
+        <span
+          role="status"
+          aria-live="polite"
+          className="flex items-center border-x border-violet/25 px-3 font-mono text-[11px] tabular-nums tracking-[0.1em] text-muted"
+        >
           {pad(active + 1)} / {pad(TOTAL)}
         </span>
         <button
