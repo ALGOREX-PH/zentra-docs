@@ -59,7 +59,9 @@ export function RecordForm({ onRecorded }: { onRecorded?: () => void }) {
       setTx({ phase: 'submitting' });
       const hash = await submitInvoke(signed);
 
-      setTx({ phase: 'success', hash, message: 'Action recorded on-chain.' });
+      // No message line: the panel heading already says "Action recorded", so
+      // a body repeating it would be read twice by the announcement below.
+      setTx({ phase: 'success', hash });
       setMessage('');
       onRecorded?.();
     } catch (err: unknown) {
@@ -136,7 +138,19 @@ export function RecordForm({ onRecorded }: { onRecorded?: () => void }) {
           )}
 
           <div className="mt-4">
-            <TxStatus state={tx} />
+            {/*
+              This form invokes a contract; the default TxStatus copy settles a
+              payment. Without these labels a recorded action was announced as
+              "Payment settled" — true of nothing this form does.
+            */}
+            <TxStatus
+              state={tx}
+              labels={{
+                success: 'Action recorded',
+                failure: 'Recording failed',
+                successAnnounce: 'Action recorded on-chain.',
+              }}
+            />
           </div>
         </form>
       </div>
