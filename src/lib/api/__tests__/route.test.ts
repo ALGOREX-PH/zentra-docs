@@ -236,6 +236,60 @@ describe('methodNotAllowed', () => {
   });
 });
 
+describe('route immutable responses', () => {
+  /** A response whose headers refuse mutation, as one proxied from fetch does. */
+  function immutableResponse(body: string, init: ResponseInit): Response {
+    const response = new Response(body, init);
+    Object.defineProperty(response.headers, 'set', {
+      value: () => {
+        throw new TypeError('immutable headers');
+      },
+    });
+    return response;
+  }
+
+  it('rebuilds a response whose headers cannot be mutated, body and status intact', async () => {
+    muffle();
+    const original = immutableResponse('{"proxied":true}', {
+      status: 201,
+      statusText: 'Created',
+      headers: { 'content-type': 'application/json', 'x-upstream': 'kept' },
+    });
+    const handler = route('test', async () => original);
+
+    const response = await handler(
+      new Request('https://x.test/api', { headers: { 'x-request-id': 'trace-clone' } }),
+    );
+
+    // The original could not carry the id, so a rebuilt response must have.
+    expect(response).not.toBe(original);
+    expect(response.status).toBe(201);
+    expect(response.statusText).toBe('Created');
+    expect(response.headers.get('x-request-id')).toBe('trace-clone');
+    // Every original header survives the rebuild, and so does the body.
+    expect(response.headers.get('content-type')).toBe('application/json');
+    expect(response.headers.get('x-upstream')).toBe('kept');
+    expect(await response.json()).toEqual({ proxied: true });
+  });
+
+  it('still mutates in place when the headers allow it', async () => {
+    muffle();
+    const original = new Response('{"ok":true}', {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+    });
+    const handler = route('test', async () => original);
+
+    const response = await handler(
+      new Request('https://x.test/api', { headers: { 'x-request-id': 'trace-mutate' } }),
+    );
+
+    // The cheap path: same object, id set directly on it.
+    expect(response).toBe(original);
+    expect(response.headers.get('x-request-id')).toBe('trace-mutate');
+  });
+});
+
 describe('route logging', () => {
   it('logs one line carrying the request id and the status it answered with', async () => {
     const log = vi.spyOn(console, 'log').mockImplementation(() => undefined);
