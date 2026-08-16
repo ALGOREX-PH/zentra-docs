@@ -17,7 +17,6 @@
  * to put a secret by construction. See the header of `types.ts`.
  */
 
-import { FAILURE_STAGES } from './types';
 import type {
   FailureStage,
   FundingOutcome,
@@ -26,6 +25,7 @@ import type {
   LoadTestReport,
   RecordAttempt,
 } from './types';
+import { FAILURE_STAGES } from './types';
 
 /**
  * The contract reads taken around a run, each explicitly nullable.

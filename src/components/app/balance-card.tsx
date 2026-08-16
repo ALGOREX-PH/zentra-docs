@@ -1,16 +1,16 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useWallet } from '@/components/app/wallet-provider';
 import { useXlmBalance } from '@/components/app/use-xlm-balance';
-import { fundWithFriendbot } from '@/lib/stellar/account';
-import { formatXlm, truncateAddress } from '@/lib/stellar/format';
-import { describeError } from '@/lib/stellar/errors';
-import { stellar } from '@/config/stellar';
+import { useWallet } from '@/components/app/wallet-provider';
+import { Eyebrow, HudPanel } from '@/components/landing/primitives';
 import { activeProfile } from '@/config/network';
-import { HudPanel, Eyebrow } from '@/components/landing/primitives';
-import { focusRing } from '@/lib/ui';
+import { stellar } from '@/config/stellar';
 import { cn } from '@/lib/cn';
+import { fundWithFriendbot } from '@/lib/stellar/account';
+import { describeError } from '@/lib/stellar/errors';
+import { formatXlm, truncateAddress } from '@/lib/stellar/format';
+import { focusRing } from '@/lib/ui';
 
 const buttonClass = cn(
   'border border-fd-border px-3 py-2 font-mono text-[11px] uppercase tracking-[0.08em] text-muted transition-colors hover:border-cyan/40 hover:text-cyan disabled:opacity-50',

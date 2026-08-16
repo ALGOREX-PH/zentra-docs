@@ -1,18 +1,18 @@
 'use client';
 
 import { useState } from 'react';
+import { StarRating } from '@/components/app/star-rating';
+import { inFlightLabels } from '@/components/app/tx-status';
 import { useWallet } from '@/components/app/wallet-provider';
-import { buildFeedbackXdr } from '@/lib/stellar/feedback';
+import { Eyebrow, HudPanel } from '@/components/landing/primitives';
+import { stellar } from '@/config/stellar';
+import { readApiError } from '@/lib/api/client';
+import { cn } from '@/lib/cn';
 import { submitInvoke } from '@/lib/stellar/action-log';
 import { describeError } from '@/lib/stellar/errors';
-import { readApiError } from '@/lib/api/client';
-import { stellar } from '@/config/stellar';
+import { buildFeedbackXdr } from '@/lib/stellar/feedback';
 import { truncateAddress } from '@/lib/stellar/format';
-import { HudPanel, Eyebrow } from '@/components/landing/primitives';
-import { inFlightLabels } from '@/components/app/tx-status';
-import { StarRating } from '@/components/app/star-rating';
 import { focusRing } from '@/lib/ui';
-import { cn } from '@/lib/cn';
 
 const MAX = 280;
 

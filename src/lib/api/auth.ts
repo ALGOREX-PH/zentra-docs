@@ -16,14 +16,14 @@
  */
 
 import {
+  type ApiError,
   forbidden,
   rateLimited,
   unauthorized,
   upstreamUnavailable,
-  type ApiError,
 } from '@/lib/api/errors';
 import { log } from '@/lib/api/logger';
-import { clientKey, rateLimit, type RateLimitOptions } from '@/lib/api/rate-limit';
+import { clientKey, type RateLimitOptions, rateLimit } from '@/lib/api/rate-limit';
 
 /** Name of the environment variable holding the operator shared secret. */
 export const ADMIN_TOKEN_ENV = 'ADMIN_TOKEN';

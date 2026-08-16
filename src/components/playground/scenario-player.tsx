@@ -1,9 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { HudPanel } from '@/components/landing/primitives';
 import { cn } from '@/lib/cn';
 import type { Scenario } from '@/lib/scenarios';
-import { HudPanel } from '@/components/landing/primitives';
 
 export function ScenarioPlayer({ s }: { s: Scenario }) {
   const [step, setStep] = useState(0);

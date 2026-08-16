@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { getFeedbackAuthors, getFeedbackCount, hasAuthor } from '@/lib/stellar/feedback';
 import { simulateRead } from '@/lib/stellar/action-log';
+import { getFeedbackAuthors, getFeedbackCount, hasAuthor } from '@/lib/stellar/feedback';
 
 // `simulateRead` is the feedback module's boundary to the chain.
 vi.mock('@/lib/stellar/action-log', async (importOriginal) => {

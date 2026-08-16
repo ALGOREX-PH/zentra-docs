@@ -1,9 +1,9 @@
 'use client';
 
 import { useEffect, useId, useState } from 'react';
-import { isOnboardCount, readApiError } from '@/lib/api/client';
+import { Eyebrow, HudPanel } from '@/components/landing/primitives';
 import { SIGNUP_GOAL } from '@/config/app';
-import { HudPanel, Eyebrow } from '@/components/landing/primitives';
+import { isOnboardCount, readApiError } from '@/lib/api/client';
 
 /**
  * The public signup counter for the growth campaign.

@@ -21,7 +21,7 @@ import { moderateComment } from '@/lib/api/moderation';
 import { requireSameOrigin } from '@/lib/api/origin';
 import { countRequest, enforceRateLimit, type RateLimitOptions } from '@/lib/api/rate-limit';
 import { json, methodNotAllowed, READ_CACHE_CONTROL, route } from '@/lib/api/route';
-import { parseFeedbackInput, readJsonBody, type FeedbackInput } from '@/lib/api/validation';
+import { type FeedbackInput, parseFeedbackInput, readJsonBody } from '@/lib/api/validation';
 import { verifyAnchor } from '@/lib/api/verify-anchor';
 import { query, sql } from '@/lib/db';
 

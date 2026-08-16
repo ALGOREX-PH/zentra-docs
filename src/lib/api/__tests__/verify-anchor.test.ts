@@ -7,8 +7,8 @@ import {
   Keypair,
   Networks,
   Operation,
-  TransactionBuilder,
   type Transaction,
+  TransactionBuilder,
 } from '@stellar/stellar-sdk';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { stellar } from '@/config/stellar';

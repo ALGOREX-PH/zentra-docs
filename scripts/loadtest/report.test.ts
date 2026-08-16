@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import type { ChainReads, ReportInput } from './report';
 import {
   buildReport,
   NON_POSITIVE_DURATION_NOTE,
@@ -7,9 +8,8 @@ import {
   renderMarkdown,
   summariseLatency,
 } from './report';
-import type { ChainReads, ReportInput } from './report';
-import { FAILURE_STAGES } from './types';
 import type { FailureStage, FundingOutcome, LoadTestConfig, RecordAttempt } from './types';
+import { FAILURE_STAGES } from './types';
 
 /** Fixed clock, so duration and throughput are checkable arithmetic. */
 const STARTED_MS = 1_700_000_000_000;

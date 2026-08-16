@@ -1,12 +1,12 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { truncateAddress } from '@/lib/stellar/format';
-import { readApiError } from '@/lib/api/client';
+import { Eyebrow, HudPanel } from '@/components/landing/primitives';
 import { stellar } from '@/config/stellar';
-import { HudPanel, Eyebrow } from '@/components/landing/primitives';
-import { focusRing } from '@/lib/ui';
+import { readApiError } from '@/lib/api/client';
 import { cn } from '@/lib/cn';
+import { truncateAddress } from '@/lib/stellar/format';
+import { focusRing } from '@/lib/ui';
 
 interface FeedbackItem {
   rating: number;

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { isGroth16Proof, isWorkerPayload, workerError, ProofError } from '@/lib/zk/prover';
+import { isGroth16Proof, isWorkerPayload, ProofError, workerError } from '@/lib/zk/prover';
 
 /** A well-formed Groth16 proof, shaped like the snarkjs output. */
 const proof = () => ({

@@ -1,4 +1,4 @@
-import { HudPanel, Eyebrow } from '@/components/landing/primitives';
+import { Eyebrow, HudPanel } from '@/components/landing/primitives';
 import { cn } from '@/lib/cn';
 
 const STEPS = [

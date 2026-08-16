@@ -1,5 +1,5 @@
-import { ZentraMark, type ZentraTone } from './zentra-mark';
 import { cn } from '@/lib/cn';
+import { ZentraMark, type ZentraTone } from './zentra-mark';
 
 interface LogoProps {
   size?: number;

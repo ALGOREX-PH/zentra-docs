@@ -1,13 +1,13 @@
 'use client';
 
 import { useState } from 'react';
-import { useWallet } from '@/components/app/wallet-provider';
 import { ConnectButton } from '@/components/app/connect-button';
-import { commitProof, buildAnchorXdr } from '@/lib/stellar/proofs';
+import { useWallet } from '@/components/app/wallet-provider';
+import { Eyebrow, HudPanel } from '@/components/landing/primitives';
+import { stellar } from '@/config/stellar';
 import { submitInvoke } from '@/lib/stellar/action-log';
 import { describeError } from '@/lib/stellar/errors';
-import { stellar } from '@/config/stellar';
-import { HudPanel, Eyebrow } from '@/components/landing/primitives';
+import { buildAnchorXdr, commitProof } from '@/lib/stellar/proofs';
 import type { ProofResult } from '@/lib/zk/prover';
 
 type Phase = 'idle' | 'anchoring' | 'done' | 'error';

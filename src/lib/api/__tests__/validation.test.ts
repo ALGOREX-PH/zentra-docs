@@ -1,14 +1,14 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import type { ApiError } from '@/lib/api/errors';
 import {
+  isStellarAccountId,
+  isTxHash,
   JSON_MEDIA_TYPE,
   MAX_BODY_BYTES,
   MAX_COMMENT_LENGTH,
   MAX_QUERY_LENGTH,
   MAX_RESULT_LIMIT,
   MAX_TAGS,
-  isStellarAccountId,
-  isTxHash,
   parseFeedbackInput,
   parseSearchQuery,
   readJsonBody,

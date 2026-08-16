@@ -1,10 +1,10 @@
 import './global.css';
-import type { ReactNode } from 'react';
-import type { Metadata, Viewport } from 'next';
-import { RootProvider } from 'fumadocs-ui/provider/next';
-import { Space_Grotesk, Inter, JetBrains_Mono } from 'next/font/google';
 import { Analytics } from '@vercel/analytics/next';
 import { SpeedInsights } from '@vercel/speed-insights/next';
+import { RootProvider } from 'fumadocs-ui/provider/next';
+import type { Metadata, Viewport } from 'next';
+import { Inter, JetBrains_Mono, Space_Grotesk } from 'next/font/google';
+import type { ReactNode } from 'react';
 import { siteUrl } from '@/lib/site';
 
 const display = Space_Grotesk({

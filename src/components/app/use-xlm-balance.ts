@@ -1,9 +1,9 @@
 'use client';
 
 import { useCallback, useEffect, useSyncExternalStore } from 'react';
+import { LIVE_POLL_MS } from '@/config/app';
 import { getXlmBalance } from '@/lib/stellar/account';
 import { describeError } from '@/lib/stellar/errors';
-import { LIVE_POLL_MS } from '@/config/app';
 
 /**
  * What every consumer of the balance read sees. One object, replaced

@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
-import { cn } from '@/lib/cn';
 import { Eyebrow } from '@/components/landing/primitives';
+import { cn } from '@/lib/cn';
 
 export const metadata: Metadata = {
   title: 'Roadmap',

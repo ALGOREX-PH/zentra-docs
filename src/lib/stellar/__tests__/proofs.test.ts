@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { commitProof, getRecentProofs, isRawProof, toHex } from '@/lib/stellar/proofs';
 import { simulateRead } from '@/lib/stellar/action-log';
+import { commitProof, getRecentProofs, isRawProof, toHex } from '@/lib/stellar/proofs';
 
 // `simulateRead` is the proofs module's boundary to the chain; everything else
 // in action-log stays real so the guard helpers under test are the shipped ones.

@@ -193,7 +193,7 @@ docs/LOADTEST.md has the framing this output must be read with.
 `;
 
 function isOptionName(name: string): name is OptionName {
-  return Object.prototype.hasOwnProperty.call(OPTIONS, name);
+  return Object.hasOwn(OPTIONS, name);
 }
 
 /**

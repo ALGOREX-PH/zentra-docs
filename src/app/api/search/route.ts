@@ -21,13 +21,13 @@
  * expects, and an empty array for an empty query.
  */
 
+import { createFromSource } from 'fumadocs-core/search/server';
 import { upstreamUnavailable } from '@/lib/api/errors';
 import { log } from '@/lib/api/logger';
 import { countRequest, type RateLimitOptions } from '@/lib/api/rate-limit';
 import { json, methodNotAllowed, route } from '@/lib/api/route';
 import { parseSearchQuery, type SearchQuery } from '@/lib/api/validation';
 import { source } from '@/lib/source';
-import { createFromSource } from 'fumadocs-core/search/server';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';

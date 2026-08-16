@@ -1,12 +1,12 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import {
   inspectWallet,
-  normaliseWallet,
-  validate,
-  walletMessage,
   MAX_NAME,
   MAX_NOTE,
+  normaliseWallet,
+  validate,
   WALLET_LENGTH,
+  walletMessage,
 } from '@/lib/stellar/wallet-input';
 
 /** A well-formed testnet account id: G plus 55 base32 characters. */

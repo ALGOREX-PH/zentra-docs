@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest';
 import { Networks } from '@stellar/stellar-sdk';
+import { describe, expect, it } from 'vitest';
 import { protocol, stellarExpertContractUrl } from '@/config/protocol';
 
 /**

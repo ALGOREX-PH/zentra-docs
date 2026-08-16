@@ -88,7 +88,7 @@ describe('reserveSponsorBudget', () => {
     const spent = new Map<string, number>();
     let queue = Promise.resolve();
     const query = async (_strings: TemplateStringsArray, ...values: unknown[]) => {
-      let rows: Array<{ budget_scope: 'source' | 'global' }> = [];
+      const rows: Array<{ budget_scope: 'source' | 'global' }> = [];
       queue = queue.then(() => {
         // Bound order follows the doubly-guarded statement: day, source, fee,
         // fee, sourceCeiling, sourceCeiling, day, fee, fee, globalCeiling,

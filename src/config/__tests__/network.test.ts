@@ -1,10 +1,10 @@
-import { describe, it, expect } from 'vitest';
 import { Networks } from '@stellar/stellar-sdk';
+import { describe, expect, it } from 'vitest';
 import {
-  PROFILES,
   activeNetwork,
   activeProfile,
   isMainnet,
+  PROFILES,
   resolveNetwork,
 } from '@/config/network';
 

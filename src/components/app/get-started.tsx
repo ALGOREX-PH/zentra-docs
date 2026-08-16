@@ -1,12 +1,12 @@
 'use client';
 
-import { useId, useState, type ReactNode } from 'react';
 import Link from 'next/link';
-import { useWallet } from '@/components/app/wallet-provider';
+import { type ReactNode, useId, useState } from 'react';
 import { useXlmBalance } from '@/components/app/use-xlm-balance';
-import { HudPanel, Eyebrow } from '@/components/landing/primitives';
-import { focusRing } from '@/lib/ui';
+import { useWallet } from '@/components/app/wallet-provider';
+import { Eyebrow, HudPanel } from '@/components/landing/primitives';
 import { cn } from '@/lib/cn';
+import { focusRing } from '@/lib/ui';
 
 /** What we can honestly say about a step: finished, up next, or unknown. */
 type StepStatus = 'done' | 'current' | 'pending';

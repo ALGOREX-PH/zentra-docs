@@ -1,12 +1,12 @@
 'use client';
 
-import { useState } from 'react';
 import Link from 'next/link';
+import { useState } from 'react';
+import { BalanceCard } from '@/components/app/balance-card';
 import { ConnectButton } from '@/components/app/connect-button';
 import { GetStarted } from '@/components/app/get-started';
-import { BalanceCard } from '@/components/app/balance-card';
 import { SendForm } from '@/components/app/send-form';
-import { HudPanel, Eyebrow } from '@/components/landing/primitives';
+import { Eyebrow, HudPanel } from '@/components/landing/primitives';
 
 export default function AppPage() {
   // Bumped after a successful send so the balance card re-fetches.

@@ -1,14 +1,14 @@
 'use client';
 
-import { useEffect, useId, useState, type ReactNode } from 'react';
-import { activeProfile } from '@/config/network';
-import { contractsConfigured } from '@/config/contract';
+import { type ReactNode, useEffect, useId, useState } from 'react';
+import { Eyebrow, HudPanel } from '@/components/landing/primitives';
 import { SIGNUP_GOAL } from '@/config/app';
+import { contractsConfigured } from '@/config/contract';
+import { activeProfile } from '@/config/network';
 import { isOnboardCount, readApiError } from '@/lib/api/client';
-import { getCount, getLatestLedger, getRecent } from '@/lib/stellar/action-log';
-import { getFeedbackCount, getFeedbackAuthors } from '@/lib/stellar/feedback';
-import { HudPanel, Eyebrow } from '@/components/landing/primitives';
 import { cn } from '@/lib/cn';
+import { getCount, getLatestLedger, getRecent } from '@/lib/stellar/action-log';
+import { getFeedbackAuthors, getFeedbackCount } from '@/lib/stellar/feedback';
 
 /**
  * How many recent entries each contract is asked for when counting distinct

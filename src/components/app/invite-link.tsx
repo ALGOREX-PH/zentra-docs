@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { focusRing } from '@/lib/ui';
 import { cn } from '@/lib/cn';
+import { focusRing } from '@/lib/ui';
 
 /*
  * Mirrors of join-form's field and secondary-action atoms, kept locally so the

@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ZentraMark } from '@/components/brand/zentra-mark';
-import { HudPanel, Eyebrow } from '@/components/landing/primitives';
+import { Eyebrow, HudPanel } from '@/components/landing/primitives';
 
 export const metadata: Metadata = {
   title: 'Not found',

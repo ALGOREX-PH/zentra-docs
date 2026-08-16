@@ -1,13 +1,13 @@
 'use client';
 
 import { useState } from 'react';
+import { ActionFeed } from '@/components/app/action-feed';
 import { ConnectButton } from '@/components/app/connect-button';
 import { RecordForm } from '@/components/app/record-form';
-import { ActionFeed } from '@/components/app/action-feed';
-import { HudPanel, Eyebrow } from '@/components/landing/primitives';
+import { Eyebrow, HudPanel } from '@/components/landing/primitives';
 import { actionLog, contractsConfigured } from '@/config/contract';
-import { stellar } from '@/config/stellar';
 import { activeProfile } from '@/config/network';
+import { stellar } from '@/config/stellar';
 import { truncateAddress } from '@/lib/stellar/format';
 
 const contractUrl = stellar.explorerContractUrl(actionLog.contractId);

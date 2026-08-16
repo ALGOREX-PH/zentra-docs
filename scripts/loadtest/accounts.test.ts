@@ -1,15 +1,15 @@
 import { Keypair } from '@stellar/stellar-sdk';
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 import {
   DEFAULT_MAX_ATTEMPTS,
-  provisionAccounts,
-  REDACTED,
-  UNKNOWN_PUBLIC_KEY,
   type FetchLike,
   type FriendbotResponse,
   type ProvisionOptions,
+  provisionAccounts,
+  REDACTED,
   type SleepLike,
+  UNKNOWN_PUBLIC_KEY,
 } from './accounts';
 
 /**

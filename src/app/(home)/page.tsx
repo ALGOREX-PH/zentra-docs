@@ -1,11 +1,11 @@
-import { HudFrame } from '@/components/landing/hud-frame';
-import { SystemBar } from '@/components/landing/system-bar';
-import { Hero } from '@/components/landing/hero';
-import { TheGap } from '@/components/landing/the-gap';
-import { ScenarioPanels } from '@/components/landing/scenario-panels';
-import { VerifierMonolith } from '@/components/landing/verifier-monolith';
-import { ForDevelopers } from '@/components/landing/for-developers';
 import { Closing } from '@/components/landing/closing';
+import { ForDevelopers } from '@/components/landing/for-developers';
+import { Hero } from '@/components/landing/hero';
+import { HudFrame } from '@/components/landing/hud-frame';
+import { ScenarioPanels } from '@/components/landing/scenario-panels';
+import { SystemBar } from '@/components/landing/system-bar';
+import { TheGap } from '@/components/landing/the-gap';
+import { VerifierMonolith } from '@/components/landing/verifier-monolith';
 
 export default function HomePage() {
   return (

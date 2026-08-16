@@ -1,8 +1,8 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { Eyebrow, HudPanel } from '@/components/landing/primitives';
 import { protocol } from '@/config/protocol';
-import { HudPanel, Eyebrow } from '@/components/landing/primitives';
 import { shorten } from '@/lib/ui';
 
 const STEPS = [

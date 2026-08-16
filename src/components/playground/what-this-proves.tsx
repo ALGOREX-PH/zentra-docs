@@ -1,5 +1,5 @@
-import { PROVES, PRIVATE_INPUTS } from '@/lib/zk/education';
-import { HudPanel, Eyebrow } from '@/components/landing/primitives';
+import { Eyebrow, HudPanel } from '@/components/landing/primitives';
+import { PRIVATE_INPUTS, PROVES } from '@/lib/zk/education';
 
 /**
  * After a proof is generated, explains in plain language what it guarantees and

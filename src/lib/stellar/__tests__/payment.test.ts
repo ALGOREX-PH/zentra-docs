@@ -2,17 +2,17 @@ import {
   Account,
   Asset,
   BASE_FEE,
+  type Horizon,
   Keypair,
   Operation,
-  TransactionBuilder,
-  type Horizon,
   type Transaction,
+  TransactionBuilder,
 } from '@stellar/stellar-sdk';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { stellar } from '@/config/stellar';
+import { horizon } from '@/lib/stellar/client';
 import { SubmitTimeoutError } from '@/lib/stellar/errors';
 import { buildPaymentXdr, submitSignedXdr } from '@/lib/stellar/payment';
-import { horizon } from '@/lib/stellar/client';
 
 // The Horizon client is the module boundary: everything below it is the network.
 vi.mock('@/lib/stellar/client', () => ({

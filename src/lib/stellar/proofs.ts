@@ -1,4 +1,3 @@
-import { Buffer } from 'buffer';
 import {
   Address,
   BASE_FEE,
@@ -8,11 +7,12 @@ import {
   TransactionBuilder,
   xdr,
 } from '@stellar/stellar-sdk';
-import { log } from '@/lib/api/logger';
-import { stellar } from '@/config/stellar';
+import { Buffer } from 'buffer';
 import { actionLog } from '@/config/contract';
-import { soroban } from './rpc';
+import { stellar } from '@/config/stellar';
+import { log } from '@/lib/api/logger';
 import { isChainInt, simulateRead } from './action-log';
+import { soroban } from './rpc';
 import type { ProofEntry } from './types';
 
 const registry = new Contract(actionLog.proofRegistryId);

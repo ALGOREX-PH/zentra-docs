@@ -1,9 +1,9 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { Component, useState, type ReactNode } from 'react';
+import { Component, type ReactNode, useState } from 'react';
+import { Eyebrow, HudPanel } from '@/components/landing/primitives';
 import { ProofLab } from '@/components/playground/proof-lab';
-import { HudPanel, Eyebrow } from '@/components/landing/primitives';
 
 /**
  * The feed reads Soroban RPC through the Stellar SDK, which is far too heavy

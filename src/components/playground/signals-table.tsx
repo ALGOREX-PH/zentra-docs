@@ -1,10 +1,10 @@
 'use client';
 
 import { Fragment, useId, useState } from 'react';
-import { SIGNALS, type SignalKind } from '@/lib/zk/education';
-import { HudPanel, Eyebrow } from '@/components/landing/primitives';
+import { Eyebrow, HudPanel } from '@/components/landing/primitives';
 import { cn } from '@/lib/cn';
 import { shorten } from '@/lib/ui';
+import { SIGNALS, type SignalKind } from '@/lib/zk/education';
 
 /** Rendered in its own column, and again beside the label once that column is
  *  dropped for narrow screens. */

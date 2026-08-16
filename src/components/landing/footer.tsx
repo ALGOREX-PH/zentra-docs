@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { ZentraMark } from '@/components/brand/zentra-mark';
-import { repoUrl, protocolRepoUrl } from '@/lib/shared';
 import { stellarExpertContractUrl } from '@/config/protocol';
+import { protocolRepoUrl, repoUrl } from '@/lib/shared';
 
 export function Footer() {
   return (

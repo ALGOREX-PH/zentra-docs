@@ -178,7 +178,7 @@ export function parseFeedbackInput(raw: unknown): FeedbackInput {
   // must therefore also name the wallet that made it — required here, proven
   // against the ledger by the route. A wallet that is present but malformed
   // already carries its own message above and keeps it.
-  if (Boolean(body.onChain) && isPresent(body.txHash) && !isPresent(body.wallet)) {
+  if (body.onChain && isPresent(body.txHash) && !isPresent(body.wallet)) {
     details.wallet = 'Wallet is required when onChain is true.';
   }
 

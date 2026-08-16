@@ -1,10 +1,10 @@
 'use client';
 
-import type { TxState } from '@/lib/stellar/types';
 import { stellar } from '@/config/stellar';
-import { truncateAddress } from '@/lib/stellar/format';
-import { focusRing } from '@/lib/ui';
 import { cn } from '@/lib/cn';
+import { truncateAddress } from '@/lib/stellar/format';
+import type { TxState } from '@/lib/stellar/types';
+import { focusRing } from '@/lib/ui';
 
 /**
  * What each in-flight phase says while the outcome is still open.

@@ -1,11 +1,11 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { getProofCount, getRecentProofs } from '@/lib/stellar/proofs';
-import { truncateAddress } from '@/lib/stellar/format';
-import { stellar } from '@/config/stellar';
+import { Eyebrow, HudPanel } from '@/components/landing/primitives';
 import { actionLog } from '@/config/contract';
-import { HudPanel, Eyebrow } from '@/components/landing/primitives';
+import { stellar } from '@/config/stellar';
+import { truncateAddress } from '@/lib/stellar/format';
+import { getProofCount, getRecentProofs } from '@/lib/stellar/proofs';
 import type { ProofEntry } from '@/lib/stellar/types';
 
 export function ProofsFeed({ refreshSignal = 0 }: { refreshSignal?: number }) {

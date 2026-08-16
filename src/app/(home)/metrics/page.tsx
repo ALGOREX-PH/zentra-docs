@@ -2,9 +2,9 @@
 
 import { useState } from 'react';
 import { ConnectButton } from '@/components/app/connect-button';
-import { MetricsStats } from '@/components/app/metrics-stats';
 import { FeedbackForm } from '@/components/app/feedback-form';
 import { FeedbackSummary } from '@/components/app/feedback-summary';
+import { MetricsStats } from '@/components/app/metrics-stats';
 import { Eyebrow } from '@/components/landing/primitives';
 
 export default function MetricsPage() {

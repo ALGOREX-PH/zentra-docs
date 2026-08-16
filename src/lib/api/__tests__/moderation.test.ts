@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { ABUSIVE_TERMS, moderateComment, normaliseForMatching } from '@/lib/api/moderation';
 
 /** The shape of the abuse that reached production, kept verbatim as a fixture. */

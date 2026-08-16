@@ -1,9 +1,9 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { cn } from '@/lib/cn';
-import { Eyebrow, HudPanel } from '@/components/landing/primitives';
 import { ZentraMark } from '@/components/brand/zentra-mark';
+import { Eyebrow, HudPanel } from '@/components/landing/primitives';
+import { cn } from '@/lib/cn';
 import { PITCH_SLIDES, type PitchSlide } from '@/lib/pitch';
 
 /** Slide positions read as `01 / 11` — fixed width keeps the corner stamp steady. */

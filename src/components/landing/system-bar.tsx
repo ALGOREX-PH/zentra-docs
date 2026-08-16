@@ -1,7 +1,7 @@
-import { cn } from '@/lib/cn';
 import { protocol } from '@/config/protocol';
-import { SIGNALS } from '@/lib/zk/education';
+import { cn } from '@/lib/cn';
 import { shorten } from '@/lib/ui';
+import { SIGNALS } from '@/lib/zk/education';
 
 const CELLS: Array<{ k: string; v: string; tone?: string }> = [
   { k: 'NETWORK', v: 'STELLAR-TESTNET' },

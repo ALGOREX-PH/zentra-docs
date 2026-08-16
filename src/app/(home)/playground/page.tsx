@@ -1,11 +1,11 @@
 import type { Metadata } from 'next';
-import { SCENARIOS } from '@/lib/scenarios';
-import { ScenarioPlayer } from '@/components/playground/scenario-player';
-import { ProofConsole } from '@/components/playground/proof-console';
-import { ZkIntro } from '@/components/playground/zk-intro';
-import { ProofVisuals } from '@/components/playground/proof-visuals';
-import { ZkGlossary } from '@/components/playground/zk-glossary';
 import { Eyebrow } from '@/components/landing/primitives';
+import { ProofConsole } from '@/components/playground/proof-console';
+import { ProofVisuals } from '@/components/playground/proof-visuals';
+import { ScenarioPlayer } from '@/components/playground/scenario-player';
+import { ZkGlossary } from '@/components/playground/zk-glossary';
+import { ZkIntro } from '@/components/playground/zk-intro';
+import { SCENARIOS } from '@/lib/scenarios';
 
 export const metadata: Metadata = {
   title: 'Playground',

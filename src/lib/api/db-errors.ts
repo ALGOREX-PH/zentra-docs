@@ -9,7 +9,7 @@
  * happens on every route.
  */
 
-import { upstreamUnavailable, type ApiError } from '@/lib/api/errors';
+import { type ApiError, upstreamUnavailable } from '@/lib/api/errors';
 import { log } from '@/lib/api/logger';
 
 /** Postgres unique-violation SQLSTATE, raised by every unique index we define. */

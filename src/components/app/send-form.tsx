@@ -1,14 +1,14 @@
 'use client';
 
 import { useState } from 'react';
-import { useWallet } from '@/components/app/wallet-provider';
-import { buildPaymentXdr, submitSignedXdr } from '@/lib/stellar/payment';
-import { isValidPublicKey, isValidAmount } from '@/lib/stellar/format';
-import { HudPanel, Eyebrow } from '@/components/landing/primitives';
 import { TxStatus } from '@/components/app/tx-status';
 import { useTxPipeline } from '@/components/app/use-tx-pipeline';
-import { focusRing } from '@/lib/ui';
+import { useWallet } from '@/components/app/wallet-provider';
+import { Eyebrow, HudPanel } from '@/components/landing/primitives';
 import { cn } from '@/lib/cn';
+import { isValidAmount, isValidPublicKey } from '@/lib/stellar/format';
+import { buildPaymentXdr, submitSignedXdr } from '@/lib/stellar/payment';
+import { focusRing } from '@/lib/ui';
 
 export function SendForm({ onPaid }: { onPaid?: () => void }) {
   const { address } = useWallet();

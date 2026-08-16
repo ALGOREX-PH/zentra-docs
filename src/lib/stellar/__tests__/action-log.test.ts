@@ -11,7 +11,6 @@ import {
 } from '@stellar/stellar-sdk';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { actionLog } from '@/config/contract';
-import { InvokeFailedError, SubmitTimeoutError } from '@/lib/stellar/errors';
 import {
   getRecent,
   isChainInt,
@@ -20,6 +19,7 @@ import {
   simulateRead,
   submitInvoke,
 } from '@/lib/stellar/action-log';
+import { InvokeFailedError, SubmitTimeoutError } from '@/lib/stellar/errors';
 import { soroban } from '@/lib/stellar/rpc';
 
 // The RPC client is the module boundary: everything below it is the network.

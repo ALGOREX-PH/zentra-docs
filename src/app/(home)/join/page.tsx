@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
-import type { ReactNode } from 'react';
 import Link from 'next/link';
+import type { ReactNode } from 'react';
 import { JoinForm } from '@/components/app/join-form';
 import { JoinProgress } from '@/components/app/join-progress';
 import { Eyebrow } from '@/components/landing/primitives';

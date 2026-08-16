@@ -1,26 +1,26 @@
 'use client';
 
-import { useEffect, useId, useState } from 'react';
 import Link from 'next/link';
+import { useEffect, useId, useState } from 'react';
 import { ConnectButton } from '@/components/app/connect-button';
 import { InviteLink } from '@/components/app/invite-link';
 import { StarRating } from '@/components/app/star-rating';
-import { WalletProvider, useWallet } from '@/components/app/wallet-provider';
+import { useWallet, WalletProvider } from '@/components/app/wallet-provider';
+import { Eyebrow, HudPanel } from '@/components/landing/primitives';
 import { readApiError } from '@/lib/api/client';
-import { HudPanel, Eyebrow } from '@/components/landing/primitives';
+import { cn } from '@/lib/cn';
 import { truncateAddress } from '@/lib/stellar/format';
 import {
+  type Field,
   inspectWallet,
-  normaliseWallet,
-  validate,
-  walletMessage,
   MAX_NAME,
   MAX_NOTE,
+  normaliseWallet,
+  validate,
   WALLET_LENGTH,
-  type Field,
+  walletMessage,
 } from '@/lib/stellar/wallet-input';
 import { focusRing } from '@/lib/ui';
-import { cn } from '@/lib/cn';
 
 const fieldClass = cn(
   'w-full border border-fd-border bg-abyss px-3 py-2.5 font-mono text-sm text-text placeholder:text-faint transition-colors focus:border-violet/60',

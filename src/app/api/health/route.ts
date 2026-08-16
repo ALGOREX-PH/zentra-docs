@@ -21,8 +21,8 @@ import { contractsConfigured } from '@/config/contract';
 import { activeProfile } from '@/config/network';
 import { log } from '@/lib/api/logger';
 import { json, methodNotAllowed, route } from '@/lib/api/route';
-import { soroban } from '@/lib/stellar/rpc';
 import { query } from '@/lib/db';
+import { soroban } from '@/lib/stellar/rpc';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';

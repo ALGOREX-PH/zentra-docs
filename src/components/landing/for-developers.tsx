@@ -1,8 +1,8 @@
 'use client';
 
-import { Fragment, useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import { Fragment, type ReactNode, useCallback, useEffect, useRef, useState } from 'react';
+import { Eyebrow, HudPanel } from '@/components/landing/primitives';
 import { protocol } from '@/config/protocol';
-import { HudPanel, Eyebrow } from '@/components/landing/primitives';
 import { shorten } from '@/lib/ui';
 
 const CHECKS = [

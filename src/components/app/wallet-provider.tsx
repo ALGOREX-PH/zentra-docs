@@ -2,12 +2,12 @@
 
 import {
   createContext,
+  type ReactNode,
   useCallback,
   useContext,
   useEffect,
   useMemo,
   useState,
-  type ReactNode,
 } from 'react';
 import { stellar } from '@/config/stellar';
 import { FREIGHTER_ID, getKit, type WalletKit } from '@/lib/stellar/kit';

@@ -1,16 +1,16 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { getCount, getLatestLedger, getRecent, pollEvents } from '@/lib/stellar/action-log';
-import { stellar } from '@/config/stellar';
+import { Eyebrow, HudPanel } from '@/components/landing/primitives';
+import { LIVE_POLL_MS } from '@/config/app';
 import { contractsConfigured } from '@/config/contract';
 import { activeProfile } from '@/config/network';
+import { stellar } from '@/config/stellar';
+import { cn } from '@/lib/cn';
+import { getCount, getLatestLedger, getRecent, pollEvents } from '@/lib/stellar/action-log';
 import { truncateAddress } from '@/lib/stellar/format';
-import { HudPanel, Eyebrow } from '@/components/landing/primitives';
-import { LIVE_POLL_MS } from '@/config/app';
 import type { ActionEntry } from '@/lib/stellar/types';
 import { focusRing } from '@/lib/ui';
-import { cn } from '@/lib/cn';
 
 const MAX_SHOWN = 25;
 

@@ -1,9 +1,9 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { cn } from '@/lib/cn';
 import { HudPanel } from '@/components/landing/primitives';
-import { LANDING_MESSAGES, OVERSPEND, type LandingKey } from '@/lib/scenarios';
+import { cn } from '@/lib/cn';
+import { LANDING_MESSAGES, type LandingKey, OVERSPEND } from '@/lib/scenarios';
 
 const NODES: [number, number][] = [
   [90, 70], [260, 70], [430, 70], [260, 170], [90, 270], [260, 270], [430, 270],

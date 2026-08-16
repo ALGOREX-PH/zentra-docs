@@ -1,13 +1,13 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { cn } from '@/lib/cn';
 import { Eyebrow } from '@/components/landing/primitives';
+import { cn } from '@/lib/cn';
 import {
   LANDING_PANELS,
-  OVERSPEND,
   type LandingKey,
   type LandingPanelConfig,
+  OVERSPEND,
 } from '@/lib/scenarios';
 
 const V = '#7c3aed', C = '#00e5ff', G = '#22c55e', R = '#ef4444';

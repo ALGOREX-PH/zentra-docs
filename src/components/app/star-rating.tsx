@@ -1,7 +1,7 @@
 'use client';
 
-import { focusRing } from '@/lib/ui';
 import { cn } from '@/lib/cn';
+import { focusRing } from '@/lib/ui';
 
 /**
  * The five-star rating group shared by the feedback and signup forms.

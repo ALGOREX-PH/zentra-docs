@@ -1,8 +1,8 @@
-import { HudPanel, Eyebrow } from '@/components/landing/primitives';
+import { Eyebrow, HudPanel } from '@/components/landing/primitives';
+import { VizCommitment } from '@/components/playground/viz-commitment';
 import { VizFlow } from '@/components/playground/viz-flow';
 import { VizMerkle } from '@/components/playground/viz-merkle';
 import { VizPrivatePublic } from '@/components/playground/viz-private-public';
-import { VizCommitment } from '@/components/playground/viz-commitment';
 
 /** A visual-learner walkthrough of how a Zentra zero-knowledge proof works. */
 export function ProofVisuals() {
