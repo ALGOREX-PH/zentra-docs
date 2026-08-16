@@ -18,8 +18,8 @@ export function ProofVisuals() {
               accessible name rather than a paragraph that happens to sit above. */}
           <figure>
             <figcaption className="mt-2 max-w-[680px] text-sm text-muted">
-              Private and public inputs run through the circuit; out comes a tiny
-              proof anyone can verify in milliseconds.
+              Private and public inputs run through the circuit; out comes a tiny proof anyone can
+              verify in milliseconds.
             </figcaption>
             <div className="mt-5">
               <VizFlow />
@@ -62,8 +62,8 @@ export function ProofVisuals() {
           <Eyebrow>MEMBERSHIP · THE MERKLE TREE</Eyebrow>
           <figure>
             <figcaption className="mt-2 max-w-[680px] text-sm text-muted">
-              How &quot;the recipient is approved&quot; is proven against a single
-              root, without revealing the list.
+              How &quot;the recipient is approved&quot; is proven against a single root, without
+              revealing the list.
             </figcaption>
             <div className="mt-5">
               <VizMerkle />

@@ -40,7 +40,9 @@ export function ScenarioPlayer({ s }: { s: Scenario }) {
 
   return (
     <HudPanel accent={denied ? 'violet' : 'cyan'} className="flex flex-col p-6">
-      <div className="font-mono text-xs tracking-[0.12em] text-fd-muted-foreground">PANEL {s.id}</div>
+      <div className="font-mono text-xs tracking-[0.12em] text-fd-muted-foreground">
+        PANEL {s.id}
+      </div>
       <h3 className="mt-3 font-display text-lg font-semibold">{s.title}</h3>
       <p className="mt-1 text-sm text-fd-muted-foreground">{s.subtitle}</p>
 
@@ -60,7 +62,11 @@ export function ScenarioPlayer({ s }: { s: Scenario }) {
                   released ? 'bg-cyan' : blocked ? 'bg-denied' : 'bg-violet-soft',
                 )}
               />
-              <span className={cn(blocked ? 'text-denied' : released ? 'text-cyan' : 'text-fd-muted-foreground')}>
+              <span
+                className={cn(
+                  blocked ? 'text-denied' : released ? 'text-cyan' : 'text-fd-muted-foreground',
+                )}
+              >
                 {phase}
               </span>
             </li>

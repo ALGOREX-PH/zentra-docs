@@ -66,8 +66,8 @@ export function ProofAnchor({
         <div className="p-5 sm:p-6">
           <Eyebrow>ANCHOR ON-CHAIN</Eyebrow>
           <p role="alert" className="max-w-[560px] text-sm text-denied">
-            This proof failed local verification, so there is nothing to anchor.
-            Generate a new proof and try again.
+            This proof failed local verification, so there is nothing to anchor. Generate a new
+            proof and try again.
           </p>
         </div>
       </HudPanel>
@@ -79,8 +79,8 @@ export function ProofAnchor({
       <div className="p-5 sm:p-6">
         <Eyebrow>ANCHOR ON-CHAIN</Eyebrow>
         <p className="mt-2 max-w-[560px] text-sm text-muted">
-          Record this proof&apos;s commitment on Stellar testnet so anyone can verify
-          it was made — and it joins the platform&apos;s on-chain proof feed.
+          Record this proof&apos;s commitment on Stellar testnet so anyone can verify it was made —
+          and it joins the platform&apos;s on-chain proof feed.
         </p>
 
         {!address ? (

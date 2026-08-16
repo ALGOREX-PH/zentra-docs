@@ -30,10 +30,20 @@ const NODES: Node[] = [
 ];
 
 const EDGES: [string, string][] = [
-  ['R', 'M0'], ['R', 'M1'],
-  ['M0', 'N0'], ['M0', 'N1'], ['M1', 'N2'], ['M1', 'N3'],
-  ['N0', 'L0'], ['N0', 'L1'], ['N1', 'L2'], ['N1', 'L3'],
-  ['N2', 'L4'], ['N2', 'L5'], ['N3', 'L6'], ['N3', 'L7'],
+  ['R', 'M0'],
+  ['R', 'M1'],
+  ['M0', 'N0'],
+  ['M0', 'N1'],
+  ['M1', 'N2'],
+  ['M1', 'N3'],
+  ['N0', 'L0'],
+  ['N0', 'L1'],
+  ['N1', 'L2'],
+  ['N1', 'L3'],
+  ['N2', 'L4'],
+  ['N2', 'L5'],
+  ['N3', 'L6'],
+  ['N3', 'L7'],
 ];
 
 const PATH = new Set(['R', 'M0', 'N1', 'L2']);
@@ -65,11 +75,10 @@ export function VizMerkle() {
         >
           <title id={TITLE_ID}>Merkle membership proof for one recipient</title>
           <desc id={DESC_ID}>
-            A depth-3 binary tree of eight leaves. The recipient&apos;s leaf, its
-            parent, its grandparent and the public root form the path to the root.
-            Three sibling hashes beside that path are the Merkle proof: the circuit
-            recomputes the root from the recipient and those siblings alone, so the
-            rest of the approved-vendor list is never revealed.
+            A depth-3 binary tree of eight leaves. The recipient&apos;s leaf, its parent, its
+            grandparent and the public root form the path to the root. Three sibling hashes beside
+            that path are the Merkle proof: the circuit recomputes the root from the recipient and
+            those siblings alone, so the rest of the approved-vendor list is never revealed.
           </desc>
           {EDGES.map(([a, b]) => {
             const na = byId(a);
@@ -119,12 +128,13 @@ export function VizMerkle() {
           <span aria-hidden className="size-2.5 rounded-full bg-cyan" /> path to the root
         </span>
         <span className="flex items-center gap-1.5">
-          <span aria-hidden className="size-2.5 rounded-full bg-violet-soft" /> proof · sibling hashes
+          <span aria-hidden className="size-2.5 rounded-full bg-violet-soft" /> proof · sibling
+          hashes
         </span>
       </div>
       <p className="mt-2 text-[12px] text-muted">
-        To prove the recipient is on the approved list, the circuit only needs the
-        path to the public root — never the whole list.
+        To prove the recipient is on the approved list, the circuit only needs the path to the
+        public root — never the whole list.
       </p>
     </div>
   );

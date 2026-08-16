@@ -36,10 +36,7 @@ export function ZkIntro() {
           {STEPS.map((step) => (
             <div key={step.label} className="border border-fd-border bg-abyss p-4">
               <span
-                className={cn(
-                  'font-mono text-[10px] uppercase tracking-[0.12em]',
-                  step.labelClass,
-                )}
+                className={cn('font-mono text-[10px] uppercase tracking-[0.12em]', step.labelClass)}
               >
                 {step.label}
               </span>

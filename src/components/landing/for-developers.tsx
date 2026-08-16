@@ -80,17 +80,27 @@ console.log(result.status); // released`;
   }, []);
 
   useEffect(() => {
-    const el = wrap.current; if (!el) return;
+    const el = wrap.current;
+    if (!el) return;
     // reduced motion shows the full checklist up front instead of staggering it in
     // behind a scroll trigger, which would otherwise leave the list blank.
     if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false) {
-      ran.current = true; setRevealed(CHECKS.length); return;
+      ran.current = true;
+      setRevealed(CHECKS.length);
+      return;
     }
-    const io = new IntersectionObserver((entries) => {
-      for (const e of entries) {
-        if (e.isIntersecting && !ran.current) { ran.current = true; reveal(); io.disconnect(); }
-      }
-    }, { threshold: 0.3 });
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          if (e.isIntersecting && !ran.current) {
+            ran.current = true;
+            reveal();
+            io.disconnect();
+          }
+        }
+      },
+      { threshold: 0.3 },
+    );
     io.observe(el);
     return () => io.disconnect();
   }, [reveal]);
@@ -106,18 +116,28 @@ console.log(result.status); // released`;
   }
 
   return (
-    <section id="developer" ref={wrap} aria-labelledby="developer-title" className="border-t border-violet/20 bg-abyss px-5 py-14 sm:px-7 sm:py-20">
+    <section
+      id="developer"
+      ref={wrap}
+      aria-labelledby="developer-title"
+      className="border-t border-violet/20 bg-abyss px-5 py-14 sm:px-7 sm:py-20"
+    >
       <div className="mx-auto max-w-[1160px]">
-        <Eyebrow index="04" className="mb-10">FOR DEVELOPERS</Eyebrow>
+        <Eyebrow index="04" className="mb-10">
+          FOR DEVELOPERS
+        </Eyebrow>
 
         <div className="grid items-center gap-12 lg:grid-cols-2">
           <div>
-            <h2 id="developer-title" className="font-display text-3xl font-bold tracking-[-0.025em] sm:text-[40px]">
+            <h2
+              id="developer-title"
+              className="font-display text-3xl font-bold tracking-[-0.025em] sm:text-[40px]"
+            >
               Guard an agent in an afternoon.
             </h2>
             <p className="mb-[30px] mt-4 max-w-[480px] text-[17px] text-muted">
-              Bolt policy enforcement onto an agent without learning ZK theory. Define
-              a policy, guard the agent, and let the proof do the rest.
+              Bolt policy enforcement onto an agent without learning ZK theory. Define a policy,
+              guard the agent, and let the proof do the rest.
             </p>
             <div className="border border-fd-border">
               {CHECKS.map((c, i) => {
@@ -126,10 +146,27 @@ console.log(result.status); // released`;
                   <div
                     key={c}
                     className="flex items-center gap-3 border-b border-fd-border px-4 py-2.5 font-mono text-[13px] transition-opacity duration-500 last:border-b-0"
-                    style={{ opacity: i < revealed ? 1 : 0, color: last ? '#22c55e' : '#e2e8f0', fontWeight: last ? 600 : 400 }}
+                    style={{
+                      opacity: i < revealed ? 1 : 0,
+                      color: last ? '#22c55e' : '#e2e8f0',
+                      fontWeight: last ? 600 : 400,
+                    }}
                   >
-                    <svg width="14" height="14" viewBox="0 0 15 15" className="shrink-0" aria-hidden>
-                      <polyline points="2,8 6,12 13,3" fill="none" stroke="#22c55e" strokeWidth="2.2" strokeLinecap="square" strokeLinejoin="miter" />
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 15 15"
+                      className="shrink-0"
+                      aria-hidden
+                    >
+                      <polyline
+                        points="2,8 6,12 13,3"
+                        fill="none"
+                        stroke="#22c55e"
+                        strokeWidth="2.2"
+                        strokeLinecap="square"
+                        strokeLinejoin="miter"
+                      />
                     </svg>
                     {c}
                   </div>
@@ -140,7 +177,9 @@ console.log(result.status); // released`;
 
           <HudPanel className="border-violet/35">
             <div className="flex items-center justify-between border-b border-fd-border bg-[#0a0c12] px-4 py-3">
-              <span className="font-mono text-[11px] tracking-[0.06em] text-muted">agent.ts · @zentra/sdk</span>
+              <span className="font-mono text-[11px] tracking-[0.06em] text-muted">
+                agent.ts · @zentra/sdk
+              </span>
               <button
                 type="button"
                 onClick={copy}

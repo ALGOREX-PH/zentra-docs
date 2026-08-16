@@ -25,9 +25,7 @@ const ProofAnchor = dynamic(
   {
     loading: () => (
       <HudPanel accent="violet">
-        <p className="p-5 font-mono text-[11px] text-faint sm:p-6">
-          Loading the on-chain anchor…
-        </p>
+        <p className="p-5 font-mono text-[11px] text-faint sm:p-6">Loading the on-chain anchor…</p>
       </HudPanel>
     ),
   },
@@ -167,9 +165,9 @@ export function ProofLab({ onAnchored }: { onAnchored?: () => void }) {
             Generate a real Groth16 proof
           </h2>
           <p className="mt-2 max-w-[640px] text-sm text-muted">
-            This runs the actual Zentra payment-policy circuit (Circom + snarkjs,
-            Groth16 over BN254) entirely in your browser. The proof shows an
-            agent&apos;s action obeys a private policy — without revealing the policy.
+            This runs the actual Zentra payment-policy circuit (Circom + snarkjs, Groth16 over
+            BN254) entirely in your browser. The proof shows an agent&apos;s action obeys a private
+            policy — without revealing the policy.
           </p>
 
           {proving ? (
@@ -216,10 +214,12 @@ export function ProofLab({ onAnchored }: { onAnchored?: () => void }) {
                     STEP_CLASS[state],
                   )}
                 >
-                  <span className="text-muted">{String(i + 1).padStart(2, '0')}</span>{' '}
-                  {step.label}
+                  <span className="text-muted">{String(i + 1).padStart(2, '0')}</span> {step.label}
                   {state === 'active' ? (
-                    <span aria-hidden className="absolute inset-x-0 bottom-0 h-px animate-pulse bg-cyan" />
+                    <span
+                      aria-hidden
+                      className="absolute inset-x-0 bottom-0 h-px animate-pulse bg-cyan"
+                    />
                   ) : null}
                 </li>
               );
@@ -282,27 +282,34 @@ export function ProofLab({ onAnchored }: { onAnchored?: () => void }) {
       {result ? (
         <>
           <div className="grid gap-5 lg:grid-cols-2">
-          <HudPanel accent="cyan">
-            <div className="p-5 sm:p-6">
-              <Eyebrow accent="cyan">THE PROOF · π</Eyebrow>
-              <dl className="mt-3 space-y-2 font-mono text-[11px]">
-                <Point label="π_a (G1)" values={result.proof.pi_a} />
-                <Point label="π_b (G2)" values={result.proof.pi_b.flat()} />
-                <Point label="π_c (G1)" values={result.proof.pi_c} />
-              </dl>
-              <div className="mt-4 flex flex-wrap items-center gap-x-2 gap-y-1 border border-live/40 bg-live/[0.06] px-3 py-2 font-mono text-xs text-live">
-                <svg width="14" height="14" viewBox="0 0 15 15" aria-hidden>
-                  <polyline points="2,8 6,12 13,3" fill="none" stroke="#22c55e" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-                Verified locally · valid
-                <span className="ml-auto text-faint">
-                  prove {result.proveMs}ms · verify {result.verifyMs}ms
-                </span>
+            <HudPanel accent="cyan">
+              <div className="p-5 sm:p-6">
+                <Eyebrow accent="cyan">THE PROOF · π</Eyebrow>
+                <dl className="mt-3 space-y-2 font-mono text-[11px]">
+                  <Point label="π_a (G1)" values={result.proof.pi_a} />
+                  <Point label="π_b (G2)" values={result.proof.pi_b.flat()} />
+                  <Point label="π_c (G1)" values={result.proof.pi_c} />
+                </dl>
+                <div className="mt-4 flex flex-wrap items-center gap-x-2 gap-y-1 border border-live/40 bg-live/[0.06] px-3 py-2 font-mono text-xs text-live">
+                  <svg width="14" height="14" viewBox="0 0 15 15" aria-hidden>
+                    <polyline
+                      points="2,8 6,12 13,3"
+                      fill="none"
+                      stroke="#22c55e"
+                      strokeWidth="2.2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                  Verified locally · valid
+                  <span className="ml-auto text-faint">
+                    prove {result.proveMs}ms · verify {result.verifyMs}ms
+                  </span>
+                </div>
               </div>
-            </div>
-          </HudPanel>
+            </HudPanel>
 
-          <SignalsTable publicSignals={result.publicSignals} />
+            <SignalsTable publicSignals={result.publicSignals} />
           </div>
           <WhatThisProves />
           <ProofAnchor result={result} onAnchored={onAnchored} />

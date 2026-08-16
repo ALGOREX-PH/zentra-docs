@@ -37,10 +37,7 @@ export function VizPrivatePublic() {
           </div>
           <div className="mt-3 space-y-2">
             {privateItems.map((item) => (
-              <div
-                key={item.label}
-                className="flex items-center justify-between gap-3"
-              >
+              <div key={item.label} className="flex items-center justify-between gap-3">
                 <span className="text-[11px] text-faint">{item.label}</span>
                 {/* The bar is the whole point — so say what it stands for. */}
                 <span className="sr-only">hidden</span>
@@ -72,10 +69,7 @@ export function VizPrivatePublic() {
           </div>
           <div className="mt-3 space-y-2">
             {publicItems.map((item) => (
-              <div
-                key={item.label}
-                className="flex items-center justify-between gap-3"
-              >
+              <div key={item.label} className="flex items-center justify-between gap-3">
                 <span className="text-[11px] text-faint">{item.label}</span>
                 <span className="font-mono text-[11px] text-cyan">{item.value}</span>
               </div>
@@ -86,8 +80,8 @@ export function VizPrivatePublic() {
       </div>
 
       <p className="mt-4 text-center text-[12px] text-muted">
-        The proof links the hidden side to the public side — proving they&apos;re
-        consistent without revealing the secrets.
+        The proof links the hidden side to the public side — proving they&apos;re consistent without
+        revealing the secrets.
       </p>
     </div>
   );

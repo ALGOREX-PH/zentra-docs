@@ -15,7 +15,10 @@ function KindBadge({ kind, className }: { kind: SignalKind; className?: string }
     </span>
   ) : (
     <span
-      className={cn('border border-violet/40 px-1 font-mono text-[9px] text-violet-soft', className)}
+      className={cn(
+        'border border-violet/40 px-1 font-mono text-[9px] text-violet-soft',
+        className,
+      )}
     >
       value
     </span>
@@ -36,8 +39,8 @@ export function SignalsTable({ publicSignals }: { publicSignals: string[] }) {
 
         <table className="mt-3 w-full border border-fd-border text-left">
           <caption className="sr-only">
-            The public signals this proof reveals, in the order the circuit emits
-            them. Each row expands to explain what that signal means.
+            The public signals this proof reveals, in the order the circuit emits them. Each row
+            expands to explain what that signal means.
           </caption>
           <thead>
             <tr className="border-b border-fd-border font-mono text-[10px] uppercase tracking-[0.1em] text-faint">

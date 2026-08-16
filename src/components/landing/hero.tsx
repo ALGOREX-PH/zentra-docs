@@ -7,7 +7,10 @@ export function Hero() {
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0"
-        style={{ background: 'radial-gradient(ellipse 70% 60% at 70% 30%, rgba(124,58,237,0.16), transparent 70%)' }}
+        style={{
+          background:
+            'radial-gradient(ellipse 70% 60% at 70% 30%, rgba(124,58,237,0.16), transparent 70%)',
+        }}
       />
       <div className="relative mx-auto grid max-w-6xl items-center gap-8 sm:gap-11 lg:grid-cols-2">
         <div>
@@ -30,8 +33,8 @@ export function Hero() {
           </h1>
 
           <p className="mt-5 max-w-[520px] text-lg leading-relaxed text-[#cbd5e1]">
-            Zentra lets AI agents trigger Stellar payments only after proving, in
-            zero knowledge, that they followed your private rules.
+            Zentra lets AI agents trigger Stellar payments only after proving, in zero knowledge,
+            that they followed your private rules.
           </p>
           <p className="mt-4 font-mono text-xs tracking-[0.04em] text-muted">
             PRIVATE POLICY → PUBLIC ENFORCEMENT → VERIFIED RECEIPTS

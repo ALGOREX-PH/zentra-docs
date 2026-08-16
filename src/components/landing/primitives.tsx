@@ -25,23 +25,39 @@ export function HudPanel({
     <div ref={ref} className={cn('relative border bg-panel', edge, className)}>
       <span
         aria-hidden
-        className={cn('pointer-events-none absolute -left-px -top-px border-l-2 border-t-2', size, corner)}
+        className={cn(
+          'pointer-events-none absolute -left-px -top-px border-l-2 border-t-2',
+          size,
+          corner,
+        )}
       />
       {corners === 4 ? (
         <>
           <span
             aria-hidden
-            className={cn('pointer-events-none absolute -right-px -top-px border-r-2 border-t-2', size, corner)}
+            className={cn(
+              'pointer-events-none absolute -right-px -top-px border-r-2 border-t-2',
+              size,
+              corner,
+            )}
           />
           <span
             aria-hidden
-            className={cn('pointer-events-none absolute -bottom-px -left-px border-b-2 border-l-2', size, corner)}
+            className={cn(
+              'pointer-events-none absolute -bottom-px -left-px border-b-2 border-l-2',
+              size,
+              corner,
+            )}
           />
         </>
       ) : null}
       <span
         aria-hidden
-        className={cn('pointer-events-none absolute -bottom-px -right-px border-b-2 border-r-2', size, corner)}
+        className={cn(
+          'pointer-events-none absolute -bottom-px -right-px border-b-2 border-r-2',
+          size,
+          corner,
+        )}
       />
       {children}
     </div>

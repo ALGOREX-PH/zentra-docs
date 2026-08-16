@@ -48,9 +48,8 @@ class ConsoleBoundary extends Component<{ children: ReactNode }, BoundaryState> 
         <div role="alert" className="p-5 sm:p-6">
           <Eyebrow>PROOF CONSOLE UNAVAILABLE</Eyebrow>
           <p className="text-sm text-muted">
-            The console stopped responding in this browser — usually a blocked Web
-            Worker or missing WebAssembly support. Reload the page to start over;
-            nothing was sent anywhere.
+            The console stopped responding in this browser — usually a blocked Web Worker or missing
+            WebAssembly support. Reload the page to start over; nothing was sent anywhere.
           </p>
         </div>
       </HudPanel>

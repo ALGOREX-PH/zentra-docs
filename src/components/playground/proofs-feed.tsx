@@ -20,10 +20,7 @@ export function ProofsFeed({ refreshSignal = 0 }: { refreshSignal?: number }) {
     setLoading(true);
     setError(null);
     try {
-      const [nextCount, nextProofs] = await Promise.all([
-        getProofCount(),
-        getRecentProofs(20),
-      ]);
+      const [nextCount, nextProofs] = await Promise.all([getProofCount(), getRecentProofs(20)]);
       if (id !== request.current) return;
       setCount(nextCount);
       setProofs(nextProofs);
