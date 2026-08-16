@@ -1,19 +1,9 @@
 'use client';
 
 import { useEffect, useId, useState } from 'react';
-import { readApiError } from '@/lib/api/client';
+import { isOnboardCount, readApiError } from '@/lib/api/client';
+import { SIGNUP_GOAL } from '@/config/app';
 import { HudPanel, Eyebrow } from '@/components/landing/primitives';
-
-interface OnboardCount {
-  count: number;
-}
-
-/** Whether `value` is shaped like the `/api/onboard` counter. */
-function isOnboardCount(value: unknown): value is OnboardCount {
-  if (typeof value !== 'object' || value === null) return false;
-  const { count } = value as { count?: unknown };
-  return typeof count === 'number' && Number.isFinite(count);
-}
 
 /**
  * The public signup counter for the growth campaign.
@@ -25,9 +15,11 @@ function isOnboardCount(value: unknown): value is OnboardCount {
  * as an opening rather than as a stall.
  *
  * The goal is a target, not a cap — the bar tops out at 100% while the number
- * keeps climbing past it.
+ * keeps climbing past it. It defaults to the campaign-wide constant so this
+ * panel and /metrics can never quietly disagree about the target; the prop
+ * stays overridable for a surface measuring a different campaign.
  */
-export function JoinProgress({ goal = 50 }: { goal?: number }) {
+export function JoinProgress({ goal = SIGNUP_GOAL }: { goal?: number }) {
   const [count, setCount] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
