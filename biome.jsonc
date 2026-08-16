@@ -31,6 +31,16 @@
     "indentWidth": 2,
     "lineWidth": 100
   },
+  "css": {
+    // global.css is Tailwind v4 (@theme, @source, @custom-variant); without
+    // this the CSS parser rejects the file outright.
+    "parser": {
+      "tailwindDirectives": true
+    },
+    "formatter": {
+      "quoteStyle": "single"
+    }
+  },
   "javascript": {
     "formatter": {
       "quoteStyle": "single",
@@ -51,6 +61,24 @@
       }
     }
   },
+  "overrides": [
+    {
+      // Hand-formatted showcase files the formatter would fight, still linted:
+      // global.css keeps compact one-line keyframe steps; the landing animation
+      // components keep timeline idioms (`await sleep(300); setDropped(true);`)
+      // and coordinate tables; zentra-mark keeps one-line SVG geometry.
+      "includes": [
+        "src/app/global.css",
+        "src/components/landing/proof-engine.tsx",
+        "src/components/landing/scenario-panels.tsx",
+        "src/components/landing/verifier-monolith.tsx",
+        "src/components/brand/zentra-mark.tsx"
+      ],
+      "formatter": {
+        "enabled": false
+      }
+    }
+  ],
   "assist": {
     "enabled": true,
     "actions": {
