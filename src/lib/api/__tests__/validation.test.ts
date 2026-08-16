@@ -1,22 +1,36 @@
 import { describe, expect, it } from 'vitest';
 import type { ApiError } from '@/lib/api/errors';
 import {
+  isEmail,
   isStellarAccountId,
   isTxHash,
   JSON_MEDIA_TYPE,
   MAX_BODY_BYTES,
   MAX_COMMENT_LENGTH,
+  MAX_NAME_LENGTH,
+  MAX_NOTE_LENGTH,
   MAX_QUERY_LENGTH,
   MAX_RESULT_LIMIT,
   MAX_TAGS,
   parseFeedbackInput,
   parseSearchQuery,
+  parseUserInput,
   readJsonBody,
 } from '@/lib/api/validation';
 
 const VALID_WALLET = `G${'A'.repeat(55)}`;
 const VALID_TX_HASH = 'ab12'.repeat(16);
 const FEEDBACK_KEYS = ['comment', 'onChain', 'rating', 'txHash', 'wallet'];
+const USER_KEYS = ['email', 'name', 'note', 'rating', 'wallet'];
+
+/** Longest address the SMTP standard permits; `isEmail` refuses one past it. */
+const MAX_EMAIL_LENGTH = 254;
+
+/** An address of exactly `length` characters, ending in a real dotted domain. */
+function emailOfLength(length: number): string {
+  const domain = '@example.com';
+  return `${'a'.repeat(length - domain.length)}${domain}`;
+}
 
 /**
  * Build a POST carrying `body` labelled as JSON, which is what every legitimate
@@ -443,6 +457,271 @@ describe('parseFeedbackInput', () => {
     const err = caught as ApiError;
     expect(err.status).toBe(422);
     expect(err.details?.wallet).toBeDefined();
+  });
+});
+
+describe('isEmail', () => {
+  it('accepts an ordinary dotted address', () => {
+    expect(isEmail('ada@example.com')).toBe(true);
+  });
+
+  it('accepts the shortest plausible dotted address', () => {
+    expect(isEmail('a@b.c')).toBe(true);
+  });
+
+  it('accepts an uppercase address as-is — normalisation is the parser`s job', () => {
+    expect(isEmail('ADA@EXAMPLE.COM')).toBe(true);
+  });
+
+  it('accepts an address at exactly the 254-character SMTP ceiling', () => {
+    const email = emailOfLength(MAX_EMAIL_LENGTH);
+
+    expect(email).toHaveLength(254);
+    expect(isEmail(email)).toBe(true);
+  });
+
+  it('rejects an address of 255 characters', () => {
+    const email = emailOfLength(MAX_EMAIL_LENGTH + 1);
+
+    expect(email).toHaveLength(255);
+    expect(isEmail(email)).toBe(false);
+  });
+
+  it('rejects a domain with no dot — the load-bearing junk filter', () => {
+    expect(isEmail('ada@localhost')).toBe(false);
+    expect(isEmail('ada@examplecom')).toBe(false);
+  });
+
+  it('rejects an address with no @ or with more than one', () => {
+    expect(isEmail('ada.example.com')).toBe(false);
+    expect(isEmail('ada@@example.com')).toBe(false);
+    expect(isEmail('ada@ex@ample.com')).toBe(false);
+  });
+
+  it('rejects whitespace anywhere in the address', () => {
+    expect(isEmail('ada lovelace@example.com')).toBe(false);
+    expect(isEmail('ada@exa mple.com')).toBe(false);
+    expect(isEmail(' ada@example.com')).toBe(false);
+  });
+
+  it('rejects an empty local part, domain or TLD', () => {
+    expect(isEmail('@example.com')).toBe(false);
+    expect(isEmail('ada@.com')).toBe(false);
+    expect(isEmail('ada@example.')).toBe(false);
+  });
+
+  it('rejects a non-string and null', () => {
+    expect(isEmail(42)).toBe(false);
+    expect(isEmail(null)).toBe(false);
+    expect(isEmail(undefined)).toBe(false);
+    expect(isEmail(['ada@example.com'])).toBe(false);
+  });
+
+  it('rejects the empty string', () => {
+    expect(isEmail('')).toBe(false);
+  });
+});
+
+describe('parseUserInput', () => {
+  /** A body every required field of which is valid; override to break one. */
+  function signup(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+    return {
+      name: 'Ada Lovelace',
+      email: 'ada@example.com',
+      wallet: VALID_WALLET,
+      ...overrides,
+    };
+  }
+
+  /** Run the parser on a body expected to be refused, returning the error. */
+  function refusal(body: unknown): ApiError {
+    try {
+      parseUserInput(body);
+    } catch (error) {
+      return error as ApiError;
+    }
+    throw new Error('Expected parseUserInput to throw, but it returned.');
+  }
+
+  it('returns exactly the five persisted fields', () => {
+    const result = parseUserInput(signup({ rating: 4, note: 'Excited to build.' }));
+
+    expect(Object.keys(result).sort()).toEqual(USER_KEYS);
+    expect(result.name).toBe('Ada Lovelace');
+    expect(result.email).toBe('ada@example.com');
+    expect(result.wallet).toBe(VALID_WALLET);
+    expect(result.rating).toBe(4);
+    expect(result.note).toBe('Excited to build.');
+  });
+
+  it('drops caller-supplied extras instead of assigning them through', () => {
+    const result = parseUserInput(
+      signup({ id: 999, source: 'import', created_at: '1970-01-01', isAdmin: true }),
+    );
+
+    expect(Object.keys(result).sort()).toEqual(USER_KEYS);
+    expect('id' in result).toBe(false);
+    expect('source' in result).toBe(false);
+    expect('created_at' in result).toBe(false);
+    expect('isAdmin' in result).toBe(false);
+  });
+
+  it('trims and lowercases the email — the lower(email) unique index depends on it', () => {
+    // Stored as typed, `Ada@…` and `ada@…` would both insert and then collide
+    // inside Postgres as a 500 rather than the 409 the route maps.
+    const result = parseUserInput(signup({ email: '  Ada@Example.COM  ' }));
+
+    expect(result.email).toBe('ada@example.com');
+  });
+
+  it('validates the email after trimming, so padded addresses still pass', () => {
+    expect(parseUserInput(signup({ email: '   ada@example.com   ' })).email).toBe(
+      'ada@example.com',
+    );
+  });
+
+  it('rejects an email that only breaks the format after lowercasing checks', () => {
+    for (const email of ['ada@localhost', 'not-an-email', 'ada @example.com', '', '   ']) {
+      const err = refusal(signup({ email }));
+
+      expect(err.status).toBe(422);
+      expect(err.code).toBe('validation_failed');
+      expect(err.details?.email).toBe('Email must be a valid address.');
+    }
+  });
+
+  it('rejects a missing email', () => {
+    const { email: _email, ...body } = signup();
+
+    expect(refusal(body).details?.email).toBeDefined();
+  });
+
+  it('rejects an email of 255 characters after trimming', () => {
+    const err = refusal(signup({ email: emailOfLength(MAX_EMAIL_LENGTH + 1) }));
+
+    expect(err.status).toBe(422);
+    expect(err.details?.email).toBeDefined();
+  });
+
+  it('rejects a non-string email rather than coercing it', () => {
+    expect(refusal(signup({ email: 42 })).details?.email).toBeDefined();
+    expect(refusal(signup({ email: ['ada@example.com'] })).details?.email).toBeDefined();
+  });
+
+  it('requires the wallet, unlike feedback', () => {
+    for (const wallet of [undefined, null, '', '   ']) {
+      const err = refusal(signup({ wallet }));
+
+      expect(err.status).toBe(422);
+      expect(err.details?.wallet).toBe('Wallet must be a valid Stellar account id (G…).');
+    }
+  });
+
+  it('rejects a malformed wallet', () => {
+    for (const wallet of ['GABC', VALID_WALLET.toLowerCase(), `${VALID_WALLET}A`]) {
+      expect(refusal(signup({ wallet })).details?.wallet).toBeDefined();
+    }
+  });
+
+  it('normalises the name like a comment: collapse, strip controls, trim', () => {
+    const result = parseUserInput(
+      signup({ name: `  Ada\n Love${String.fromCharCode(0)}lace\t King  ` }),
+    );
+
+    expect(result.name).toBe('Ada Lovelace King');
+  });
+
+  it('accepts a name exactly at the 80-character limit', () => {
+    expect(MAX_NAME_LENGTH).toBe(80);
+    expect(parseUserInput(signup({ name: 'a'.repeat(80) })).name).toHaveLength(80);
+  });
+
+  it('rejects a name one character over the limit', () => {
+    const err = refusal(signup({ name: 'a'.repeat(MAX_NAME_LENGTH + 1) }));
+
+    expect(err.status).toBe(422);
+    expect(err.details?.name).toBe('Name must be 1–80 characters.');
+  });
+
+  it('rejects a missing or whitespace-only name', () => {
+    expect(refusal(signup({ name: undefined })).details?.name).toBeDefined();
+    expect(refusal(signup({ name: '   \n\t ' })).details?.name).toBeDefined();
+    expect(refusal(signup({ name: 42 })).details?.name).toBeDefined();
+  });
+
+  it('turns an absent rating and note into null', () => {
+    const result = parseUserInput(signup());
+
+    expect(result.rating).toBeNull();
+    expect(result.note).toBeNull();
+  });
+
+  it('treats an empty-string or null rating and note as absent', () => {
+    const result = parseUserInput(signup({ rating: null, note: '   ' }));
+
+    expect(result.rating).toBeNull();
+    expect(result.note).toBeNull();
+  });
+
+  it('accepts every rating in the 1–5 range', () => {
+    for (const rating of [1, 2, 3, 4, 5]) {
+      expect(parseUserInput(signup({ rating })).rating).toBe(rating);
+    }
+  });
+
+  it('rejects a rating that is present but not an integer in range', () => {
+    for (const rating of [0, 6, 2.5, '3', Number.NaN, [4]]) {
+      const err = refusal(signup({ rating }));
+
+      expect(err.status).toBe(422);
+      expect(err.details?.rating).toBe('Rating must be an integer between 1 and 5.');
+    }
+  });
+
+  it('normalises the note and stores it', () => {
+    const result = parseUserInput(signup({ note: '  keen \n to\ttest  ' }));
+
+    expect(result.note).toBe('keen to test');
+  });
+
+  it('accepts a note exactly at the 500-character limit', () => {
+    expect(MAX_NOTE_LENGTH).toBe(500);
+    expect(parseUserInput(signup({ note: 'a'.repeat(500) })).note).toHaveLength(500);
+  });
+
+  it('rejects a note one character over the limit', () => {
+    const err = refusal(signup({ note: 'a'.repeat(MAX_NOTE_LENGTH + 1) }));
+
+    expect(err.status).toBe(422);
+    expect(err.details?.note).toBe('Note must be 1–500 characters.');
+  });
+
+  it('rejects a non-string note that is present', () => {
+    expect(refusal(signup({ note: 42 })).details?.note).toBeDefined();
+    expect(refusal(signup({ note: { text: 'hi' } })).details?.note).toBeDefined();
+  });
+
+  it('accumulates every field failure into a single 422', () => {
+    const err = refusal({ name: '  ', email: 'nope', wallet: 'GABC', rating: 9, note: 42 });
+
+    expect(err.status).toBe(422);
+    expect(err.code).toBe('validation_failed');
+    expect(Object.keys(err.details ?? {}).sort()).toEqual([
+      'email',
+      'name',
+      'note',
+      'rating',
+      'wallet',
+    ]);
+  });
+
+  it('rejects a non-object body with a 400, not a 422', () => {
+    for (const body of [null, undefined, 'name=Ada', 42, [], [signup()]]) {
+      const err = refusal(body);
+
+      expect(err.status).toBe(400);
+      expect(err.code).toBe('bad_request');
+    }
   });
 });
 
