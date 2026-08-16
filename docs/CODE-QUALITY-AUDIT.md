@@ -134,6 +134,88 @@ This is a **code-quality** audit against best practices — distinct from `docs/
 | CT-15 | LOW | action-log:71,99; reputation:57 | Undocumented `unwrap()`s on constructor-guaranteed keys; multisig shows the documented helper pattern. → Adopt it so every non-test unwrap states its invariant. | S |
 | CT-16 | LOW | Cargo.tomls, doc comments | No toolchain/MSRV pin under a floating `stable`; `get_recent` docstrings hardcode "capped at 20". → `rust-toolchain.toml`; reference the constant. | S |
 
+---
+
+## Improvement plan
+
+Phases are ordered by leverage: fix what's broken, then make regressions impossible, then pay down structure and tests. Each item cites its finding ID; an item is done when the fix lands **with a test where one is possible**.
+
+### Phase 0 — Critical correctness (do first)
+
+- [ ] BE-01 Anchor verification: require `wallet` when `onChain: true`; verify the tx invoked the feedback contract
+- [ ] DA-01 Feedback dual-write: retry resumes at the API step, never re-signs; surface the partial-failure hash
+- [ ] DA-02 Payment submit: timeout → poll for the client-side hash before declaring failure; in-flight guard on the form
+- [ ] DA-03 Action feed: failure counter → reseed; skip overlapping ticks
+- [ ] IN-01 CI: `bun install --frozen-lockfile`
+
+### Phase 1 — Guardrails (toolchain & CI; makes every later phase safer)
+
+- [ ] IN-03 Add a linter (Biome or ESLint flat config) + `lint` script + CI step
+- [ ] IN-04/CT-11 `cargo fmt --check` + `cargo clippy -- -D warnings` in CI (fix CT-12's live warning first)
+- [ ] CT-03 Cargo workspace: one lockfile (resolves the 26.1.0/26.1.1 drift), one profile, one test/clippy invocation
+- [ ] IN-02 Pin Bun in CI + `packageManager` field
+- [ ] IN-05 CI concurrency cancellation; restrict push triggers to main
+- [ ] IN-06 Fix cargo cache (multisig target, key on Cargo.lock) or adopt rust-cache
+- [ ] IN-07 Aggregate `check` script; CI calls it
+- [ ] IN-09 Gitignore plain `.env`
+- [ ] IN-11 Dependabot (npm + cargo + actions) + audit step
+- [ ] IN-08 `noUncheckedIndexedAccess` + unused-code flags
+- [ ] IN-17 Vitest coverage provider + thresholds
+
+### Phase 2 — Correctness & robustness (behind the guardrails)
+
+- [ ] BE-02 Gate the budget INSERT branch on the ceiling (both scopes)
+- [ ] BE-03 `readJsonBody({ maxBytes })`; delete the sponsor route's copy
+- [ ] CT-01 Fix `get_recent` counting in all three contracts
+- [ ] CT-04 True `Result` signature on the Reputation client trait
+- [ ] DA-04 `submitInvoke`: map send statuses, carry the hash in errors, decode failure results
+- [ ] DA-05 Topic filter + shape validation in `pollEvents`
+- [ ] DA-06 Runtime guards for all decoded chain data (match the API-boundary standard)
+- [ ] DA-08 Re-verify persisted wallet address on mount; typed `connect` outcome
+- [ ] DA-11 Wire `hasFriendbot` and `contractsConfigured` into the UI they were built for
+- [ ] FX-02 Prover worker: watchdog timeout, `messageerror`, Cancel button
+- [ ] FX-03 Queue/preempt scenario clicks during autoplay
+- [ ] BE-11 Logger: widen PII regex, normalise nested Errors
+- [ ] BE-14 DB client cache keyed on URL
+- [ ] BE-12 One sponsor log event per outcome; deliberate shadow-mode outage decision
+- [ ] BE-10 Brand `isApiError` with `Symbol.for`
+- [ ] DA-19 Dynamic base fee (required before mainnet cutover)
+
+### Phase 3 — Deduplication & structure
+
+Backend: BE-04 shared `enforceRateLimit`/`countRequest`/`mapDbError` · BE-05 typed `query<T>` helper.
+dApp: DA-09 `useTxPipeline` hook · DA-10 `<StarRating>` + shared guards/constants · DA-13 split join-form, extract wallet-input validators · DA-14 `useXlmBalance` + visibility-paused polling · DA-07 TxStatus label props · DA-17/FX-10 one `shorten()`, one `focusRing`, HudPanel/Eyebrow variants.
+Presentation: FX-04 scenarios single-source (+ typo) · FX-07 signals single-source · FX-08 code sample single-source · FX-06 converge on one animation idiom (optional, L).
+Contracts (pre-mainnet window for breaking changes): CT-02 conventions doc/shared crate · CT-05 complete event payloads + settle topic naming · CT-06 `get_entry` parity · CT-07 proof-registry error enum · CT-08 uniform `checked_add` · CT-09 TTL alignment · CT-15 documented unwraps.
+
+### Phase 4 — Test debt (the single biggest theme: coverage is inverted relative to risk)
+
+Priority order:
+1. BE-07 route-handler tests (moderation insert, anchor downgrade+`txHash: null`, 409 mapping, budget branching, CSV escaping, health verdicts, admin gate ordering)
+2. DA-15 stellar lib tests (`submitInvoke` status matrix, `getXlmBalance` 404→null, `commitProof` digest, friendbot `op_already_exists`, payment XDR shape)
+3. BE-08 budget SQL against a real Postgres (first-insert-over-ceiling, contention) — replaces the tautological mocks
+4. BE-06 `parseUserInput`/`isEmail`
+5. Component tests, top five: wallet-provider, send-form, connect-button, action-feed, feedback-form (the DA-01 matrix)
+6. CT-13 event payload assertions in four suites + boundary tests (`MessageTooLong`, `CommentTooLong`, `LoggerNotSet`, `MAX_RECENT` clamp, rating bounds, multisig `CounterOverflow`) + one integration test against the real reputation crate
+7. FX prover-pipeline tests (`isWorkerPayload`, memo failure-reset, progress clamp) + consistency tests that would have caught FX-04/FX-07 (assert `SIGNALS.length === 14`, landing copy derives from `SCENARIOS`)
+8. IN config tests (`contractsConfigured` false for empty set, stellar URL builders, site fallbacks) + an `.env.example` drift test
+
+### Phase 5 — Polish & copy accuracy
+
+- [ ] FX-05 Fix the on-chain-verification claim (trust-product copy bug) · FX-09/DA-12/FX-13 a11y announcements · DA-16/FX-14 dead code · FX-11/IN-10 snarkjs dep decision · IN-12/CT-10 deploy.sh all contracts + mainnet prompt · IN-13 size budgets · IN-14 image dedupe · IN-15 README counts · IN-16 SDK passphrase constant · BE-09 `notFound()` + 405 envelope · BE-13 schema doc/index cleanup · CT-12 clippy idioms · CT-14 byte-unit docs · CT-16 toolchain pin · DA-18 small fixes · FX-12 progress clamp · FX-15 timer hygiene
+
+## What NOT to change
+
+The audits unanimously flagged these as better-than-typical practices to preserve through any refactor:
+
+- The `route()` wrapper contract and its property tests; field-by-field trust-boundary rebuilds; unique-index-mapped-to-409 race handling; dual-layer validation (API rule ↔ named CHECK constraint); fail-closed secrets (missing token/secret ⇒ 503); rate-limit key derivation; cache-control discipline; CSV formula-injection defense.
+- Derived-state-on-render, cancellation flags on every data effect, pre-mounted live regions, the connect-button focus trap, honest "lower bound" metric labeling, 409-as-success duplicate handling.
+- snarkjs kept out of the app bundle (classic worker + vendored UMD), fresh worker per proof run, runtime-guarded worker boundary, correct server/client landing split, pervasive reduced-motion handling, externalized pitch data with honest caveats.
+- `.env.example` as a documented contract with zero drift (verified); single-source network config failing safe to testnet; least-privilege CI permissions; tracked lockfiles.
+- Contracts: uniform release profiles, negative-auth tests in every suite, the `try_bump` degradation pattern with its regression test and in-code pointer to the finding it fixes, typed `#[contractevent]` structs, `MAX_RECENT` read bounds, multisig as the house style template.
+- Comments that state threat models and why-not-alternatives — several findings were findable *only because* the code says what it intends. Keep writing them.
+
+
 
 
 
