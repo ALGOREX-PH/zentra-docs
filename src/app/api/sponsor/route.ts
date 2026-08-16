@@ -17,18 +17,12 @@
 import {
   badRequest,
   forbidden,
-  rateLimited,
   upstreamUnavailable,
   validationFailed,
 } from '@/lib/api/errors';
 import { log } from '@/lib/api/logger';
 import { requireSameOrigin } from '@/lib/api/origin';
-import {
-  clientKey,
-  rateLimit,
-  rateLimitHeaders,
-  type RateLimitOptions,
-} from '@/lib/api/rate-limit';
+import { enforceRateLimit, type RateLimitOptions } from '@/lib/api/rate-limit';
 import { json, route } from '@/lib/api/route';
 import { readJsonBody } from '@/lib/api/validation';
 import {
@@ -170,22 +164,6 @@ export const POST = route('sponsor.bump', async (request, { requestId }) => {
 /** Record one refusal, carrying the reason and nothing that could identify the payload. */
 function refused(requestId: string, reason: SponsorDecision['reason']): void {
   log('warn', 'sponsor.refused', { requestId, reason });
-}
-
-/**
- * Count one request against the caller's budget, or reject it with a 429.
- *
- * Returns the `X-RateLimit-*` headers to attach to a successful response so a
- * well-behaved client can back off before it is turned away.
- */
-function enforceRateLimit(
-  request: Request,
-  scope: string,
-  options: RateLimitOptions,
-): Record<string, string> {
-  const result = rateLimit(clientKey(request, scope), options);
-  if (!result.ok) throw rateLimited(result.retryAfterSeconds);
-  return rateLimitHeaders(result);
 }
 
 /**
