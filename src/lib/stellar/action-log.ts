@@ -9,6 +9,7 @@ import {
   TransactionBuilder,
   type xdr,
 } from '@stellar/stellar-sdk';
+import { log } from '@/lib/api/logger';
 import { stellar } from '@/config/stellar';
 import { actionLog } from '@/config/contract';
 import { soroban } from './rpc';
@@ -22,8 +23,33 @@ interface RawEntry {
   index: bigint | number;
   author: string;
   message: string;
-  ledger: number;
+  ledger: bigint | number;
   score: bigint | number;
+}
+
+/** Integers decode as `number` (u32) or `bigint` (u64) depending on width. */
+export function isChainInt(value: unknown): value is bigint | number {
+  return typeof value === 'bigint' || (typeof value === 'number' && Number.isFinite(value));
+}
+
+/**
+ * Runtime guard for one decoded action-log entry.
+ *
+ * Simulation results and event payloads are an API boundary: the values are
+ * whatever the deployed contract actually emitted, not what this interface
+ * hopes it did. Every consumed field is checked here so a shape drift skips
+ * the entry instead of rendering `NaN` rows in the feed.
+ */
+export function isRawEntry(value: unknown): value is RawEntry {
+  if (typeof value !== 'object' || value === null) return false;
+  const v = value as Record<string, unknown>;
+  return (
+    isChainInt(v.index) &&
+    typeof v.author === 'string' &&
+    typeof v.message === 'string' &&
+    isChainInt(v.ledger) &&
+    isChainInt(v.score)
+  );
 }
 
 function toEntry(raw: RawEntry): ActionEntry {
@@ -34,6 +60,26 @@ function toEntry(raw: RawEntry): ActionEntry {
     ledger: Number(raw.ledger),
     score: Number(raw.score),
   };
+}
+
+/**
+ * Decode chain values into entries, dropping any that fail {@link isRawEntry}.
+ *
+ * Skipped entries are reported once per batch as a structured warn — silently
+ * rendering a broken row would hide contract drift, and one line per bad value
+ * would flood the console on a malformed batch.
+ */
+function collectEntries(values: unknown[], source: string): ActionEntry[] {
+  const entries: ActionEntry[] = [];
+  let skipped = 0;
+  for (const value of values) {
+    if (isRawEntry(value)) entries.push(toEntry(value));
+    else skipped += 1;
+  }
+  if (skipped > 0) {
+    log('warn', 'action_log.entry_skipped', { source, skipped, total: values.length });
+  }
+  return entries;
 }
 
 /** Simulate a read-only call and decode its return value to a native value. */
@@ -79,7 +125,7 @@ export async function getRecent(limit = 20): Promise<ActionEntry[]> {
     nativeToScVal(limit, { type: 'u32' }),
   ]);
   if (!Array.isArray(value)) return [];
-  return value.map((raw) => toEntry(raw as RawEntry));
+  return collectEntries(value, 'get_recent');
 }
 
 /** Build an unsigned `record` invoke — simulated and assembled — as XDR. */
@@ -221,6 +267,14 @@ export async function pollEvents(
     startLedger,
     filters: [{ type: 'contract', contractIds: [actionLog.contractId] }],
   });
-  const entries = res.events.map((event) => toEntry(scValToNative(event.value) as RawEntry));
-  return { entries, latestLedger: res.latestLedger };
+  // Decode first, guard second: an event payload that is not even valid ScVal
+  // must fail the same way as one with the wrong shape — skipped, not thrown.
+  const decoded = res.events.map((event): unknown => {
+    try {
+      return scValToNative(event.value);
+    } catch {
+      return undefined;
+    }
+  });
+  return { entries: collectEntries(decoded, 'pollEvents'), latestLedger: res.latestLedger };
 }
