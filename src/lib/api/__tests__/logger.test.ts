@@ -174,6 +174,36 @@ describe('log', () => {
     expect(parsed.event).toBe('circular.event');
   });
 
+  it('serialises an Error nested inside a payload instead of dropping it to {}', () => {
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    log('error', 'batch.failed', {
+      context: { err: new Error('boom') },
+      failures: [new Error('first'), new Error('second')],
+    });
+
+    const parsed = JSON.parse(spy.mock.calls[0][0] as string) as {
+      context: { err: { name: string; message: string; stack?: string } };
+      failures: Array<{ name: string; message: string }>;
+    };
+
+    expect(parsed.context.err.name).toBe('Error');
+    expect(parsed.context.err.message).toBe('boom');
+    expect(parsed.context.err.stack).toBeDefined();
+    expect(parsed.failures.map((f) => f.message)).toEqual(['first', 'second']);
+  });
+
+  it('masks a credential-carrying Error even when it is nested', () => {
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const secret = 'postgres://user:password@db.example/zentra';
+
+    log('error', 'batch.failed', { context: { err: new Error(`refused: ${secret}`) } });
+
+    const line = spy.mock.calls[0][0] as string;
+    expect(line).not.toContain(secret);
+    expect(JSON.parse(line).context.err).toEqual({ name: 'Error', message: '[redacted]' });
+  });
+
   it('does not emit credentials embedded in an Error message or stack', () => {
     const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
     const secret = 'postgres://user:password@db.example/zentra';

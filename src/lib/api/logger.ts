@@ -140,24 +140,38 @@ const EMBEDDED_CREDENTIAL = /\/\/[^\s/@]+:[^\s/@]+@/;
  * Replace `Error` values with a plain `{ name, message }` object (plus `stack`
  * outside production) so `JSON.stringify` does not silently drop them.
  *
+ * Applied recursively through plain objects and arrays, mirroring `redact`: an
+ * `Error` has no enumerable own properties, so one nested inside a payload —
+ * `{ context: { err } }` — would otherwise stringify to `{}` and the failure
+ * being logged would vanish from the line that exists to record it.
+ *
  * A message carrying an embedded credential is masked entirely and its stack is
  * dropped, since the same URI is usually repeated in every frame.
  */
 function normalise(fields: LogFields): LogFields {
   const out: LogFields = {};
   for (const key of Object.keys(fields)) {
-    const value = fields[key];
-    if (value instanceof Error) {
-      if (EMBEDDED_CREDENTIAL.test(value.message) || EMBEDDED_CREDENTIAL.test(value.stack ?? '')) {
-        out[key] = { name: value.name, message: REDACTED };
-      } else {
-        out[key] = isProduction()
-          ? { name: value.name, message: value.message }
-          : { name: value.name, message: value.message, stack: value.stack };
-      }
-    } else {
-      out[key] = value;
-    }
+    out[key] = normaliseValue(fields[key]);
   }
   return out;
+}
+
+/** Recurse through plain containers, converting every `Error` found inside. */
+function normaliseValue(value: unknown): unknown {
+  if (value instanceof Error) return serialiseError(value);
+  if (Array.isArray(value)) return value.map(normaliseValue);
+  if (value !== null && typeof value === 'object' && isPlainObject(value)) {
+    return normalise(value as LogFields);
+  }
+  return value;
+}
+
+/** One `Error` as the plain shape the drain can store; see `normalise`. */
+function serialiseError(value: Error): { name: string; message: string; stack?: string } {
+  if (EMBEDDED_CREDENTIAL.test(value.message) || EMBEDDED_CREDENTIAL.test(value.stack ?? '')) {
+    return { name: value.name, message: REDACTED };
+  }
+  return isProduction()
+    ? { name: value.name, message: value.message }
+    : { name: value.name, message: value.message, stack: value.stack };
 }
