@@ -18,7 +18,7 @@
 import { requireAdmin } from '@/lib/api/auth';
 import { upstreamUnavailable } from '@/lib/api/errors';
 import { log } from '@/lib/api/logger';
-import { route } from '@/lib/api/route';
+import { methodNotAllowed, route } from '@/lib/api/route';
 import { query } from '@/lib/db';
 
 export const runtime = 'nodejs';
@@ -71,6 +71,9 @@ export const GET = route('admin.users.export', async (request, { requestId }) =>
     },
   });
 });
+
+/** Everything else is a 405 in the standard envelope, not Next's bare default. */
+export const { POST, PUT, PATCH, DELETE } = methodNotAllowed(['GET']);
 
 /** Read the whole registry in signup order, oldest first. */
 async function readUsers(requestId: string): Promise<Record<string, unknown>[]> {
