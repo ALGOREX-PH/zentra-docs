@@ -21,9 +21,9 @@
  * expects, and an empty array for an empty query.
  */
 
-import { rateLimited, upstreamUnavailable } from '@/lib/api/errors';
+import { upstreamUnavailable } from '@/lib/api/errors';
 import { log } from '@/lib/api/logger';
-import { clientKey, rateLimit, type RateLimitOptions } from '@/lib/api/rate-limit';
+import { countRequest, type RateLimitOptions } from '@/lib/api/rate-limit';
 import { json, route } from '@/lib/api/route';
 import { parseSearchQuery, type SearchQuery } from '@/lib/api/validation';
 import { source } from '@/lib/source';
@@ -64,7 +64,12 @@ const server = createFromSource(source, {
 });
 
 export const GET = route('search.query', async (request, { requestId }) => {
-  countRequest(request);
+  // The shared `countRequest` rather than `enforceRateLimit`, because this
+  // response is publicly cacheable: the `X-RateLimit-*` headers describe one
+  // caller, and a shared cache would hand one caller's remaining budget to
+  // everybody who asked the same question afterwards. A 429 still carries
+  // `Retry-After`, and the wrapper marks every error `no-store`.
+  countRequest(request, 'search:read', SEARCH_LIMIT);
 
   const parameters = parseSearchQuery(new URL(request.url).searchParams);
 
@@ -97,19 +102,4 @@ async function runSearch(parameters: SearchQuery, requestId: string) {
     log('error', 'search.failed', { requestId, queryLength: query.length, err: error });
     throw upstreamUnavailable('Search is temporarily unavailable.');
   }
-}
-
-/**
- * Count one request against the caller's budget, or reject it with a 429.
- *
- * Unlike the write routes this returns no `X-RateLimit-*` headers, because the
- * response it guards is publicly cacheable: those counters describe one caller,
- * and a shared cache would hand one caller's remaining budget to everybody who
- * asked the same question afterwards. A 429 still carries `Retry-After`, and
- * the wrapper marks every error `no-store`, so the response that is actually
- * about the caller is the one that is never shared.
- */
-function countRequest(request: Request): void {
-  const result = rateLimit(clientKey(request, 'search:read'), SEARCH_LIMIT);
-  if (!result.ok) throw rateLimited(result.retryAfterSeconds);
 }
