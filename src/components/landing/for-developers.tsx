@@ -1,9 +1,8 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { Fragment, useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { protocol } from '@/config/protocol';
-
-const shortId = (id: string) => `${id.slice(0, 4)}...${id.slice(-3)}`;
+import { shorten } from '@/lib/ui';
 
 const CHECKS = [
   'Policy commitment verified',
@@ -14,11 +13,36 @@ const CHECKS = [
   'Stellar payment released',
 ];
 
-const kw = { color: '#c4b5fd' };
-const str = { color: '#67e8f9' };
-const fn = { color: '#a78bfa' };
-const num = { color: '#86efac' };
-const com = { color: '#7d8ea6' };
+/**
+ * Minimal per-line tokenizer for the displayed snippet: comments, strings,
+ * numbers and keywords. The display is rendered from the exact string the
+ * COPY button puts on the clipboard, so the two can never drift apart.
+ */
+const TOKEN = /(\/\/.*$)|("[^"]*")|(\b\d+\b)|(\b(?:import|from|const|new|await)\b)/g;
+const INK = {
+  comment: '#7d8ea6',
+  string: '#67e8f9',
+  number: '#86efac',
+  keyword: '#c4b5fd',
+} as const;
+
+function highlightLine(line: string): ReactNode[] {
+  const out: ReactNode[] = [];
+  let last = 0;
+  for (const m of line.matchAll(TOKEN)) {
+    const start = m.index ?? 0;
+    if (start > last) out.push(line.slice(last, start));
+    const color = m[1] ? INK.comment : m[2] ? INK.string : m[3] ? INK.number : INK.keyword;
+    out.push(
+      <span key={start} style={{ color }}>
+        {m[0]}
+      </span>,
+    );
+    last = start + m[0].length;
+  }
+  if (last < line.length) out.push(line.slice(last));
+  return out;
+}
 
 export function ForDevelopers() {
   const [revealed, setRevealed] = useState(0);
@@ -30,7 +54,7 @@ export function ForDevelopers() {
 
 const zentra = new Zentra({
   network: "stellar-testnet",
-  contractId: "${shortId(protocol.contractId)}",
+  contractId: "${shorten(protocol.contractId, 4, 3)}",
 });
 
 const policy = await zentra.createPolicy({
@@ -131,22 +155,12 @@ console.log(result.status); // released`;
             </div>
             <pre className="overflow-x-auto p-4 font-mono text-[11px] leading-[1.7] text-[#e2e8f0] sm:p-5 sm:text-[12.5px]">
               <code>
-                <span style={kw}>import</span> {'{ Zentra }'} <span style={kw}>from</span> <span style={str}>"@zentra/sdk"</span>;{'\n\n'}
-                <span style={kw}>const</span> zentra = <span style={kw}>new</span> <span style={fn}>Zentra</span>({'{'}{'\n'}
-                {'  '}network: <span style={str}>"stellar-testnet"</span>,{'\n'}
-                {'  '}contractId: <span style={str}>"{shortId(protocol.contractId)}"</span>,{'\n'}
-                {'}'});{'\n\n'}
-                <span style={kw}>const</span> policy = <span style={kw}>await</span> zentra.<span style={fn}>createPolicy</span>({'{'}{'\n'}
-                {'  '}asset: <span style={str}>"USDC"</span>,{'\n'}
-                {'  '}maxAmount: <span style={num}>100</span>,{'\n'}
-                {'  '}dailyLimit: <span style={num}>500</span>,{'\n'}
-                {'  '}approvedRecipients: [<span style={str}>"GABC..."</span>, <span style={str}>"GBXQ..."</span>],{'\n'}
-                {'}'});{'\n\n'}
-                <span style={com}>{'// guard the agent'}</span>{'\n'}
-                <span style={kw}>const</span> result = <span style={kw}>await</span> zentra{'\n'}
-                {'  '}.<span style={fn}>guard</span>(agent){'\n'}
-                {'  '}.<span style={fn}>pay</span>({'{'} recipient: <span style={str}>"GABC..."</span>, amount: <span style={num}>75</span> {'}'});{'\n\n'}
-                console.<span style={fn}>log</span>(result.status); <span style={com}>{'// released'}</span>
+                {code.split('\n').map((line, i) => (
+                  <Fragment key={i}>
+                    {highlightLine(line)}
+                    {'\n'}
+                  </Fragment>
+                ))}
               </code>
             </pre>
           </div>
