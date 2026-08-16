@@ -10,7 +10,7 @@
 
 import { NextResponse } from 'next/server';
 
-import { isApiError, toErrorBody } from './errors';
+import { isApiError, methodNotAllowed as methodNotAllowedError, toErrorBody } from './errors';
 import { log, newRequestId } from './logger';
 
 /** Longest inbound `x-request-id` we will echo; anything larger is replaced. */
@@ -139,6 +139,36 @@ export function json<T>(
     status: init?.status ?? 200,
     headers: { 'cache-control': 'no-store', ...init?.headers },
   });
+}
+
+/** The HTTP methods a Next route module can export a handler for, minus the
+ * two the framework derives on its own (`HEAD` from `GET`, and `OPTIONS`). */
+type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+
+/**
+ * Handlers a route exports for the HTTP methods it does not serve.
+ *
+ * Next answers a request for a method the module never exported with a bare
+ * 405 — the right status, but an empty body outside every guarantee the other
+ * responses keep: no JSON envelope for a client to branch on, no request id,
+ * no log line. Exporting these instead keeps the contract uniform, and because
+ * the handler is built through `route`, the 405 arrives exactly like every
+ * other error: enveloped, correlated and logged. The `Allow` header RFC 9110
+ * requires rides on the thrown error (see `toErrorBody`).
+ *
+ * The returned record carries every method, so a route destructures just the
+ * ones it does not implement — exporting a supported method from both places
+ * is a duplicate-identifier compile error, not a silent override:
+ *
+ *     export const { PUT, PATCH, DELETE } = methodNotAllowed(['GET', 'POST']);
+ */
+export function methodNotAllowed(
+  allow: HttpMethod[],
+): Record<HttpMethod, (request: Request) => Promise<Response>> {
+  const handler = route('method_not_allowed', async () => {
+    throw methodNotAllowedError(allow);
+  });
+  return { GET: handler, POST: handler, PUT: handler, PATCH: handler, DELETE: handler };
 }
 
 /**

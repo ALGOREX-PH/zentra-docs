@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { badRequest, rateLimited } from '@/lib/api/errors';
-import { json, route } from '@/lib/api/route';
+import { json, methodNotAllowed, route } from '@/lib/api/route';
 
 /** The shape of an id `newRequestId` mints: a UUID, or the base36 fallback. */
 const MINTED_ID = /^[0-9a-z-]{16,}$/i;
@@ -187,6 +187,49 @@ describe('route cache headers', () => {
     const response = await handler(new Request('https://x.test/api'));
 
     expect(response.headers.get('cache-control')).toBe('public, s-maxage=30');
+  });
+});
+
+describe('methodNotAllowed', () => {
+  it('answers 405 with the standard envelope and the Allow header', async () => {
+    muffle();
+    const { PUT } = methodNotAllowed(['GET', 'POST']);
+
+    const response = await PUT(new Request('https://x.test/api', { method: 'PUT' }));
+
+    expect(response.status).toBe(405);
+    expect(response.headers.get('allow')).toBe('GET, POST');
+    expect(await response.json()).toEqual({
+      error: { code: 'method_not_allowed', message: 'Method not allowed.' },
+    });
+  });
+
+  it('keeps the wrapper guarantees: request id, no-store, one log line', async () => {
+    muffle();
+    const warn = vi.spyOn(console, 'warn');
+    const { DELETE } = methodNotAllowed(['GET']);
+
+    const response = await DELETE(
+      new Request('https://x.test/api', { method: 'DELETE', headers: { 'x-request-id': 'trace-405' } }),
+    );
+
+    expect(response.headers.get('x-request-id')).toBe('trace-405');
+    expect(response.headers.get('cache-control')).toBe('no-store');
+    expect(warn).toHaveBeenCalledTimes(1);
+    const line = JSON.parse(String(warn.mock.calls[0]?.[0])) as Record<string, unknown>;
+    expect(line.status).toBe(405);
+    expect(line.code).toBe('method_not_allowed');
+  });
+
+  it('returns a handler for every method, so a route destructures the ones it lacks', async () => {
+    muffle();
+    const handlers = methodNotAllowed(['PATCH']);
+
+    for (const method of ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'] as const) {
+      const response = await handlers[method](new Request('https://x.test/api', { method }));
+      expect(response.status).toBe(405);
+      expect(response.headers.get('allow')).toBe('PATCH');
+    }
   });
 });
 
