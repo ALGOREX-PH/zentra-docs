@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { cn } from '@/lib/cn';
+import { Eyebrow } from '@/components/landing/primitives';
 import {
   LANDING_PANELS,
   OVERSPEND,
@@ -185,10 +186,7 @@ export function ScenarioPanels() {
   return (
     <section id="panels" aria-labelledby="panels-title" className="border-t border-violet/20 bg-abyss px-5 py-14 sm:px-7 sm:py-20">
       <div className="mx-auto max-w-[1160px]">
-        <div className="mb-[18px] flex items-center gap-3.5">
-          <span className="font-mono text-xs tracking-[0.12em] text-violet-soft">[ 02 ] PROOF PLAYGROUND</span>
-          <span className="h-px flex-1 bg-violet/25" />
-        </div>
+        <Eyebrow index="02" className="mb-[18px]">PROOF PLAYGROUND</Eyebrow>
         <h2 id="panels-title" className="font-display text-3xl font-bold tracking-[-0.025em] sm:text-[40px]">
           Watch the protocol enforce itself.
         </h2>
