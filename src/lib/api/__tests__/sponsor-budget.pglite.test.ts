@@ -15,16 +15,13 @@ import {
  * run the real thing against real Postgres (PGlite is Postgres compiled to
  * WASM), with the schema applied verbatim from `db/schema.sql`.
  *
- * Doing so exposed a genuine bug — see the first test. The production
- * statement ends `... RETURNING budget_scope UNION ALL SELECT budget_scope
- * FROM source_charge`, and PostgreSQL does not allow `INSERT ... RETURNING`
- * to participate in a set operation: the statement is a syntax error on every
- * execution, so `reserveSponsorBudget` currently reports `ledger_unavailable`
- * on every call. The fix is to move the global INSERT into a second CTE and
- * SELECT from both. Until then, the intended-contract tests below are marked
- * `it.fails`: the moment the statement is fixed, Vitest flags them as
- * unexpectedly passing — remove `.fails` to promote them, and delete the
- * bug-pinning test.
+ * Doing so exposed a genuine bug on first landing: the statement originally
+ * ended `... RETURNING budget_scope UNION ALL SELECT ...`, which PostgreSQL
+ * rejects (`INSERT ... RETURNING` cannot participate in a set operation), so
+ * every reservation reported `ledger_unavailable`. The mocked tests never
+ * executed the SQL and could not see it. The statement now uses two CTEs and
+ * a plain SELECT union; the suite below verifies the full intended contract
+ * against the real parser and executor.
  */
 
 const ACCOUNT_A = `G${'A'.repeat(55)}`;
@@ -96,18 +93,13 @@ afterEach(() => {
 });
 
 describe('reserveSponsorBudget against real Postgres', () => {
-  it('BUG: the statement is invalid Postgres, so every reservation reports ledger_unavailable', async () => {
-    // `INSERT ... RETURNING` cannot be UNIONed with a SELECT in PostgreSQL;
-    // the driver refuses the statement before anything executes. In shadow
-    // mode this means the budget ledger never records a single charge (and
-    // logs an error per request); in enforce mode every sponsorship 503s.
-    // This test pins the broken behaviour so the fix announces itself here.
+  it('parses and executes cleanly — the statement is valid Postgres', async () => {
+    // Pins the class of bug this suite exists for: the original form was a
+    // syntax error on every execution, invisible to the mocked tests.
     const result = await reserve(ACCOUNT_A, 100);
 
-    expect(result).toMatchObject({ ok: false, reason: 'ledger_unavailable' });
-    expect(String((result as { error?: unknown }).error)).toContain('syntax error');
-    expect(String((result as { error?: unknown }).error)).toContain('UNION');
-    expect(await rowCount()).toBe(0);
+    expect(result).toEqual({ ok: true });
+    expect(await rowCount()).toBe(2);
   });
 
   it('reports a broken ledger as unavailable rather than throwing', async () => {
@@ -124,16 +116,9 @@ describe('reserveSponsorBudget against real Postgres', () => {
   });
 });
 
-/**
- * The contract the statement is *meant* to enforce, verified with the
- * corrected two-CTE form of the same statement in a scratch PGlite run
- * (semantics confirmed) and encoded here against the module. Each is
- * `it.fails` while the syntax error above stands: when the module's SQL is
- * fixed these start passing, Vitest reports them as unexpectedly passing,
- * and `.fails` should be removed.
- */
-describe('reserveSponsorBudget intended contract (promote when the SQL is fixed)', () => {
-  it.fails('refuses the first charge of the day when it alone exceeds the source ceiling', async () => {
+/** The contract the statement enforces, executed against real Postgres. */
+describe('reserveSponsorBudget contract', () => {
+  it('refuses the first charge of the day when it alone exceeds the source ceiling', async () => {
     // The INSERT branch, not the UPDATE branch: no row exists yet, so only
     // an `INSERT ... SELECT ... WHERE fee <= ceiling` can refuse this — the
     // exact case a bare `VALUES` insert would let through.
@@ -144,7 +129,7 @@ describe('reserveSponsorBudget intended contract (promote when the SQL is fixed)
     expect(await rowCount()).toBe(0);
   });
 
-  it.fails('charges the first under-ceiling reservation on both rows', async () => {
+  it('charges the first under-ceiling reservation on both rows', async () => {
     const result = await reserve(ACCOUNT_A, 400);
 
     expect(result).toEqual({ ok: true });
@@ -153,7 +138,7 @@ describe('reserveSponsorBudget intended contract (promote when the SQL is fixed)
     expect(await rowCount()).toBe(2);
   });
 
-  it.fails('accumulates charges until one would bust the ceiling, then refuses it', async () => {
+  it('accumulates charges until one would bust the ceiling, then refuses it', async () => {
     expect(await reserve(ACCOUNT_A, 200)).toEqual({ ok: true });
     expect(await reserve(ACCOUNT_A, 200)).toEqual({ ok: true });
 
@@ -167,7 +152,7 @@ describe('reserveSponsorBudget intended contract (promote when the SQL is fixed)
     expect(await spent('global', '')).toBe(400);
   });
 
-  it.fails('lets a later charge that still fits land after a refusal', async () => {
+  it('lets a later charge that still fits land after a refusal', async () => {
     expect(await reserve(ACCOUNT_A, 400)).toEqual({ ok: true });
     expect(await reserve(ACCOUNT_A, 200)).toMatchObject({ ok: false });
 
@@ -176,7 +161,7 @@ describe('reserveSponsorBudget intended contract (promote when the SQL is fixed)
     expect(await spent('source', ACCOUNT_A)).toBe(500);
   });
 
-  it.fails('refuses on the global ceiling with the residual source charge recorded', async () => {
+  it('refuses on the global ceiling with the residual source charge recorded', async () => {
     expect(await reserve(ACCOUNT_A, 500)).toEqual({ ok: true });
     expect(await reserve(ACCOUNT_B, 500)).toEqual({ ok: true });
 
@@ -192,7 +177,7 @@ describe('reserveSponsorBudget intended contract (promote when the SQL is fixed)
     expect(await spent('global', '')).toBe(1000);
   });
 
-  it.fails('meters each source separately while they share the global row', async () => {
+  it('meters each source separately while they share the global row', async () => {
     expect(await reserve(ACCOUNT_A, 300)).toEqual({ ok: true });
     expect(await reserve(ACCOUNT_B, 300)).toEqual({ ok: true });
 
@@ -201,7 +186,7 @@ describe('reserveSponsorBudget intended contract (promote when the SQL is fixed)
     expect(await spent('global', '')).toBe(600);
   });
 
-  it.fails('admits exactly the reservations that fit under contention', async () => {
+  it('admits exactly the reservations that fit under contention', async () => {
     // Ten rivals of 100 stroops against a 500-stroop ceiling, issued
     // together. However they interleave, exactly five fit and five cannot —
     // the per-row serialisation ON CONFLICT provides in production.
@@ -212,7 +197,7 @@ describe('reserveSponsorBudget intended contract (promote when the SQL is fixed)
     expect(await spent('source', ACCOUNT_A)).toBe(500);
   });
 
-  it.fails('opens a fresh budget at UTC midnight, keyed by spend_day', async () => {
+  it('opens a fresh budget at UTC midnight, keyed by spend_day', async () => {
     const before = new Date('2026-07-30T23:59:59.999Z');
     const after = new Date('2026-07-31T00:00:00.000Z');
 
