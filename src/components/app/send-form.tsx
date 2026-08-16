@@ -4,67 +4,58 @@ import { useState } from 'react';
 import { useWallet } from '@/components/app/wallet-provider';
 import { buildPaymentXdr, submitSignedXdr } from '@/lib/stellar/payment';
 import { isValidPublicKey, isValidAmount } from '@/lib/stellar/format';
-import { describeError, SubmitTimeoutError } from '@/lib/stellar/errors';
 import { HudPanel, Eyebrow } from '@/components/landing/primitives';
 import { TxStatus } from '@/components/app/tx-status';
-import type { TxState } from '@/lib/stellar/types';
+import { useTxPipeline } from '@/components/app/use-tx-pipeline';
+import { focusRing } from '@/lib/ui';
 import { cn } from '@/lib/cn';
 
-const focusRing =
-  'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan';
-
 export function SendForm({ onPaid }: { onPaid?: () => void }) {
-  const { address, signTransaction } = useWallet();
+  const { address } = useWallet();
   const [destination, setDestination] = useState('');
   const [amount, setAmount] = useState('');
-  const [tx, setTx] = useState<TxState>({ phase: 'idle' });
+  const { tx, run, fail, inFlight } = useTxPipeline();
 
   const destValid = isValidPublicKey(destination);
   const amountValid = isValidAmount(amount);
   const showDestHint = destination.length > 0 && !destValid;
   const showAmountHint = amount.length > 0 && !amountValid;
-  const inFlight =
-    tx.phase === 'building' || tx.phase === 'signing' || tx.phase === 'submitting';
   const disabled = inFlight || !address || !destValid || !amountValid;
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     // The button disables while in flight, but a form can still be submitted
-    // by Enter or a double-click racing the re-render — and a duplicate
-    // submission here is a duplicate payment, not a duplicate request.
+    // by Enter or a double-click racing the re-render. The pipeline refuses to
+    // start a second run on its own; returning here as well keeps a blocked
+    // resubmit from falling through to the validation errors below and
+    // overwriting the in-flight status.
     if (inFlight) return;
 
     if (!address) {
-      setTx({ phase: 'error', message: 'Connect your wallet first.' });
+      fail('Connect your wallet first.');
       return;
     }
     if (!destValid || !amountValid) {
-      setTx({ phase: 'error', message: 'Fix the highlighted fields.' });
+      fail('Fix the highlighted fields.');
       return;
     }
 
-    try {
-      setTx({ phase: 'building' });
-      const xdr = await buildPaymentXdr(address, destination.trim(), amount.trim());
-      setTx({ phase: 'signing' });
-      const signed = await signTransaction(xdr);
-      setTx({ phase: 'submitting' });
-      const res = await submitSignedXdr(signed);
-      setTx({ phase: 'success', hash: res.hash, message: `Sent ${amount} XLM.` });
+    // The pipeline owns phases, error mapping and the timeout-hash passthrough;
+    // this form contributes only its two steps and what a success says.
+    const result = await run(
+      () => buildPaymentXdr(address, destination.trim(), amount.trim()),
+      async (signed) => {
+        const res = await submitSignedXdr(signed);
+        return { hash: res.hash, message: `Sent ${amount} XLM.` };
+      },
+    );
+
+    if (result) {
       // Clearing the amount makes a repeat send a deliberate re-entry, not a
       // second Enter on a form still primed with the last payment.
       setAmount('');
       onPaid?.();
-    } catch (err: unknown) {
-      // A timeout carries the hash of a payment that may yet settle; passing
-      // it through lets the status panel link the explorer so the user can
-      // check the outcome before signing again.
-      setTx({
-        phase: 'error',
-        message: describeError(err),
-        hash: err instanceof SubmitTimeoutError ? err.hash : undefined,
-      });
     }
   }
 
