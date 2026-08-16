@@ -43,7 +43,7 @@ jobs:
       - name: Audit dependencies (non-blocking)
         run: bun audit
         continue-on-error: true
-      - name: Typecheck and unit tests
+      - name: Lint, typecheck and unit tests
         run: bun run check
       - name: Build
         run: bun run build
