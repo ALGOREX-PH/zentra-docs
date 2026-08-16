@@ -49,3 +49,9 @@ jobs:
         run: bun run build
         env:
           NEXT_TELEMETRY_DISABLED: '1'
+      - name: Bundle size budget
+        run: |
+          budget=$((10 * 1024 * 1024))
+          size=$(du -sb .next/static | cut -f1)
+          echo ".next/static: ${size} bytes (budget: ${budget})"
+          [ "$size" -le "$budget" ] || { echo "FAIL: .next/static (${size} bytes) exceeds the 10MB budget"; exit 1; }
