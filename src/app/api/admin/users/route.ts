@@ -19,7 +19,7 @@ import { requireAdmin } from '@/lib/api/auth';
 import { upstreamUnavailable } from '@/lib/api/errors';
 import { log } from '@/lib/api/logger';
 import { route } from '@/lib/api/route';
-import { sql } from '@/lib/db';
+import { query } from '@/lib/db';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -74,17 +74,15 @@ export const GET = route('admin.users.export', async (request, { requestId }) =>
 
 /** Read the whole registry in signup order, oldest first. */
 async function readUsers(requestId: string): Promise<Record<string, unknown>[]> {
-  const db = sql();
-
   try {
-    const rows = await db`
+    // Typed as a generic record rather than a named row shape on purpose: the
+    // CSV serialiser reads only the `COLUMNS` it was given, so the row type
+    // asserting more would promise nothing the code relies on.
+    return await query<Record<string, unknown>>`
       SELECT name, email, wallet, rating, note, source, created_at
       FROM users
       ORDER BY created_at ASC
     `;
-    // The driver types a tagged query as one of several row shapes, so the cast
-    // is where we assert what this statement actually selects.
-    return rows as unknown as Record<string, unknown>[];
   } catch (error) {
     // Driver messages routinely quote the failing statement and the connection
     // target, so the operator gets the log line and the caller gets nothing.
