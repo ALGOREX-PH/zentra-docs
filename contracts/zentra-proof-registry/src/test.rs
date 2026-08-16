@@ -32,6 +32,33 @@ fn anchors_and_counts() {
 }
 
 #[test]
+fn gets_entry_by_index() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let client = client(&env);
+    let prover = Address::generate(&env);
+    let commitment = BytesN::from_array(&env, &[9u8; 32]);
+
+    client.anchor(&prover, &commitment, &14);
+
+    let entry = client.get_entry(&0).unwrap();
+    assert_eq!(entry.index, 0);
+    assert_eq!(entry.prover, prover);
+    assert_eq!(entry.commitment, commitment);
+    assert_eq!(entry.signals, 14);
+}
+
+#[test]
+fn get_entry_returns_none_for_missing_index() {
+    let env = Env::default();
+    let client = client(&env);
+
+    // `Entry` is not `Debug`/`PartialEq` (house style keeps `contracttype`
+    // structs to `Clone`), so the missing case is matched rather than compared.
+    assert!(client.get_entry(&99).is_none());
+}
+
+#[test]
 fn recent_returns_min_of_limit_and_count() {
     let env = Env::default();
     env.mock_all_auths();

@@ -89,6 +89,11 @@ impl ProofRegistry {
         env.storage().instance().get(&DataKey::Count).unwrap_or(0)
     }
 
+    /// Fetch a single entry by index, if it exists.
+    pub fn get_entry(env: Env, index: u64) -> Option<Entry> {
+        env.storage().persistent().get(&DataKey::Entry(index))
+    }
+
     /// The most recent entries, newest first (capped at 20 to bound the read).
     pub fn get_recent(env: Env, limit: u32) -> Vec<Entry> {
         let count: u64 = env.storage().instance().get(&DataKey::Count).unwrap_or(0);
