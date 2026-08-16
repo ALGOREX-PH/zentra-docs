@@ -153,6 +153,46 @@ fn rejects_bad_rating() {
 }
 
 #[test]
+fn accepts_max_length_comment_and_rejects_one_over() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let client = client(&env);
+    let author = Address::generate(&env);
+
+    // The budget is bytes (UTF-8): exactly MAX_COMMENT_BYTES is accepted, one
+    // more byte is rejected.
+    let max = [b'a'; MAX_COMMENT_BYTES as usize];
+    let over = [b'a'; MAX_COMMENT_BYTES as usize + 1];
+    let max_comment = String::from_str(&env, core::str::from_utf8(&max).unwrap());
+    let over_comment = String::from_str(&env, core::str::from_utf8(&over).unwrap());
+
+    assert_eq!(client.submit(&author, &5, &max_comment), 0);
+    assert_eq!(
+        client.try_submit(&author, &5, &over_comment),
+        Err(Ok(Error::CommentTooLong))
+    );
+    assert_eq!(client.get_count(), 1);
+}
+
+#[test]
+fn accepts_lowest_valid_rating() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let client = client(&env);
+    let author = Address::generate(&env);
+
+    // rating == 1 is the lower bound of the valid 1..=5 range, not a rejection.
+    assert_eq!(
+        client.submit(&author, &1, &String::from_str(&env, "meh")),
+        0
+    );
+    assert_eq!(client.get_entry(&0).unwrap().rating, 1);
+    let summary = client.summary();
+    assert_eq!(summary.count, 1);
+    assert_eq!(summary.rating_sum, 1);
+}
+
+#[test]
 fn rejects_empty_comment() {
     let env = Env::default();
     env.mock_all_auths();
