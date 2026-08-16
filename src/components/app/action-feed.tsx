@@ -14,6 +14,7 @@ import { truncateAddress } from '@/lib/stellar/format';
 import { HudPanel, Eyebrow } from '@/components/landing/primitives';
 import { LIVE_POLL_MS } from '@/config/app';
 import type { ActionEntry } from '@/lib/stellar/types';
+import { focusRing } from '@/lib/ui';
 import { cn } from '@/lib/cn';
 
 const MAX_SHOWN = 25;
@@ -25,9 +26,6 @@ const MAX_SHOWN = 25;
  * fail identically forever.
  */
 const FAILURES_BEFORE_RESEED = 3;
-
-const focusRing =
-  'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan';
 
 /**
  * The live on-chain action feed: seeds history from the contract's `get_recent`
@@ -151,6 +149,20 @@ export function ActionFeed({ refreshSignal = 0 }: { refreshSignal?: number }) {
   return (
     <HudPanel accent="cyan">
       <div className="p-5 sm:p-6">
+        {/*
+          Pre-mounted alert region, as in tx-status: the visible error banner
+          appears and disappears with the failure, and a live region born in
+          the same render as its text is routinely missed by screen readers.
+          This span exists from the first render; only its contents change.
+        */}
+        <span role="alert" className="sr-only">
+          {error
+            ? entries.length > 0
+              ? `${error} Showing the last entries loaded.`
+              : error
+            : ''}
+        </span>
+
         <Eyebrow accent="cyan">LIVE ON-CHAIN FEED</Eyebrow>
         <div className="mb-4 flex items-center gap-2 font-mono text-[11px] text-faint">
           <span aria-hidden className="size-1.5 rounded-full bg-live animate-pulse" />
