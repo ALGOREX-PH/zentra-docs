@@ -22,7 +22,7 @@ import { requireSameOrigin } from '@/lib/api/origin';
 import { countRequest, enforceRateLimit, type RateLimitOptions } from '@/lib/api/rate-limit';
 import { json, READ_CACHE_CONTROL, route } from '@/lib/api/route';
 import { parseUserInput, readJsonBody, type UserInput } from '@/lib/api/validation';
-import { sql } from '@/lib/db';
+import { query, sql } from '@/lib/db';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -76,15 +76,11 @@ export const POST = route('onboard.create', async (request, { requestId }) => {
 
 /** Fetch the number of registered users, and nothing else about them. */
 async function readUserCount(): Promise<number> {
-  const db = sql();
-
   try {
-    const rows = await db`SELECT count(*)::int AS count FROM users`;
-    // The driver types a tagged query as one of several row shapes, so the cast
-    // is where we assert what this statement actually selects. An empty table
-    // returns a row of zero rather than no row, but defaulting here keeps the
-    // response shape stable even if that ever changes.
-    return (rows as unknown as { count: number }[])[0]?.count ?? 0;
+    const rows = await query<{ count: number }>`SELECT count(*)::int AS count FROM users`;
+    // An empty table returns a row of zero rather than no row, but defaulting
+    // here keeps the response shape stable even if that ever changes.
+    return rows[0]?.count ?? 0;
   } catch (error) {
     throw storageUnavailable(error, 'onboard.read', STORAGE_MESSAGE);
   }
