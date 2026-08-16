@@ -11,6 +11,37 @@ fn client(env: &Env) -> ProofRegistryClient<'_> {
 }
 
 #[test]
+fn empty_registry_reads_cleanly() {
+    let env = Env::default();
+    let client = client(&env);
+
+    assert_eq!(client.get_count(), 0);
+    assert_eq!(client.get_recent(&10).len(), 0);
+}
+
+#[test]
+fn accepts_duplicate_commitments() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let client = client(&env);
+    let prover = Address::generate(&env);
+    let other = Address::generate(&env);
+    let commitment = BytesN::from_array(&env, &[7u8; 32]);
+
+    // Duplication is INTENTIONAL — an accepted design, not an oversight. A
+    // commitment is a claim, not a proof: the registry records who claimed
+    // what and when, and does not adjudicate uniqueness. The same commitment
+    // may be anchored again by the same prover (re-anchoring after a wallet
+    // switch) or by a different prover; consumers dedupe off-chain.
+    assert_eq!(client.anchor(&prover, &commitment, &14), 0);
+    assert_eq!(client.anchor(&prover, &commitment, &14), 1);
+    assert_eq!(client.anchor(&other, &commitment, &14), 2);
+    assert_eq!(client.get_count(), 3);
+    assert_eq!(client.get_entry(&0).unwrap().commitment, commitment);
+    assert_eq!(client.get_entry(&2).unwrap().commitment, commitment);
+}
+
+#[test]
 fn anchors_and_counts() {
     let env = Env::default();
     env.mock_all_auths();
