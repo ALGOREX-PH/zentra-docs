@@ -1,4 +1,4 @@
-import { sql } from '@/lib/db';
+import { query as dbQuery } from '@/lib/db';
 
 export const SOURCE_BUDGET_XLM_ENV = 'SPONSOR_DAILY_SOURCE_BUDGET_XLM';
 export const GLOBAL_BUDGET_XLM_ENV = 'SPONSOR_DAILY_GLOBAL_BUDGET_XLM';
@@ -52,9 +52,9 @@ export async function reserveSponsorBudget(input: BudgetReservation): Promise<Bu
   const day = utcDay(input.now ?? new Date());
 
   try {
-    // The Neon driver types every result as a broad row union; narrowing to the
-    // one column this statement returns needs the two-step cast.
-    const query = input.query ?? (sql() as unknown as Query);
+    // The shared typed helper, instantiated to the one column this statement
+    // returns; `input.query` is the seam the unit tests inject through.
+    const query: Query = input.query ?? dbQuery<{ budget_scope: 'source' | 'global' }>;
     // The fee and ceiling parameters are cast to bigint where they meet in a
     // comparison: two untyped parameters give Postgres nothing to resolve the
     // operator against, and `unknown <= unknown` is an error, not a guess.
