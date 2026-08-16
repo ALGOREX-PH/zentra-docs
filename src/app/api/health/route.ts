@@ -49,10 +49,7 @@ interface CheckResult {
 export const GET = route('health', async (_request, { requestId }) => {
   // Probed together: neither depends on the other, so the endpoint answers in
   // the time of the slower one rather than the sum.
-  const [database, chain] = await Promise.all([
-    checkDatabase(requestId),
-    checkChain(requestId),
-  ]);
+  const [database, chain] = await Promise.all([checkDatabase(requestId), checkChain(requestId)]);
 
   // Every check contributes to one verdict, so adding a dependency later means
   // adding it to this list rather than touching the response shape.

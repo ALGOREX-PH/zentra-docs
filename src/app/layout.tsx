@@ -48,7 +48,14 @@ export const metadata: Metadata = {
     // Declared at the file's true pixel size. The card is authored at 1200x630
     // and rendered at 2x for high-density displays, so quoting the design size
     // would misdescribe the asset a crawler actually fetches.
-    images: [{ url: '/og.png', width: 2400, height: 1260, alt: 'Zentra Protocol — let agents act, make them prove it.' }],
+    images: [
+      {
+        url: '/og.png',
+        width: 2400,
+        height: 1260,
+        alt: 'Zentra Protocol — let agents act, make them prove it.',
+      },
+    ],
   },
   twitter: { card: 'summary_large_image', title, description, images: ['/og.png'] },
 };
@@ -76,9 +83,7 @@ export default function Layout({ children }: { children: ReactNode }) {
         >
           Skip to content
         </a>
-        <RootProvider theme={{ attribute: 'class', forcedTheme: 'dark' }}>
-          {children}
-        </RootProvider>
+        <RootProvider theme={{ attribute: 'class', forcedTheme: 'dark' }}>{children}</RootProvider>
         <Analytics />
         <SpeedInsights />
       </body>

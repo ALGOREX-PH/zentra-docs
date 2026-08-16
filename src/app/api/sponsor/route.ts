@@ -14,12 +14,7 @@
  * line, returned in an error, or echoed back in a validation detail.
  */
 
-import {
-  badRequest,
-  forbidden,
-  upstreamUnavailable,
-  validationFailed,
-} from '@/lib/api/errors';
+import { badRequest, forbidden, upstreamUnavailable, validationFailed } from '@/lib/api/errors';
 import { log } from '@/lib/api/logger';
 import { requireSameOrigin } from '@/lib/api/origin';
 import { enforceRateLimit, type RateLimitOptions } from '@/lib/api/rate-limit';
@@ -34,10 +29,7 @@ import {
   type SponsorDecision,
   sponsorshipCharge,
 } from '@/lib/api/sponsor';
-import {
-  reserveSponsorBudget,
-  sponsorBudgetEnforced,
-} from '@/lib/api/sponsor-budget';
+import { reserveSponsorBudget, sponsorBudgetEnforced } from '@/lib/api/sponsor-budget';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';

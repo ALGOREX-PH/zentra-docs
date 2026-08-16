@@ -40,8 +40,7 @@ export default function Error({
               Something broke
             </h1>
             <p className="mt-3.5 max-w-[520px] text-[15px] leading-relaxed text-muted sm:text-base">
-              This part of the app failed to render — nothing was signed, sent or
-              settled on-chain.
+              This part of the app failed to render — nothing was signed, sent or settled on-chain.
             </p>
           </div>
 

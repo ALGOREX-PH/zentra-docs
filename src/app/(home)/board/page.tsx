@@ -30,9 +30,9 @@ export default function BoardPage() {
               Record a verifiable action
             </h1>
             <p className="mt-3 max-w-[560px] text-[15px] text-muted sm:text-base">
-              Write a message to a Soroban contract on Stellar testnet, then watch
-              it stream into the live feed. Connect any supported wallet — every
-              action is signed, on-chain, and independently verifiable.
+              Write a message to a Soroban contract on Stellar testnet, then watch it stream into
+              the live feed. Connect any supported wallet — every action is signed, on-chain, and
+              independently verifiable.
             </p>
           </div>
           <div className="flex flex-col items-start gap-3 sm:items-end">
@@ -70,9 +70,8 @@ export default function BoardPage() {
               <div className="p-5 sm:p-6">
                 <Eyebrow>// CONTRACTS NOT CONFIGURED</Eyebrow>
                 <p className="max-w-[560px] font-mono text-sm text-muted">
-                  The Zentra contracts are not deployed to{' '}
-                  {activeProfile.label} yet, so nothing on this page can record
-                  or read actions. Deploying them and filling in their ids in
+                  The Zentra contracts are not deployed to {activeProfile.label} yet, so nothing on
+                  this page can record or read actions. Deploying them and filling in their ids in
                   src/config/contract.ts is the checklist in docs/MAINNET.md.
                 </p>
               </div>
@@ -81,12 +80,11 @@ export default function BoardPage() {
         )}
 
         <p className="mt-10 max-w-[680px] font-mono text-xs leading-relaxed text-faint">
-          Each <span className="text-muted">record</span> writes to the Action Log
-          and makes a <span className="text-muted">cross-contract call</span> to a
-          separate Reputation contract, bumping the author&apos;s score (shown as{' '}
-          <span className="text-muted">rep</span>). The feed listens for the{' '}
-          <span className="text-muted">recorded</span> event in real time. Set your
-          wallet to <span className="text-muted">Test Net</span> before connecting.
+          Each <span className="text-muted">record</span> writes to the Action Log and makes a{' '}
+          <span className="text-muted">cross-contract call</span> to a separate Reputation contract,
+          bumping the author&apos;s score (shown as <span className="text-muted">rep</span>). The
+          feed listens for the <span className="text-muted">recorded</span> event in real time. Set
+          your wallet to <span className="text-muted">Test Net</span> before connecting.
         </p>
       </div>
     </main>

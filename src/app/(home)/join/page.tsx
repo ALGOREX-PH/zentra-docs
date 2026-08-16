@@ -50,9 +50,9 @@ const STEPS: ReadonlyArray<{ title: string; body: ReactNode }> = [
     title: 'You register',
     body: (
       <>
-        Name, email, wallet. Your email is only ever used to contact you about this
-        programme — it is never shown publicly and never displayed beside your
-        wallet. The counter above reads a total and nothing else.
+        Name, email, wallet. Your email is only ever used to contact you about this programme — it
+        is never shown publicly and never displayed beside your wallet. The counter above reads a
+        total and nothing else.
       </>
     ),
   },
@@ -64,8 +64,8 @@ const STEPS: ReadonlyArray<{ title: string; body: ReactNode }> = [
         <Link href="/app" className={internalLink}>
           /app
         </Link>
-        , Friendbot seeds your account with free test XLM in one click, and you can
-        send a payment on Stellar testnet.
+        , Friendbot seeds your account with free test XLM in one click, and you can send a payment
+        on Stellar testnet.
       </>
     ),
   },
@@ -77,9 +77,8 @@ const STEPS: ReadonlyArray<{ title: string; body: ReactNode }> = [
         <Link href="/board" className={internalLink}>
           /board
         </Link>
-        , your wallet signs a write to a Soroban contract, a cross-contract call
-        bumps your reputation score, and the transaction hash links to
-        stellar.expert so anyone can verify it.
+        , your wallet signs a write to a Soroban contract, a cross-contract call bumps your
+        reputation score, and the transaction hash links to stellar.expert so anyone can verify it.
       </>
     ),
   },
@@ -104,12 +103,11 @@ export default function JoinPage() {
             who cannot tell what they are registering for has no reason to.
           */}
           <p className="mt-3 max-w-[680px] text-[15px] leading-relaxed text-muted sm:text-base">
-            Zentra is a zero-knowledge policy layer for AI agents on Stellar. Before
-            an agent can move money, it proves the payment obeyed a private policy —
-            spending limits, approved vendors, a daily budget — and a Soroban
-            contract verifies that proof on-chain before anything settles. No proof,
-            no payment. We are onboarding the first 50 people to run it on testnet
-            and tell us where it breaks.
+            Zentra is a zero-knowledge policy layer for AI agents on Stellar. Before an agent can
+            move money, it proves the payment obeyed a private policy — spending limits, approved
+            vendors, a daily budget — and a Soroban contract verifies that proof on-chain before
+            anything settles. No proof, no payment. We are onboarding the first 50 people to run it
+            on testnet and tell us where it breaks.
           </p>
 
           <dl className="mt-6 grid gap-px border border-fd-border bg-fd-border sm:grid-cols-3">
@@ -170,9 +168,9 @@ export default function JoinPage() {
               wants, and they are not put off by hearing it is unfinished.
             */}
             <p className="mt-5 border-t border-fd-border pt-4 text-[12px] leading-relaxed text-faint">
-              Zentra is a testnet MVP: four Soroban contracts deployed on Stellar
-              testnet, not audited, nothing on mainnet. Treat it as a working
-              proof-of-concept — finding where it breaks is the point.
+              Zentra is a testnet MVP: four Soroban contracts deployed on Stellar testnet, not
+              audited, nothing on mainnet. Treat it as a working proof-of-concept — finding where it
+              breaks is the point.
             </p>
           </aside>
         </div>

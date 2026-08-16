@@ -23,9 +23,9 @@ export default function PlaygroundPage() {
             Real zero-knowledge proofs, in your browser.
           </h1>
           <p className="mt-4 max-w-2xl text-fd-muted-foreground">
-            Generate an actual Groth16 / BN254 proof from the Zentra payment-policy
-            circuit, verify it locally, then anchor its commitment on-chain via the
-            live Soroban contract — and see every proof made on the platform.
+            Generate an actual Groth16 / BN254 proof from the Zentra payment-policy circuit, verify
+            it locally, then anchor its commitment on-chain via the live Soroban contract — and see
+            every proof made on the platform.
           </p>
 
           <div className="mt-10">
@@ -47,8 +47,8 @@ export default function PlaygroundPage() {
             Or replay the three scenarios.
           </h2>
           <p className="mt-3 max-w-2xl text-sm text-fd-muted-foreground">
-            Deterministic replays of the live demo — legitimate payment, prompt
-            injection, and over-spend — showing which check fires.
+            Deterministic replays of the live demo — legitimate payment, prompt injection, and
+            over-spend — showing which check fires.
           </p>
           <div className="mt-8 grid gap-4 sm:grid-cols-2 md:grid-cols-3">
             {SCENARIOS.map((s) => (
