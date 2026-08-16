@@ -1,0 +1,24 @@
+[workspace]
+resolver = "2"
+members = [
+    "zentra-action-log",
+    "zentra-feedback",
+    "zentra-multisig",
+    "zentra-proof-registry",
+    "zentra-reputation",
+]
+
+[workspace.dependencies]
+soroban-sdk = "26.1.1"
+
+# Shared by every contract. Profiles are only honored at the workspace root;
+# cargo ignores [profile.*] sections in member manifests.
+[profile.release]
+opt-level = "z"
+overflow-checks = true
+debug = 0
+strip = "symbols"
+debug-assertions = false
+panic = "abort"
+codegen-units = 1
+lto = true
