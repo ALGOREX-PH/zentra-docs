@@ -211,6 +211,8 @@ function parseArgv(argv: readonly string[]): ParsedArgs {
 
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
+    // Unreachable by the loop bounds; narrows the indexed access.
+    if (arg === undefined) continue;
 
     if (arg === '--help' || arg === '-h') {
       help = true;
@@ -232,7 +234,8 @@ function parseArgv(argv: readonly string[]): ParsedArgs {
       problems.push(`unknown flag '--${name}' — run with --help for the list`);
       // Swallow the value that presumably followed it, so one typo produces one
       // complaint instead of also reporting its argument as a stray token.
-      if (eq === -1 && i + 1 < argv.length && !argv[i + 1].startsWith('--')) {
+      const follower = argv[i + 1];
+      if (eq === -1 && follower !== undefined && !follower.startsWith('--')) {
         i += 1;
       }
       continue;
@@ -434,7 +437,10 @@ async function mapWithConcurrency<T, R>(
       const index = cursor;
       cursor += 1;
       if (index >= items.length) return;
-      results[index] = await worker(items[index], index);
+      const item = items[index];
+      // Unreachable: the bounds check above already returned for indexes past the end.
+      if (item === undefined) return;
+      results[index] = await worker(item, index);
     }
   };
 

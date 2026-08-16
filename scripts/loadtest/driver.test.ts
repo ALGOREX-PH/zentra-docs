@@ -172,11 +172,11 @@ describe('recordOnce', () => {
     await recordOnce(account, makeConfig(), client);
 
     expect(submitted).toHaveLength(1);
-    expect(submitted[0].source).toBe(account.publicKey);
+    expect(submitted[0]?.source).toBe(account.publicKey);
     // One signature, from the author: source-account auth is what satisfies
     // `author.require_auth()`, so a second entry would mean the driver had
     // started signing authorisation entries it has no business signing.
-    expect(submitted[0].signatures).toHaveLength(1);
+    expect(submitted[0]?.signatures).toHaveLength(1);
   });
 
   it('treats DUPLICATE as already in flight and polls it to success', async () => {
