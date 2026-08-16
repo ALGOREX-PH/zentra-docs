@@ -2,6 +2,7 @@
 
 import { Fragment, useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { protocol } from '@/config/protocol';
+import { HudPanel, Eyebrow } from '@/components/landing/primitives';
 import { shorten } from '@/lib/ui';
 
 const CHECKS = [
@@ -107,10 +108,7 @@ console.log(result.status); // released`;
   return (
     <section id="developer" ref={wrap} aria-labelledby="developer-title" className="border-t border-violet/20 bg-abyss px-5 py-14 sm:px-7 sm:py-20">
       <div className="mx-auto max-w-[1160px]">
-        <div className="mb-10 flex items-center gap-3.5">
-          <span className="font-mono text-xs tracking-[0.12em] text-violet-soft">[ 04 ] FOR DEVELOPERS</span>
-          <span className="h-px flex-1 bg-violet/25" />
-        </div>
+        <Eyebrow index="04" className="mb-10">FOR DEVELOPERS</Eyebrow>
 
         <div className="grid items-center gap-12 lg:grid-cols-2">
           <div>
@@ -140,9 +138,7 @@ console.log(result.status); // released`;
             </div>
           </div>
 
-          <div className="relative border border-violet/35 bg-panel">
-            <span aria-hidden className="absolute -left-px -top-px h-3.5 w-3.5 border-l-2 border-t-2 border-violet" />
-            <span aria-hidden className="absolute -bottom-px -right-px h-3.5 w-3.5 border-b-2 border-r-2 border-violet" />
+          <HudPanel className="border-violet/35">
             <div className="flex items-center justify-between border-b border-fd-border bg-[#0a0c12] px-4 py-3">
               <span className="font-mono text-[11px] tracking-[0.06em] text-muted">agent.ts · @zentra/sdk</span>
               <button
@@ -163,7 +159,7 @@ console.log(result.status); // released`;
                 ))}
               </code>
             </pre>
-          </div>
+          </HudPanel>
         </div>
       </div>
     </section>
