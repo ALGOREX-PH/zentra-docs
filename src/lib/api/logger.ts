@@ -20,14 +20,34 @@ const SENSITIVE_KEY =
   /(secret|token|password|key|authorization|cookie|database_url|connection)/i;
 
 /**
- * Keys that carry personal data, masked only below the top level.
+ * Whether `key` carries personal data. Applied only below the top level.
  *
  * Top-level fields are operational metadata this codebase chooses deliberately —
  * `route()` logs the operation under `name`, next to `method` and `status`. Only
  * nested structures are payloads we are dumping wholesale, where a `name` or
  * `email` is a person rather than a route.
+ *
+ * `email` matches anywhere in the key (`userEmail`, `email_address`). `name`
+ * must match as a whole *segment* of the key, not as a substring or a
+ * `\b`-bounded word: `fullName`, `firstName` and `user_name` all name a person
+ * — and `\bname\b` saw none of them, because a camel hump and an underscore
+ * are both word characters — while `hostname`, `filename` and `nickname` do
+ * not and must stay readable. Splitting the key at its snake/kebab/camel
+ * boundaries is what tells those two groups apart.
  */
-const PII_KEY = /(email|\bname\b)/i;
+function isPiiKey(key: string): boolean {
+  if (/email/i.test(key)) return true;
+  return keySegments(key).some((segment) => segment.toLowerCase() === 'name');
+}
+
+/**
+ * Split a key at separator boundaries (`_`, `-`, `.`, space), then at camel
+ * humps. The hump split requires a lowercase-to-uppercase transition, so an
+ * all-caps key such as `NAME` stays one segment rather than four letters.
+ */
+function keySegments(key: string): string[] {
+  return key.split(/[_\s.-]+/).flatMap((part) => part.split(/(?<=[a-z0-9])(?=[A-Z])/));
+}
 
 /** Placeholder substituted for any value under a sensitive key. */
 const REDACTED = '[redacted]';
@@ -87,7 +107,7 @@ export function newRequestId(): string {
 export function redact(fields: LogFields, depth = 0): LogFields {
   const out: LogFields = {};
   for (const key of Object.keys(fields)) {
-    const masked = SENSITIVE_KEY.test(key) || (depth > 0 && PII_KEY.test(key));
+    const masked = SENSITIVE_KEY.test(key) || (depth > 0 && isPiiKey(key));
     out[key] = masked ? REDACTED : redactValue(fields[key], depth);
   }
   return out;

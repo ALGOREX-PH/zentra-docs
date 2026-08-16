@@ -63,6 +63,43 @@ describe('redact', () => {
     expect(out.request.profile.name).toBe('[redacted]');
     expect(out.request.headers.authorization).toBe('[redacted]');
   });
+
+  it('masks camelCase and snake_case name fields nested in a payload', () => {
+    const out = redact({
+      signup: {
+        fullName: 'Ada Reyes',
+        firstName: 'Ada',
+        user_name: 'ada.reyes',
+        displayName: 'ada',
+        NAME: 'ADA',
+        userEmail: 'ada@example.test',
+      },
+    }) as { signup: Record<string, string> };
+
+    expect(out.signup.fullName).toBe('[redacted]');
+    expect(out.signup.firstName).toBe('[redacted]');
+    expect(out.signup.user_name).toBe('[redacted]');
+    expect(out.signup.displayName).toBe('[redacted]');
+    expect(out.signup.NAME).toBe('[redacted]');
+    expect(out.signup.userEmail).toBe('[redacted]');
+  });
+
+  it('does not mask keys that merely contain name as a substring', () => {
+    const out = redact({
+      server: { hostname: 'db.internal', filename: 'export.csv', nickname: 'primary' },
+    }) as { server: Record<string, string> };
+
+    expect(out.server.hostname).toBe('db.internal');
+    expect(out.server.filename).toBe('export.csv');
+    expect(out.server.nickname).toBe('primary');
+  });
+
+  it('leaves top-level name fields alone — the route label, not a person', () => {
+    const out = redact({ name: 'feedback.create', fullName: 'top-level-is-operational' });
+
+    expect(out.name).toBe('feedback.create');
+    expect(out.fullName).toBe('top-level-is-operational');
+  });
 });
 
 describe('log', () => {
