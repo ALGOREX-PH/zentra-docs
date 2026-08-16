@@ -1,6 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import type { ApiError } from '@/lib/api/errors';
 import {
   clientKey,
+  countRequest,
+  enforceRateLimit,
   rateLimit,
   rateLimitHeaders,
   resetRateLimiter,
@@ -256,6 +259,74 @@ describe('rateLimitHeaders', () => {
     const seconds = Number(headers['X-RateLimit-Reset']);
     expect(seconds).toBeGreaterThanOrEqual(result.resetAt / 1000);
     expect(seconds - result.resetAt / 1000).toBeLessThan(1);
+  });
+});
+
+describe('enforceRateLimit', () => {
+  /** A request whose caller the platform vouches for, so keys are stable. */
+  function requestFrom(ip: string): Request {
+    return new Request('https://x.test/api', { headers: { 'x-real-ip': ip } });
+  }
+
+  it('returns the X-RateLimit headers while the caller is under the limit', () => {
+    const headers = enforceRateLimit(requestFrom('1.2.3.4'), 'test:write', {
+      limit: 2,
+      windowMs: WINDOW_MS,
+    });
+
+    expect(headers['X-RateLimit-Limit']).toBe('2');
+    expect(headers['X-RateLimit-Remaining']).toBe('1');
+  });
+
+  it('throws a 429 ApiError carrying retryAfterSeconds once the limit is hit', () => {
+    const options = { limit: 1, windowMs: WINDOW_MS };
+    enforceRateLimit(requestFrom('1.2.3.5'), 'test:write', options);
+
+    let caught: unknown;
+    try {
+      enforceRateLimit(requestFrom('1.2.3.5'), 'test:write', options);
+    } catch (error) {
+      caught = error;
+    }
+
+    const err = caught as ApiError;
+    expect(err.status).toBe(429);
+    expect(err.code).toBe('rate_limited');
+    expect(err.retryAfterSeconds).toBeGreaterThanOrEqual(1);
+  });
+
+  it('scopes counters, so the same caller has a separate budget per scope', () => {
+    const options = { limit: 1, windowMs: WINDOW_MS };
+    enforceRateLimit(requestFrom('1.2.3.6'), 'test:write', options);
+
+    expect(() => enforceRateLimit(requestFrom('1.2.3.6'), 'other:write', options)).not.toThrow();
+  });
+});
+
+describe('countRequest', () => {
+  function requestFrom(ip: string): Request {
+    return new Request('https://x.test/api', { headers: { 'x-real-ip': ip } });
+  }
+
+  it('returns nothing while under the limit — the budget stays off cacheable responses', () => {
+    expect(
+      countRequest(requestFrom('2.3.4.5'), 'test:read', { limit: 2, windowMs: WINDOW_MS }),
+    ).toBeUndefined();
+  });
+
+  it('throws the same 429 as enforceRateLimit once the limit is hit', () => {
+    const options = { limit: 1, windowMs: WINDOW_MS };
+    countRequest(requestFrom('2.3.4.6'), 'test:read', options);
+
+    let caught: unknown;
+    try {
+      countRequest(requestFrom('2.3.4.6'), 'test:read', options);
+    } catch (error) {
+      caught = error;
+    }
+
+    expect((caught as ApiError).status).toBe(429);
+    expect((caught as ApiError).code).toBe('rate_limited');
   });
 });
 
