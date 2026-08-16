@@ -330,6 +330,95 @@ describe('countRequest', () => {
   });
 });
 
+describe('rateLimit key eviction', () => {
+  /** Mirrors the module's un-exported cap on tracked keys. */
+  const MAX_KEYS = 5000;
+
+  /** The registered symbol the window map hangs off `globalThis` under. */
+  const STORE_KEY = Symbol.for('zentra.api.rate-limit.store');
+
+  /** Reach into the process-wide store the way the module itself does. */
+  function store(): Map<string, { count: number; resetAt: number }> {
+    const scope = globalThis as Record<symbol, unknown> & typeof globalThis;
+    return scope[STORE_KEY] as Map<string, { count: number; resetAt: number }>;
+  }
+
+  it('drops expired windows first once the cap is exceeded', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-01-01T00:00:00.000Z'));
+
+    const stale = { limit: 1, windowMs: 1_000 };
+    for (let i = 0; i < 1_000; i += 1) {
+      rateLimit(`stale-${i}`, stale);
+    }
+    vi.advanceTimersByTime(2_000); // every stale window is now expired
+
+    const fresh = { limit: 1, windowMs: 60_000 };
+    for (let i = 0; i <= MAX_KEYS - 1_000; i += 1) {
+      rateLimit(`fresh-${i}`, fresh);
+    }
+
+    // Crossing the cap pruned the expired windows rather than any live one.
+    expect(store().size).toBe(MAX_KEYS - 1_000 + 1);
+    expect(store().has('stale-0')).toBe(false);
+    expect(store().has('stale-999')).toBe(false);
+    expect(store().has('fresh-0')).toBe(true);
+    expect(store().has(`fresh-${MAX_KEYS - 1_000}`)).toBe(true);
+  });
+
+  it('evicts the soonest-to-expire live keys when nothing has expired', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-01-01T00:00:00.000Z'));
+
+    const options = { limit: 1, windowMs: 60_000 };
+    for (let i = 0; i < MAX_KEYS; i += 1) {
+      rateLimit(`early-${i}`, options);
+    }
+    vi.advanceTimersByTime(10);
+    rateLimit('late', options);
+
+    // One early key made room; the newest window survived.
+    expect(store().size).toBe(MAX_KEYS);
+    expect(store().has('late')).toBe(true);
+    const earlySurvivors = Array.from(store().keys()).filter((key) =>
+      key.startsWith('early-'),
+    ).length;
+    expect(earlySurvivors).toBe(MAX_KEYS - 1);
+  });
+
+  it('holds the map at the cap under a flood of distinct keys', () => {
+    const options = { limit: 1, windowMs: 60_000 };
+    for (let i = 0; i < MAX_KEYS + 100; i += 1) {
+      rateLimit(`flood-${i}`, options);
+    }
+
+    // An attacker rotating source addresses grows the map to the cap, never
+    // past it — this is the bound that keeps the limiter's memory finite.
+    expect(store().size).toBe(MAX_KEYS);
+  });
+
+  it('never evicts the key being counted, and keeps limiting it across a prune', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-01-01T00:00:00.000Z'));
+
+    const options = { limit: 1, windowMs: 60_000 };
+    for (let i = 0; i < MAX_KEYS; i += 1) {
+      rateLimit(`filler-${i}`, options);
+    }
+    vi.advanceTimersByTime(10);
+
+    // This call itself crosses the cap and triggers the prune.
+    expect(rateLimit('active', options).ok).toBe(true);
+    expect(store().has('active')).toBe(true);
+    expect(store().size).toBe(MAX_KEYS);
+
+    // The counter survived its own prune: the second hit is still blocked.
+    const blocked = rateLimit('active', options);
+    expect(blocked.ok).toBe(false);
+    expect(blocked.retryAfterSeconds).toBeGreaterThanOrEqual(1);
+  });
+});
+
 describe('resetRateLimiter', () => {
   it('clears the store so an exhausted key is allowed again', () => {
     const options = { limit: 2, windowMs: WINDOW_MS };
