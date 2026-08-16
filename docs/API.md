@@ -307,9 +307,9 @@ resulting transaction hash here.
 | --- | --- | --- | --- |
 | `rating` | number | yes | Integer, 1–5 inclusive. Non-integers and out-of-range values are rejected. |
 | `comment` | string | yes | Whitespace runs collapsed to single spaces, ASCII control characters stripped, then trimmed. The result must be 1–280 characters. |
-| `wallet` | string \| null | no | Must match `^G[A-Z2-7]{55}$` when present. Absent, `null`, or a blank/whitespace-only string is treated as not supplied and stored as `null`. |
+| `wallet` | string \| null | on-chain only | Must match `^G[A-Z2-7]{55}$` when present. **Required when `onChain` is `true` and a `txHash` was supplied** — the ownership check below is only as strong as the wallet it is given, so a hash-backed claim with no wallet is a 422 (`Wallet is required when onChain is true.`), not a downgrade. Otherwise optional: absent, `null`, or a blank/whitespace-only string is treated as not supplied and stored as `null`. |
 | `txHash` | string \| null | no | Must be 64 hex characters. Accepted case-insensitively, **stored lowercase** — the database CHECK and unique index both assume lowercase hex. |
-| `onChain` | boolean | no | Coerced with `Boolean()`, then **downgraded to `false` unless a valid `txHash` was supplied** and that hash verifies on-chain (below). An unproven claim is quietly downgraded, not rejected. |
+| `onChain` | boolean | no | Coerced with `Boolean()`, then **downgraded to `false` unless a valid `txHash` was supplied** and that hash verifies on-chain (below). An unproven claim is quietly downgraded, not rejected — but a hash-backed claim must name its `wallet`, per the row above. |
 
 Unknown keys are ignored: the validated value is rebuilt field by field, so
 nothing caller-supplied reaches the database. The whole body is capped at
@@ -322,17 +322,21 @@ Sixty-four hex characters are free to invent, so a well-formed `txHash` proves
 nothing on its own. When `onChain` is claimed, `src/lib/api/verify-anchor.ts`
 resolves the hash against Horizon (`GET /transactions/{hash}`, 3 s timeout)
 before it is believed. The claim only survives if the transaction **exists**,
-**succeeded** (`successful === true`), and — when a `wallet` was supplied — was
-**sourced from that wallet**. Otherwise `onChain` is set to `false` and the
-`txHash` is cleared, so an invented hash can neither be stored nor occupy the
-one-row-per-transaction unique index.
+**succeeded** (`successful === true`), was **sourced from the claimed wallet**
+(required in the body for exactly this reason), and **invoked the feedback
+contract**: the record's `envelope_xdr` is decoded and its operations walked
+for an `invokeHostFunction` targeting that contract, descending into the inner
+transaction when the envelope is a fee-bump. Otherwise `onChain` is set to
+`false` and the `txHash` is cleared, so an invented hash can neither be stored
+nor occupy the one-row-per-transaction unique index.
 
 | Verdict | Meaning |
 | --- | --- |
 | `not_found` | Horizon has no such transaction. Retried once after 1.5 s first, because Horizon ingests closed ledgers on its own schedule and can lag the RPC the client submitted through. |
 | `failed` | Included in a ledger but unsuccessful — an anchor of nothing. |
 | `wrong_account` | Real transaction, different source account. Stops a public hash being replayed as your own. |
-| `unavailable` | Horizon timed out, errored, or answered something unparseable. Deliberately distinct from `not_found`: Horizon being down is not evidence against the user. |
+| `wrong_contract` | Real, successful transaction that never invoked the feedback contract — a harvested payment hash proves nothing about feedback. |
+| `unavailable` | Horizon timed out, errored, or answered something unparseable — including an envelope that cannot be decoded, which is no answer rather than a pass. Deliberately distinct from `not_found`: Horizon being down is not evidence against the user. |
 
 The submission is still stored in every case — the feedback is real, only the
 badge is unearned. Each negative verdict is logged as `anchor.unverified`, and
@@ -408,7 +412,7 @@ the rating, and the read path below exposes a bare count.
 | --- | --- | --- | --- |
 | `name` | string | yes | Whitespace runs collapsed to single spaces, ASCII control characters stripped, then trimmed. The result must be 1–80 characters (`MAX_NAME_LENGTH`). Message: `Name must be 1–80 characters.` |
 | `email` | string | yes | Trimmed and **lowercased**, then checked against a deliberately loose shape — something, an `@`, a dotted host (`^[^@\s]+@[^@\s]+\.[^@\s]+$`) — and a 254-character ceiling, the longest address SMTP permits. Message: `Email must be a valid address.` |
-| `wallet` | string | yes | Must match `^G[A-Z2-7]{55}$`. **Required here**, unlike on feedback: the programme is keyed to a wallet. Message: `Wallet must be a valid Stellar account id (G…).` |
+| `wallet` | string | yes | Must match `^G[A-Z2-7]{55}$`. **Required here** unconditionally, unlike on feedback (where it is required only for an on-chain claim): the programme is keyed to a wallet. Message: `Wallet must be a valid Stellar account id (G…).` |
 | `rating` | number \| null | no | When supplied: an integer, 1–5 inclusive. Absent, `null`, or a blank/whitespace-only string is treated as not supplied and stored as `null`. Message: `Rating must be an integer between 1 and 5.` |
 | `note` | string \| null | no | Normalised exactly like a feedback comment — the two are free text from the same form — then 1–500 characters (`MAX_NOTE_LENGTH`). Absent, `null` or blank is stored as `null`. Message: `Note must be 1–500 characters.` |
 
