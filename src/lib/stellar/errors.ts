@@ -1,11 +1,32 @@
 /**
+ * Thrown when a submission times out with the outcome unknown: Horizon can
+ * still apply the transaction after the connection died, so "failed" would be
+ * a lie and an invitation to double-pay. Carries the client-computed hash so
+ * the UI can link the explorer instead of asking the user to retry blind.
+ */
+export class SubmitTimeoutError extends Error {
+  constructor(public readonly hash: string) {
+    super(
+      'Submission timed out — the payment may still have gone through. Check the explorer before sending again.',
+    );
+    this.name = 'SubmitTimeoutError';
+  }
+}
+
+/**
  * Turn a thrown wallet/Horizon error into a short, human-readable message.
  *
  * Two failure shapes dominate this dApp: the user declining the signature in
  * their wallet, and Horizon rejecting the submission with structured
- * `result_codes`. Everything else falls back to the raw message.
+ * `result_codes`. A {@link SubmitTimeoutError} keeps its own copy — its
+ * outcome is unresolved, not failed. Everything else falls back to the raw
+ * message.
  */
 export function describeError(err: unknown): string {
+  if (err instanceof SubmitTimeoutError) {
+    return err.message;
+  }
+
   const msg = errorMessage(err);
   if (/reject|denied|declined|cancel/i.test(msg)) {
     return 'You declined the signature in your wallet.';
