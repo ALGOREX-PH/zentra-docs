@@ -5,10 +5,8 @@ import { useWallet } from '@/components/app/wallet-provider';
 import { truncateAddress } from '@/lib/stellar/format';
 import { getKit, type ISupportedWallet } from '@/lib/stellar/kit';
 import { stellar } from '@/config/stellar';
+import { focusRing } from '@/lib/ui';
 import { cn } from '@/lib/cn';
-
-const focusRing =
-  'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan';
 
 /** Everything inside the dialog a keyboard can reach, in document order. */
 const FOCUSABLE = 'a[href], button:not([disabled])';
