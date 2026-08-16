@@ -8,6 +8,8 @@ import {
   pollEvents,
 } from '@/lib/stellar/action-log';
 import { stellar } from '@/config/stellar';
+import { contractsConfigured } from '@/config/contract';
+import { activeProfile } from '@/config/network';
 import { truncateAddress } from '@/lib/stellar/format';
 import { HudPanel, Eyebrow } from '@/components/landing/primitives';
 import { LIVE_POLL_MS } from '@/config/app';
@@ -72,11 +74,17 @@ export function ActionFeed({ refreshSignal = 0 }: { refreshSignal?: number }) {
     }
   }, []);
 
+  // Both effects are inert on a network with no deployed contracts: every
+  // seed and every tick would be a simulateRead against an empty contract id,
+  // failing in a way nobody could diagnose. `contractsConfigured` is a module
+  // constant, so these guards never change between renders.
   useEffect(() => {
+    if (!contractsConfigured) return;
     void seed();
   }, [seed, refreshSignal]);
 
   useEffect(() => {
+    if (!contractsConfigured) return;
     const id = setInterval(async () => {
       // A hidden tab polls for nobody: skip the tick rather than hit the RPC
       // every six seconds behind a closed laptop lid. The cursor is untouched,
@@ -120,6 +128,25 @@ export function ActionFeed({ refreshSignal = 0 }: { refreshSignal?: number }) {
     }, LIVE_POLL_MS);
     return () => clearInterval(id);
   }, [merge, seed]);
+
+  // Stated rather than skipped: an empty frame would read as "no activity",
+  // which is a different claim from "this network has nothing deployed to
+  // read". Placed after the hooks — the constant never changes at runtime, so
+  // the hook order is stable.
+  if (!contractsConfigured) {
+    return (
+      <HudPanel accent="cyan">
+        <div className="p-5 sm:p-6">
+          <Eyebrow accent="cyan">LIVE ON-CHAIN FEED</Eyebrow>
+          <p className="font-mono text-sm text-muted">
+            Contracts are not configured for {activeProfile.label} yet, so
+            there is no feed to read. See docs/MAINNET.md for the deployment
+            checklist.
+          </p>
+        </div>
+      </HudPanel>
+    );
+  }
 
   return (
     <HudPanel accent="cyan">
