@@ -9,7 +9,7 @@ members = [
 ]
 
 [workspace.dependencies]
-soroban-sdk = "26.1.1"
+soroban-sdk = "27.0.6"
 
 # Shared by every contract. Profiles are only honored at the workspace root;
 # cargo ignores [profile.*] sections in member manifests.
