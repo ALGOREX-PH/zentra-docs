@@ -115,24 +115,49 @@ export const POST = route('sponsor.bump', async (request, { requestId }) => {
     throw forbidden(`Fee sponsorship refused: ${decision.reason}.`);
   }
 
+  // The budget ledger runs in one of two modes, and every branch below is a
+  // deliberate decision, not an accident of ordering. In ENFORCE mode
+  // (SPONSOR_BUDGET_ENFORCE=true) the ledger is a solvency control: a busted
+  // ceiling is a 403, and a ledger outage is a 503 — signing bumps with the
+  // accounting blind would let an outage become an unmetered spend. In SHADOW
+  // mode the ledger is advisory — its verdicts are recorded and never acted on
+  // — so neither a busted ceiling nor an outage may cost the caller anything:
+  // both are logged and the bump proceeds. In particular, a ledger outage in
+  // shadow mode must NOT 503, or the observability tooling could take down the
+  // very feature it exists to watch. `sponsor.refused` is emitted only when a
+  // request is actually refused, so counting that event counts real refusals.
   const charge = sponsorshipCharge(xdr);
   const budget = await reserveSponsorBudget(charge);
   if (!budget.ok) {
-    const { reason } = budget;
-    refused(requestId, reason);
-    if (reason === 'ledger_unavailable') {
-      log('error', 'sponsor.ledger_unavailable', { requestId, err: budget.error });
-      throw upstreamUnavailable('Fee sponsorship accounting is unavailable.');
-    }
-    log('warn', 'sponsor.budget_exceeded', {
-      requestId,
-      reason,
-      sourceAccount: charge.sourceAccount,
-      feeStroops: charge.feeStroops,
-      enforced: sponsorBudgetEnforced(),
-    });
-    if (sponsorBudgetEnforced()) {
-      throw forbidden(`Fee sponsorship refused: ${reason}.`);
+    const enforced = sponsorBudgetEnforced();
+    if (budget.reason === 'ledger_unavailable') {
+      // Error-level in both modes — an accounting outage always needs an
+      // operator — but only enforce mode passes the outage on to the caller.
+      log('error', 'sponsor.ledger_unavailable', { requestId, enforced, err: budget.error });
+      if (enforced) {
+        refused(requestId, budget.reason);
+        throw upstreamUnavailable('Fee sponsorship accounting is unavailable.');
+      }
+    } else if (enforced) {
+      log('warn', 'sponsor.budget_exceeded', {
+        requestId,
+        reason: budget.reason,
+        sourceAccount: charge.sourceAccount,
+        feeStroops: charge.feeStroops,
+      });
+      refused(requestId, budget.reason);
+      throw forbidden(`Fee sponsorship refused: ${budget.reason}.`);
+    } else {
+      // A distinct event rather than `sponsor.budget_exceeded`: nothing is
+      // refused here. This is the shadow-mode signal for sizing the ceilings
+      // before enforcement is switched on, and it must stay tellable apart
+      // from a refusal when the two are counted.
+      log('warn', 'sponsor.budget_shadow_exceeded', {
+        requestId,
+        reason: budget.reason,
+        sourceAccount: charge.sourceAccount,
+        feeStroops: charge.feeStroops,
+      });
     }
   }
 
