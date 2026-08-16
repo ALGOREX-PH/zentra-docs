@@ -109,6 +109,7 @@ const MAX_EMAIL_LENGTH = 254;
 const FACET = /^[A-Za-z0-9_.-]+$/;
 
 /** ASCII control characters, which have no business in a stored comment. */
+// biome-ignore lint/suspicious/noControlCharactersInRegex: matching control characters is this regex's whole job — it strips them from stored comments.
 const CONTROL_CHARACTERS = /[\u0000-\u001f\u007f]/g;
 
 /** Whether `value` is a well-formed Stellar account id (`G…`, 56 characters). */

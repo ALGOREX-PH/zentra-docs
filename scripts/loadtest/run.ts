@@ -732,7 +732,6 @@ async function main(argv: readonly string[], env: Env): Promise<number> {
   const { config, outDir } = run;
   const verbose = parsed.verbose;
   const startedAtMs = Date.now();
-  const startedAt = new Date(startedAtMs).toISOString();
   const notes: string[] = [];
 
   process.stdout.write(

@@ -7,6 +7,7 @@ import {
   TransactionBuilder,
   xdr,
 } from '@stellar/stellar-sdk';
+// biome-ignore lint/style/useNodejsImportProtocol: bundled for the browser (client components import this module); the bare specifier resolves to the bundler's Buffer polyfill, node:buffer would not.
 import { Buffer } from 'buffer';
 import { actionLog } from '@/config/contract';
 import { stellar } from '@/config/stellar';

@@ -14,7 +14,7 @@ import { Eyebrow, HudPanel } from '@/components/landing/primitives';
  * shown because it can leak internals; `error.digest` is the safe, stable
  * reference a user can quote in a bug report.
  */
-export default function Error({
+export default function RouteError({
   error,
   reset,
 }: {

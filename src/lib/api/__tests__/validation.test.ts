@@ -648,7 +648,7 @@ describe('parseSearchQuery', () => {
   });
 
   it('refuses more tags than the ceiling allows', () => {
-    const tag = Array.from({ length: MAX_TAGS + 1 }, (_v, i) => 'tag' + i).join(',');
+    const tag = Array.from({ length: MAX_TAGS + 1 }, (_v, i) => `tag${i}`).join(',');
 
     expect(refusal({ query: 'x', tag }).details?.tag).toBeDefined();
   });
