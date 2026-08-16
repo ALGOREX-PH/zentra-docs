@@ -3,8 +3,9 @@ use super::*;
 use soroban_sdk::{
     contract, contractimpl,
     testutils::{Address as _, Events as _},
+    vec,
     xdr::{ScErrorCode, ScErrorType},
-    Address, Env, Error as SdkError, InvokeError, String,
+    Address, Env, Error as SdkError, Event as _, InvokeError, String,
 };
 
 // A stand-in reputation contract: every `bump` returns an incrementing counter,
@@ -135,6 +136,64 @@ fn record_degrades_when_reputation_rejects() {
 }
 
 #[test]
+fn accepts_max_length_message_and_rejects_one_over() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let client = setup(&env);
+    let author = Address::generate(&env);
+
+    // The budget is bytes (UTF-8): exactly MAX_MESSAGE_BYTES is accepted, one
+    // more byte is rejected.
+    let max = [b'a'; MAX_MESSAGE_BYTES as usize];
+    let over = [b'a'; MAX_MESSAGE_BYTES as usize + 1];
+    let max_msg = String::from_str(&env, core::str::from_utf8(&max).unwrap());
+    let over_msg = String::from_str(&env, core::str::from_utf8(&over).unwrap());
+
+    assert_eq!(client.record(&author, &max_msg), 0);
+    assert_eq!(
+        client.try_record(&author, &over_msg),
+        Err(Ok(Error::MessageTooLong))
+    );
+    assert_eq!(client.get_count(), 1);
+}
+
+#[test]
+fn get_entry_returns_none_for_missing_index() {
+    let env = Env::default();
+    let client = setup(&env);
+
+    // `Entry` is not `Debug`/`PartialEq` (house style keeps `contracttype`
+    // structs to `Clone`), so the missing case is matched rather than compared.
+    assert!(client.get_entry(&99).is_none());
+}
+
+// Integration against the REAL reputation crate rather than a mock: wire both
+// contracts the way deploy.sh does and prove the cross-contract bump lands.
+#[test]
+fn records_against_real_reputation_contract() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let admin = Address::generate(&env);
+    let reputation_id = env.register(zentra_reputation::Reputation, (admin,));
+    let log_id = env.register(ActionLog, (reputation_id.clone(),));
+    let client = ActionLogClient::new(&env, &log_id);
+    let reputation = zentra_reputation::ReputationClient::new(&env, &reputation_id);
+
+    // Authorize the log as the reputation's registered logger, as deploy.sh does.
+    reputation.set_logger(&log_id);
+
+    let author = Address::generate(&env);
+    client.record(&author, &String::from_str(&env, "real bump"));
+    assert_eq!(client.get_entry(&0).unwrap().score, 1);
+    assert_eq!(reputation.score_of(&author), 1);
+
+    client.record(&author, &String::from_str(&env, "again"));
+    assert_eq!(client.get_entry(&1).unwrap().score, 2);
+    assert_eq!(reputation.score_of(&author), 2);
+}
+
+#[test]
 fn recent_is_newest_first() {
     let env = Env::default();
     env.mock_all_auths();
@@ -259,7 +318,24 @@ fn emits_recorded_event() {
     let author = Address::generate(&env);
 
     client.record(&author, &String::from_str(&env, "hi"));
-    assert_eq!(env.events().all().events().len(), 1);
+    let recorded = Recorded {
+        index: 0,
+        author: author.clone(),
+        message: String::from_str(&env, "hi"),
+        ledger: env.ledger().sequence(),
+        score: 1,
+    };
+    assert_eq!(
+        env.events().all(),
+        vec![
+            &env,
+            (
+                client.address.clone(),
+                recorded.topics(&env),
+                recorded.data(&env)
+            )
+        ]
+    );
 }
 
 // Pins the hand-maintained `ReputationError` mirror to the real reputation
