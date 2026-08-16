@@ -20,7 +20,7 @@ import { log } from '@/lib/api/logger';
 import { moderateComment } from '@/lib/api/moderation';
 import { requireSameOrigin } from '@/lib/api/origin';
 import { countRequest, enforceRateLimit, type RateLimitOptions } from '@/lib/api/rate-limit';
-import { json, READ_CACHE_CONTROL, route } from '@/lib/api/route';
+import { json, methodNotAllowed, READ_CACHE_CONTROL, route } from '@/lib/api/route';
 import { parseFeedbackInput, readJsonBody, type FeedbackInput } from '@/lib/api/validation';
 import { verifyAnchor } from '@/lib/api/verify-anchor';
 import { query, sql } from '@/lib/db';
@@ -100,6 +100,9 @@ export const POST = route('feedback.create', async (request, { requestId }) => {
 
   return json({ ok: true }, { status: 201, headers });
 });
+
+/** Everything else is a 405 in the standard envelope, not Next's bare default. */
+export const { PUT, PATCH, DELETE } = methodNotAllowed(['GET', 'POST']);
 
 /**
  * Resolve an `onChain` claim against the ledger before it is believed.
