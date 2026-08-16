@@ -303,16 +303,79 @@ describe('parseFeedbackInput', () => {
     expect(err.code).toBe('bad_request');
   });
 
-  it('keeps onChain true when a valid hash backs it', () => {
+  it('keeps onChain true when a valid hash and wallet back it', () => {
     const result = parseFeedbackInput({
       rating: 5,
       comment: 'Anchored.',
       onChain: true,
+      wallet: VALID_WALLET,
       txHash: VALID_TX_HASH,
     });
 
     expect(result.onChain).toBe(true);
     expect(result.txHash).toBe(VALID_TX_HASH);
+    expect(result.wallet).toBe(VALID_WALLET);
+  });
+
+  it('rejects an on-chain claim that names no wallet', () => {
+    // Without a wallet the ownership check downstream has nothing to check
+    // against, so any harvested public hash would earn the badge (BE-01).
+    for (const wallet of [undefined, null, '', '   ']) {
+      let caught: unknown;
+      try {
+        parseFeedbackInput({
+          rating: 5,
+          comment: 'Anchored.',
+          onChain: true,
+          wallet,
+          txHash: VALID_TX_HASH,
+        });
+      } catch (error) {
+        caught = error;
+      }
+
+      const err = caught as ApiError;
+      expect(err.status).toBe(422);
+      expect(err.code).toBe('validation_failed');
+      expect(err.details?.wallet).toBe('Wallet is required when onChain is true.');
+    }
+  });
+
+  it('reports the missing wallet alongside an invalid hash in one 422', () => {
+    let caught: unknown;
+    try {
+      parseFeedbackInput({
+        rating: 5,
+        comment: 'Anchored?',
+        onChain: true,
+        txHash: 'not-a-transaction-hash',
+      });
+    } catch (error) {
+      caught = error;
+    }
+
+    const err = caught as ApiError;
+    expect(err.status).toBe(422);
+    expect(Object.keys(err.details ?? {}).sort()).toEqual(['txHash', 'wallet']);
+  });
+
+  it('keeps the malformed-wallet message when an on-chain claim names a bad wallet', () => {
+    let caught: unknown;
+    try {
+      parseFeedbackInput({
+        rating: 5,
+        comment: 'Anchored.',
+        onChain: true,
+        wallet: 'GABC',
+        txHash: VALID_TX_HASH,
+      });
+    } catch (error) {
+      caught = error;
+    }
+
+    const err = caught as ApiError;
+    expect(err.status).toBe(422);
+    expect(err.details?.wallet).toBe('Wallet must be a valid Stellar account id (G…).');
   });
 
   it('downgrades onChain to false when the hash is null', () => {

@@ -161,6 +161,17 @@ export function parseFeedbackInput(raw: unknown): FeedbackInput {
     }
   }
 
+  // An on-chain claim is proven by the route's Horizon lookup, and that
+  // lookup's ownership check is only as strong as the wallet it is given: with
+  // no wallet it would confirm merely that *someone's* transaction exists, so
+  // any harvested public hash could earn the badge. A claim backed by a hash
+  // must therefore also name the wallet that made it — required here, proven
+  // against the ledger by the route. A wallet that is present but malformed
+  // already carries its own message above and keeps it.
+  if (Boolean(body.onChain) && isPresent(body.txHash) && !isPresent(body.wallet)) {
+    details.wallet = 'Wallet is required when onChain is true.';
+  }
+
   if (Object.keys(details).length > 0) {
     throw validationFailed(details);
   }
