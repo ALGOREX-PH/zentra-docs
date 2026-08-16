@@ -39,3 +39,30 @@ This is a **code-quality** audit against best practices — distinct from `docs/
 | BE-13 | LOW | `db/schema.sql`, migration 003 | Stale header comments, misplaced `sponsor_spend` table, indexes that no longer match live query patterns (`NOT hidden` filter vs partial index; two indexes serve no query). → Refresh comments; drop/replace drifted indexes; bring 003 up to the 001/002 conventions. | S |
 | BE-14 | LOW | `src/lib/db.ts:18,40` | Client memoised forever ignores `DATABASE_URL` rotation — contradicting sponsor.ts's own per-call rotation philosophy. → Cache keyed on the URL string. | S |
 
+---
+
+## 2. dApp surface — findings
+
+| ID | Sev | Where | Problem → Fix | Effort |
+| --- | --- | --- | --- | --- |
+| DA-01 | HIGH | `feedback-form.tsx:43-71` | On-chain-then-API dual write: if the API POST fails, the tx hash is discarded and a retry re-signs a **second** on-chain transaction for one intent. → Keep the settled hash in state so retry resumes at the API step; surface the hash on partial failure. | M |
+| DA-02 | HIGH | `src/lib/stellar/payment.ts:40-44`, `send-form.tsx:30` | No Horizon-timeout handling (a 504-ed tx can still settle → UI says "failed") and no in-flight guard on submit → natural retry = double payment. → On timeout-shaped errors poll for the client-side `tx.hash()` before declaring failure; add `if (inFlight) return`. | M |
+| DA-03 | HIGH | `action-feed.tsx:69-85` | Poll cursor stalls permanently behind a swallow-all catch once `startLedger` falls out of RPC retention (sleeping laptop); overlapping ticks can move the cursor backwards. → Count consecutive failures and reseed after N; skip a tick while one is in flight. | M |
+| DA-04 | MED | `src/lib/stellar/action-log.ts:109-127` | `submitInvoke` throws generic strings, drops diagnostics/hash on failure, and lets `TRY_AGAIN_LATER`/`DUPLICATE` burn the 30s poll. → Map each send status; include hash in thrown errors; decode `resultXdr`. | M |
+| DA-05 | MED | `action-log.ts:139-144` | `pollEvents` has no topic filter and blind-casts every event — a second event type would inject garbage entries. → Add `topics` filter; validate shape before `toEntry`. | S |
+| DA-06 | MED | `action-log.ts:81`, `feedback.ts:62`, `proofs.ts:91` | Chain data blind-cast while API data is runtime-validated — inconsistent with the codebase's own standard. → One `isRawEntry`-style guard per decoded shape. | S |
+| DA-07 | MED | `tx-status.tsx:47-49,105` | "Payment settled" hardcoded into the shared status component — wrong copy (visible + aria-live) for contract invokes. → Labels prop with payment defaults. | S |
+| DA-08 | MED | `wallet-provider.tsx:79-108` | Persisted address trusted without re-verifying the kit's active account (stale-account signing); `connect` swallows all failures so ConnectButton reverse-engineers outcomes via a ref. → Verify address after `setWallet` on mount; typed connect outcome. | M |
+| DA-09 | MED | send/record/feedback forms | The build→sign→submit pipeline is copy-pasted three times and has already diverged (feedback form skips TxStatus and its announcements). → Extract `useTxPipeline(build, submit)` owning TxState, in-flight guard, error mapping. | M |
+| DA-10 | MED | `join-form.tsx:674` vs `feedback-form.tsx:99`; `join-progress.tsx` vs `metrics-stats.tsx` | Star-rating block duplicated character-for-character; `isOnboardCount` duplicated; the 50-signup goal and 6s poll cadence each defined twice. → Extract `<StarRating>`; move guard + constants to shared modules. | S |
+| DA-11 | MED | `balance-card.tsx:105-118`, board/metrics reads | Mainnet guards exist but nothing uses them: Friendbot UI renders unconditionally; nothing checks `contractsConfigured` before contract reads. → Gate Friendbot on `hasFriendbot`, reads on `contractsConfigured`. | S |
+| DA-12 | MED | balance-card, action-feed, feedback-summary | Async status changes (funding outcome, errors, stale banners) not announced to screen readers, unlike the tx-status pattern. → Reuse the pre-mounted live-region pattern. | S |
+| DA-13 | MED | `join-form.tsx` (769 lines) | Monolith whose best-testable logic (wallet-input validation) is module-private. → Move validators to `src/lib/stellar/wallet-input.ts`; split `InviteLink` + success panel. | M |
+| DA-14 | MED | `get-started.tsx:224-264` + `balance-card.tsx:32-59` | Two components independently poll the same balance; no poll pauses when the tab is hidden. → `useXlmBalance(address)` hook; visibility check in intervals. | M |
+| DA-15 | MED | `src/lib/stellar/` | Only the two trivial pure modules are tested; every module that talks to the chain has zero tests. → See test-debt phase. | L |
+| DA-16 | LOW | `action-log.ts:68`, `types.ts:27` | Dead exports: `scoreOf`, `PaymentRequest`. → Delete. | S |
+| DA-17 | LOW | 10 files | `focusRing` constant declared identically in ten components. → One export. | S |
+| DA-18 | LOW | wallet-provider, record-form, tx-status | Async `disconnect` rejection unhandled; `/200` hardcoded next to a `MAX` constant; hardcoded `#22c55e` instead of the theme token. → Small fixes. | S |
+| DA-19 | LOW | `payment.ts:24` et al. | Static `BASE_FEE` everywhere — fine on testnet, strands txs under mainnet surge pricing. → `fetchBaseFee()` or config multiplier before cutover. | S |
+
+
