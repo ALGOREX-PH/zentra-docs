@@ -119,8 +119,7 @@ function stubRpc(overrides: Partial<LoadTestRpc> = {}): LoadTestRpc {
     getAccount: async (address) => new Account(address, '42'),
     simulateTransaction: async () => simSuccess(),
     sendTransaction: async () => sendResult('PENDING'),
-    getTransaction: async () =>
-      txStatus(SorobanRpc.Api.GetTransactionStatus.SUCCESS, 1_009),
+    getTransaction: async () => txStatus(SorobanRpc.Api.GetTransactionStatus.SUCCESS, 1_009),
     ...overrides,
   };
 }
@@ -196,8 +195,7 @@ describe('recordOnce', () => {
       makeAccount(),
       makeConfig(),
       stubRpc({
-        simulateTransaction: async () =>
-          simError('HostError: Error(Contract, #2) MessageTooLong'),
+        simulateTransaction: async () => simError('HostError: Error(Contract, #2) MessageTooLong'),
       }),
     );
 
@@ -337,8 +335,7 @@ describe('recordOnce', () => {
       makeAccount(),
       makeConfig(),
       stubRpc({
-        getTransaction: async () =>
-          txStatus(SorobanRpc.Api.GetTransactionStatus.FAILED, 1_011),
+        getTransaction: async () => txStatus(SorobanRpc.Api.GetTransactionStatus.FAILED, 1_011),
       }),
     );
 

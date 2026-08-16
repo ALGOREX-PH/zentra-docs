@@ -161,7 +161,7 @@ export function summariseLatency(samples: readonly number[]): LatencySummary {
  */
 function tallyFailuresByStage(
   funding: FundingOutcome,
-  attempts: readonly RecordAttempt[]
+  attempts: readonly RecordAttempt[],
 ): Record<FailureStage, number> {
   const byStage = Object.fromEntries(FAILURE_STAGES.map((stage) => [stage, 0])) as Record<
     FailureStage,
@@ -197,7 +197,7 @@ export function buildReport(input: ReportInput): LoadTestReport {
 
   if (!Number.isFinite(startedAtMs) || !Number.isFinite(finishedAtMs)) {
     throw new TypeError(
-      'buildReport: startedAtMs and finishedAtMs must be finite epoch milliseconds'
+      'buildReport: startedAtMs and finishedAtMs must be finite epoch milliseconds',
     );
   }
 
@@ -214,7 +214,7 @@ export function buildReport(input: ReportInput): LoadTestReport {
   // not a fast write, and letting it into the distribution drags p50 down
   // exactly when the run went worst — the opposite of what the tail is for.
   const latency = summariseLatency(
-    attempts.filter((attempt) => attempt.ok).map((attempt) => attempt.latencyMs)
+    attempts.filter((attempt) => attempt.ok).map((attempt) => attempt.latencyMs),
   );
 
   const notes = [...(input.notes ?? [])];

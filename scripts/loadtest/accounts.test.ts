@@ -305,7 +305,10 @@ describe('provisionAccounts — retry classification', () => {
     // What a retry after a timeout looks like: the first attempt did land, and
     // the account this reports on is funded and ready to sign.
     const { fetch } = recordingFetch(async () =>
-      respond(400, JSON.stringify({ extras: { result_codes: { operations: ['op_already_exists'] } } })),
+      respond(
+        400,
+        JSON.stringify({ extras: { result_codes: { operations: ['op_already_exists'] } } }),
+      ),
     );
 
     const outcome = await provisionAccounts({ ...OPTIONS }, { fetch });
@@ -333,7 +336,14 @@ describe('provisionAccounts — retry classification', () => {
     const { sleep, delays } = recordingSleep();
 
     await provisionAccounts(
-      { ...OPTIONS, accounts: 8, concurrency: 4, maxAttempts: 3, baseBackoffMs: 200, maxBackoffMs: 10_000 },
+      {
+        ...OPTIONS,
+        accounts: 8,
+        concurrency: 4,
+        maxAttempts: 3,
+        baseBackoffMs: 200,
+        maxBackoffMs: 10_000,
+      },
       { fetch, sleep },
     );
 

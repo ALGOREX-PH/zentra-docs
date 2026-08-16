@@ -250,7 +250,7 @@ describe('buildReport', () => {
           ],
         },
         attempts: [ok('GA', 100), failed('GA2', 'confirm'), failed('GA3', 'confirm')],
-      })
+      }),
     );
 
     expect(report.failuresByStage).toEqual({
@@ -265,7 +265,7 @@ describe('buildReport', () => {
 
   it('measures latency over successful records only', () => {
     const report = buildReport(
-      input({ attempts: [ok('GA', 1000), failed('GB', 'submit', 5), ok('GC', 2000)] })
+      input({ attempts: [ok('GA', 1000), failed('GB', 'submit', 5), ok('GC', 2000)] }),
     );
 
     expect(report.latency.count).toBe(report.recordsSucceeded);
@@ -286,7 +286,7 @@ describe('buildReport', () => {
       input({
         attempts: [ok('GA', 100), ok('GB', 100), ok('GC', 100), failed('GD', 'confirm')],
         finishedAtMs: STARTED_MS + 1500,
-      })
+      }),
     );
 
     expect(report.throughputPerSecond).toBe(2);
@@ -313,7 +313,7 @@ describe('buildReport', () => {
     const report = buildReport(
       input({
         reads: { actionLogCountBefore: null, actionLogCountAfter: null, distinctAuthorsSeen: null },
-      })
+      }),
     );
 
     expect(report.actionLogCountBefore).toBeNull();
@@ -343,7 +343,7 @@ describe('buildReport', () => {
     };
 
     expect(() =>
-      buildReport(input({ funding: { funded: [funded('GA')], failures: [bogus] } }))
+      buildReport(input({ funding: { funded: [funded('GA')], failures: [bogus] } })),
     ).toThrow(TypeError);
   });
 });
@@ -377,8 +377,8 @@ describe('renderMarkdown', () => {
             actionLogCountAfter: null,
             distinctAuthorsSeen: null,
           },
-        })
-      )
+        }),
+      ),
     );
 
     expect(md).toContain('| Action log `get_count` before | unknown |');
@@ -393,8 +393,8 @@ describe('renderMarkdown', () => {
       buildReport(
         input({
           reads: { actionLogCountBefore: 0, actionLogCountAfter: 4, distinctAuthorsSeen: 0 },
-        })
-      )
+        }),
+      ),
     );
 
     expect(md).toContain('| Action log `get_count` before | 0 |');
@@ -405,7 +405,7 @@ describe('renderMarkdown', () => {
     const md = renderMarkdown(buildReport(input({ finishedAtMs: STARTED_MS })));
 
     expect(md).toContain(
-      '| Throughput (successful records/s) | unknown (wall-clock duration was not positive) |'
+      '| Throughput (successful records/s) | unknown (wall-clock duration was not positive) |',
     );
     expect(md).not.toContain('| Throughput (successful records/s) | 0 |');
   });
@@ -522,8 +522,8 @@ describe('renderJson', () => {
             actionLogCountAfter: null,
             distinctAuthorsSeen: null,
           },
-        })
-      )
+        }),
+      ),
     );
 
     expect(json).toContain('"distinctAuthorsSeen": null');

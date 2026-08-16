@@ -273,23 +273,25 @@ function buildRecordTx(
   message: xdr.ScVal,
   config: LoadTestConfig,
 ): Transaction {
-  return new TransactionBuilder(source, {
-    fee: BASE_FEE,
-    networkPassphrase: config.networkPassphrase,
-  })
-    .addOperation(
-      new Contract(config.actionLogId).call(
-        'record',
-        Address.fromString(author).toScVal(),
-        message,
-      ),
-    )
-    // The ledger-level validity window has to outlive our own deadline. Set it
-    // shorter and a busy network would return `tx_too_late` — a confirmation
-    // failure that reads as the contract's fault — before the deadline we
-    // actually configured could fire and be reported as the timeout it is.
-    .setTimeout(Math.max(30, Math.ceil(config.timeoutMs / 1000) + 30))
-    .build();
+  return (
+    new TransactionBuilder(source, {
+      fee: BASE_FEE,
+      networkPassphrase: config.networkPassphrase,
+    })
+      .addOperation(
+        new Contract(config.actionLogId).call(
+          'record',
+          Address.fromString(author).toScVal(),
+          message,
+        ),
+      )
+      // The ledger-level validity window has to outlive our own deadline. Set it
+      // shorter and a busy network would return `tx_too_late` — a confirmation
+      // failure that reads as the contract's fault — before the deadline we
+      // actually configured could fire and be reported as the timeout it is.
+      .setTimeout(Math.max(30, Math.ceil(config.timeoutMs / 1000) + 30))
+      .build()
+  );
 }
 
 interface Settlement {
